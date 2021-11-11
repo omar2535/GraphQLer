@@ -4,7 +4,7 @@ James
 """
 
 
-def run_sequence_generation(graph):
+def run_sequence_generation(graph, length):
     """
     TODO: 
     """
