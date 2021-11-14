@@ -4,14 +4,24 @@ A stateful GraphQL API fuzzer
 
 ## Setup
 
-**Installing dependencies**
+**Setting up the environment:**
 
 ```sh
-pipenv install
+# Creating the virtual environment
+python3 -m venv env
+
+# Activating the virtual environment
+source env/bin/activate
 ```
 
-**Running the program**
+**Installing dependencies:**
 
 ```sh
-pipenv run python main.py
+(env) pip install -r requirements.txt
+```
+
+**Running the program:**
+
+```sh
+(env) python main.py
 ```
