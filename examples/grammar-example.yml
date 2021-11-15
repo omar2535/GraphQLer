@@ -1,5 +1,14 @@
 # Grammar file based on the graphql API here: https://github.com/bahmutov/todo-graphql-example
 
+DataTypes:
+  Todo:
+    id:
+      type: ID
+    title:
+      type: String
+    completed:
+      type: Boolean
+
 Mutations:
   # createTodo(title: String!completed: Boolean!): Todo
   createTodo:
@@ -47,11 +56,10 @@ Mutations:
       - createTodo
       - createManyTodo
       - updateTodo
-    procudes:
+    produces:
       - name: todo
         type: Todo
     consumes:
       - name: id
         type: ID
         from: Todo
-  
