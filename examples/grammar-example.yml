@@ -1,0 +1,57 @@
+# Grammar file based on the graphql API here: https://github.com/bahmutov/todo-graphql-example
+
+Mutations:
+  # createTodo(title: String!completed: Boolean!): Todo
+  createTodo:
+    depends_on: null
+    produces:
+      - name: todo
+        type: Todo
+    consumes: 
+      - name: title
+        type: String
+      - name: completed
+        type: Boolean
+  # createManyTodo(data: [TodoInput]): [Todo]
+  createManyTodo:
+    depends_on: null
+    produces:
+      - name: todos
+        type: List            # if of type list, then will have subtype
+        sub_type: Todo
+    consumes: 
+      - name: data
+        type: List
+        sub_type: Todo
+  # updateTodo( id: ID! title: String completed: Boolean ): Todo
+  updateTodo:
+    depends_on:
+      - createTodo
+      - createManyTodo
+    produces:
+      - name: todo
+        type: Todo
+    consumes:
+      - name: id
+        type: ID
+        from: Todo           # if method has a depends_on, then consumes will have from fields
+      - name: title
+        type: String
+        from: null
+      - name: completed
+        type: Boolean
+        from: null
+  # removeTodo(id: ID!): Todo
+  removeTodo:
+    depends_on:
+      - createTodo
+      - createManyTodo
+      - updateTodo
+    procudes:
+      - name: todo
+        type: Todo
+    consumes:
+      - name: id
+        type: ID
+        from: Todo
+  
