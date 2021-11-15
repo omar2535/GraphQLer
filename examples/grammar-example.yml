@@ -9,9 +9,25 @@ DataTypes:
     completed:
       type: Boolean
 
+Queries:
+  - name: Todo
+    depends_on:
+      - createTodo
+    produces:
+      - name: id
+        type: ID
+        from: Todo
+  - name: allTodo
+    depends_on:
+      - createTodo
+    produces:
+      - name: todos
+        type: List
+        sub_type: Todo
+
 Mutations:
   # createTodo(title: String!completed: Boolean!): Todo
-  createTodo:
+  - name: createTodo
     depends_on: null
     produces:
       - name: todo
@@ -22,7 +38,7 @@ Mutations:
       - name: completed
         type: Boolean
   # createManyTodo(data: [TodoInput]): [Todo]
-  createManyTodo:
+  - name: createManyTodo
     depends_on: null
     produces:
       - name: todos
@@ -33,7 +49,7 @@ Mutations:
         type: List
         sub_type: Todo
   # updateTodo( id: ID! title: String completed: Boolean ): Todo
-  updateTodo:
+  - name: updateTodo
     depends_on:
       - createTodo
       - createManyTodo
@@ -51,7 +67,7 @@ Mutations:
         type: Boolean
         from: null
   # removeTodo(id: ID!): Todo
-  removeTodo:
+  - name: removeTodo
     depends_on:
       - createTodo
       - createManyTodo

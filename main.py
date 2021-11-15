@@ -8,7 +8,7 @@ from utils.orchestrator import Orchestrator
 
 
 def main(grammar_file_path):
-    graph = GraphParser()
+    graph = GraphParser().generate_dependency_graph(grammar_file_path)
     orchestrator = Orchestrator(graph)
     orchestrator.orchestrate()
 
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     
     print("(+) Starting Graphler program")
     main(grammar_file_path)
-    print("(+) Endine graphler program")
+    print("(+) Ending Graphler program")
