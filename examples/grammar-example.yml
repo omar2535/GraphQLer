@@ -1,13 +1,14 @@
 # Grammar file based on the graphql API here: https://github.com/bahmutov/todo-graphql-example
 
 DataTypes:
-  Todo:
-    id:
-      type: ID
-    title:
-      type: String
-    completed:
-      type: Boolean
+  - name: Todo
+    params:
+      id:
+        type: ID
+      title:
+        type: String
+      completed:
+        type: Boolean
 
 Queries:
   - name: Todo

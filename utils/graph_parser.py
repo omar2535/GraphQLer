@@ -1,6 +1,12 @@
 import yaml
 import networkx as nx
 
+
+# I want to parse the datatypes first,
+# Then from the datatypes in the list, I want to make the nodes
+# THen from the nodes, I want to make the graph
+
+
 class GraphParser:
     
     dependency_graph = nx.DiGraph()
@@ -19,6 +25,7 @@ class GraphParser:
             networkx.DiGraph: Directed graph of methods that depends on each other 
         """
         grammar_contents = self.load_yaml(spec_path)
+        breakpoint()
         self.parse_mutations(grammar_contents)
         self.parse_queries(grammar_contents)
         return self.dependency_graph
@@ -27,6 +34,9 @@ class GraphParser:
     def load_yaml(self, spec_path):
         with open(spec_path, "r") as stream:
             return yaml.safe_load(stream)
+        
+    def parse_datatypes(self, grammar_contents):
+        pass
 
     # parse mutation dependencies
     def parse_mutations(self, grammar_contents):
@@ -48,8 +58,6 @@ class GraphParser:
             self.dependency_graph.add_edge(method['name'], dependency)
 
 
-
-
-# I want to parse the datatypes first,
-# Then from the datatypes in the list, I want to make the nodes
-# THen from the nodes, I want to make the graph
+"""Stub class for datatypes"""
+class DataType(object):
+    pass
