@@ -8,20 +8,20 @@ A stateful GraphQL API fuzzer
 
 ```sh
 # Creating the virtual environment
-python3 -m venv env
+python3 -m venv .env
 
 # Activating the virtual environment
-source env/bin/activate
+source .env/bin/activate
 ```
 
 **Installing dependencies:**
 
 ```sh
-(env) pip install -r requirements.txt
+(.env) pip install -r requirements.txt
 ```
 
 **Running the program:**
 
 ```sh
-(env) python main.py
+(.env) python main.py
 ```
