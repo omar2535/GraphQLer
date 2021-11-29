@@ -20,7 +20,13 @@ source .env/bin/activate
 (.env) pip install -r requirements.txt
 ```
 
-**Running the program:**
+**Setting up pre-commit hooks**
+
+```sh
+(.env) pre-commit install
+```
+
+## Running the program
 
 ```sh
 (.env) python main.py
