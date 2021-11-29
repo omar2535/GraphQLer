@@ -2,7 +2,6 @@
 TODO: Hao
 Return [[valid_seq], [bug_seq]]
 """
-# class GraphQLRequest:
 
 def send_request(request_sequence, endpoint):
     """
@@ -11,22 +10,11 @@ def send_request(request_sequence, endpoint):
     """
     pass
 
-# this is the pseudocode of render
 
-#####
-
-    
-
-def readDictionary(file_path):
-    # read dictionary text file into
-    return 0
-#####
+DEFAULT_DICT = None
 
 
-DEFAULT_DICT = readDictionary("")
-
-
-def getPrevSeq(seq):
+def get_prev_seq(seq):
     """
     get a list of requests except the last one
 
@@ -39,7 +27,7 @@ def getPrevSeq(seq):
         return seq[:-1]
 
 
-def getLastRequest(seq):
+def get_last_request(seq):
     """
     get the last request which need to be concretize
 
@@ -52,44 +40,69 @@ def getLastRequest(seq):
         return seq[len(seq) - 1]
 
 
-def concretizeRequest(req, dict=DEFAULT_DICT, dynamic_dict=None):
+def generate_dynamic_dict(seq):
+    """
+    TODO: generate a dict of expected dyanamic objects
+
+    :param seq: a sequence of requets where every request is concretized
+    :return:    a dict of dynamic objects
+    """
+    dynamic_dict = {}
+    return dynamic_dict
+
+
+def concretize_request(req, dict=DEFAULT_DICT, dynamic_dict=None):
     return
 
 
-def concretizeDynamicRequest(req, dict=DEFAULT_DICT, dynamic_dict=None, dynamic_objects=None):
+def concretize_dynamic_request(req, dict=DEFAULT_DICT, dynamic_dict=None, dynamic_objects=None):
     return
 
 
-def concatReq(seq, req):
+def concat_req(seq, req):
+    """
+    Concat one sequence of requests and last request
+
+    :param seq: list
+    :param req: GraphQLRequest
+    :return:    a list of requests
+    """
+    new_seq = []
+    for r in seq:
+        new_seq.append(r)
+    new_seq.append(req)
+    return new_seq
+
+
+def parse_res(response):
+    # TODO
     return
 
-
-def executeSeq(prev_seq, last_req, dynamic_dict):
+def execute_seq(prev_seq, last_req, dynamic_dict):
     if "require previous results" in last_req:
         require_dynamic_objects = True
         dynamic_objects = []
-    seq = concatReq(prev_seq, last_req)
+
+    seq = concat_req(prev_seq, last_req)
 
     for i, req in enumerate(seq):
         if i != len(seq) - 1:
-            req_res = sendRequest(req)
+            req_res = send_request(req)
+            # check response code
             if require_dynamic_objects:
-                dynamic_objects.append(parseRes(req_res))
+                dynamic_objects.append(parse_res(req_res))
         else:
             if require_dynamic_objects:
-                # Problem:  what if previous requests produce many same time obejcts,
-                # how to choose to fill the last request?
-                # Possible solution: know what to expect(?)
-                new_last_req = concretizeDynamicRequest(
-                    req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects)
-            req_res = sendRequest(req)
+                new_last_req = concretize_dynamic_request(
+                    req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects) # call fuzz engine
+            req_res = send_request(req)
             status_code = getStatusCode(req_res)
-            new_seq = concatReq(prev_seq, new_last_req)
+            new_seq = concat_req(prev_seq, new_last_req)
 
             return status_code, new_seq
 
 
-def renderSeq(seq):
+def render_seq(seq):
     """
     main render function of a sequence
 
@@ -101,15 +114,15 @@ def renderSeq(seq):
     valid_seq = []
     bug_seq = []
 
-    prev_seq = getPrevSeq(seq)
-    last_req = getLastRequest(seq)
+    prev_seq = get_prev_seq(seq)
+    last_req = get_last_request(seq)
 
-    dynamic_dict = generateDynamicDict(prev_seq)
+    dynamic_dict = generate_dynamic_dict(prev_seq)
 
-    last_req_list = concretizeRequest(last_req, dynamic_dict=dynamic_dict)
+    last_req_list = concretize_request(last_req, dynamic_dict=dynamic_dict) # call fuzz engine
 
     for last_req in last_req_list:
-        status_code, new_seq = executeSeq(prev_seq, last_req, dynamic_dict)
+        status_code, new_seq = execute_seq(prev_seq, last_req, dynamic_dict)
         if status_code in range(200, 300):
             valid_seq.append(new_seq)
         if status_code >= 500:
@@ -118,12 +131,6 @@ def renderSeq(seq):
 
 
 if __name__ == "__main__":
-    # res = renderSeq()
-    # print(f"validSeq  : {res[0]}")
-    # print(f"invalidSeq: {res[1]}")
     seq = ['1', '2']
-    print(getLastRequest(seq))
-    print(getPrevSeq(seq))
-
-
-
+    print(get_last_request(seq))
+    print(get_prev_seq(seq))
