@@ -2,6 +2,10 @@
 TODO: Hao
 Return [[valid_seq], [bug_seq]]
 """
+# class GraphQLRequest:
+
+
+from typing_extensions import ParamSpecArgs
 
 def send_request(request_sequence, endpoint):
     """

@@ -6,7 +6,7 @@ from utils.graphql_request import GraphqlRequest
 POSSIBLE_QUERY_TYPES = {"Mutations": 'mutation', "Queries": 'query'}
 
 class GraphParser:
-    
+
     dependency_graph = nx.DiGraph()
 
     # Constructor
@@ -23,13 +23,13 @@ class GraphParser:
             spec_path (String): Path of YAML file of the grammar
 
         Returns:
-            networkx.DiGraph: Directed graph of methods that depends on each other 
+            networkx.DiGraph: Directed graph of methods that depends on each other
         """
         grammar_contents = self.load_yaml(spec_path)
         self.parse_nodes(grammar_contents)
         self.parse_dependencies()
         return self.dependency_graph
-    
+
     # Loads yaml file from path
     def load_yaml(self, spec_path: str) -> None:
         with open(spec_path, "r") as stream:
@@ -66,7 +66,7 @@ class GraphParser:
         
     # Parse depends_on of a method
     def parse_depends_on(self, method) -> None:
-        if method['depends_on'] is None:
+        if method["depends_on"] is None:
             return
-        for dependency in method['depends_on']:
-            self.dependency_graph.add_edge(method['name'], dependency)
+        for dependency in method["depends_on"]:
+            self.dependency_graph.add_edge(method["name"], dependency)
