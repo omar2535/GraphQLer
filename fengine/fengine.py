@@ -4,7 +4,7 @@ Output: Array of query strings (refer to https://towardsdatascience.com/connecti
 """
 
 from fengine.fuzzers.fuzzer import Fuzzer
-from types.graphql_request import GraphqlRequest
+from graphqler_types.graphql_request import GraphqlRequest
 from typing import List
 
 

@@ -1,4 +1,4 @@
-from types.graphql_request import GraphqlRequest
+from graphqler_types.graphql_request import GraphqlRequest
 
 # Base class for all fuzzers
 # All fuzzers extend this class
