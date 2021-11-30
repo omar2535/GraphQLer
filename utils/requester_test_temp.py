@@ -1,5 +1,5 @@
-from types.graphql_data_type import GraphqlDataType
-from types.graphql_request import GraphqlRequest
+from graphqler_types.graphql_data_type import GraphqlDataType
+from graphqler_types.graphql_request import GraphqlRequest
 import requests
 import json
 
