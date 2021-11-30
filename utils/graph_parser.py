@@ -1,7 +1,7 @@
 import yaml
 import networkx as nx
 
-from types.graphql_request import GraphqlRequest
+from graphqler_types.graphql_request import GraphqlRequest
 
 POSSIBLE_QUERY_TYPES = {"Mutations": "mutation", "Queries": "query"}
 
