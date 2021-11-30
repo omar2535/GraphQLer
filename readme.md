@@ -1,8 +1,10 @@
 # GraphQLer
 
-A stateful GraphQL API fuzzer
+[![Lint](https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg)](https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml)
 
-## Setup
+A stateful GraphQL API fuzzer with many inspirations from [Microsoft's RESTler fuzzer!](https://github.com/microsoft/restler-fuzzer)
+
+## ⚒ Setup
 
 **Setting up the environment:**
 
@@ -20,13 +22,13 @@ source .env/bin/activate
 (.env) pip install -r requirements.txt
 ```
 
-**Setting up pre-commit hooks**
+**Setting up pre-commit hooks:**
 
 ```sh
 (.env) pre-commit install
 ```
 
-## Running the program
+## ▶ Running the program
 
 ```sh
 (.env) python main.py
