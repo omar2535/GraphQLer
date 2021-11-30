@@ -1,7 +1,7 @@
 import yaml
 import networkx as nx
 
-from utils.graphql_request import GraphqlRequest
+from types.graphql_request import GraphqlRequest
 
 POSSIBLE_QUERY_TYPES = {"Mutations": "mutation", "Queries": "query"}
 
@@ -51,10 +51,10 @@ class GraphParser:
 
     # Creates a graphql request object from the yaml file
     def parseGraphqlRequestObject(self, gql_request, query_type) -> GraphqlRequest:
-        # TODO: Parse the parameters
         name = gql_request["name"]
         depends_on = gql_request["depends_on"] or []
-        graphql_request = GraphqlRequest(query_type, name, None, depends_on=depends_on)
+        params = gql_request["consumes"]
+        graphql_request = GraphqlRequest(query_type, name, None, depends_on=depends_on, params=params)
         return graphql_request
 
     # Finds a node in the graph
