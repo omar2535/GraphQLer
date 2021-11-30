@@ -3,7 +3,8 @@ import networkx as nx
 
 from utils.graphql_request import GraphqlRequest
 
-POSSIBLE_QUERY_TYPES = {"Mutations": 'mutation', "Queries": 'query'}
+POSSIBLE_QUERY_TYPES = {"Mutations": "mutation", "Queries": "query"}
+
 
 class GraphParser:
 
@@ -13,7 +14,6 @@ class GraphParser:
     def __init__(self):
         pass
 
-        
     def generate_dependency_graph(self, spec_path: str) -> nx.DiGraph:
         """
         Generates dependency graph from grammar specification.
@@ -52,18 +52,18 @@ class GraphParser:
     # Creates a graphql request object from the yaml file
     def parseGraphqlRequestObject(self, gql_request, query_type) -> GraphqlRequest:
         # TODO: Parse the parameters
-        name = gql_request['name']
-        depends_on = gql_request['depends_on'] or []
+        name = gql_request["name"]
+        depends_on = gql_request["depends_on"] or []
         graphql_request = GraphqlRequest(query_type, name, None, depends_on=depends_on)
         return graphql_request
-    
+
     # Finds a node in the graph
     def searchForNodeInGraph(self, method_name) -> GraphqlRequest:
         for node in list(self.dependency_graph.nodes):
             if node.name == method_name:
                 return node
         raise f"Couldn't find node in graph with method name: {method_name}"
-        
+
     # Parse depends_on of a method
     def parse_depends_on(self, method) -> None:
         if method["depends_on"] is None:

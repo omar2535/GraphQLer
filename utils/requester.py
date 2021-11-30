@@ -7,6 +7,7 @@ Return [[valid_seq], [bug_seq]]
 
 from typing_extensions import ParamSpecArgs
 
+
 def send_request(request_sequence, endpoint):
     """
     Sends the requests to the specified endpoint
@@ -82,6 +83,11 @@ def parse_res(response):
     # TODO
     return
 
+
+def get_status_code(req_res):
+    pass
+
+
 def execute_seq(prev_seq, last_req, dynamic_dict):
     if "require previous results" in last_req:
         require_dynamic_objects = True
@@ -98,9 +104,10 @@ def execute_seq(prev_seq, last_req, dynamic_dict):
         else:
             if require_dynamic_objects:
                 new_last_req = concretize_dynamic_request(
-                    req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects) # call fuzz engine
+                    req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects
+                )  # call fuzz engine
             req_res = send_request(req)
-            status_code = getStatusCode(req_res)
+            status_code = get_status_code(req_res)
             new_seq = concat_req(prev_seq, new_last_req)
 
             return status_code, new_seq
@@ -111,7 +118,7 @@ def render_seq(seq):
     main render function of a sequence
 
     :param seq: a sequence of requets where only the last one needs to be concretized
-    :return:    a set of concrete sequences that have valid code (200) 
+    :return:    a set of concrete sequences that have valid code (200)
                 and a set of concrete sequences that have 500 errors
     """
 
@@ -123,7 +130,7 @@ def render_seq(seq):
 
     dynamic_dict = generate_dynamic_dict(prev_seq)
 
-    last_req_list = concretize_request(last_req, dynamic_dict=dynamic_dict) # call fuzz engine
+    last_req_list = concretize_request(last_req, dynamic_dict=dynamic_dict)  # call fuzz engine
 
     for last_req in last_req_list:
         status_code, new_seq = execute_seq(prev_seq, last_req, dynamic_dict)
@@ -135,6 +142,6 @@ def render_seq(seq):
 
 
 if __name__ == "__main__":
-    seq = ['1', '2']
+    seq = ["1", "2"]
     print(get_last_request(seq))
     print(get_prev_seq(seq))
