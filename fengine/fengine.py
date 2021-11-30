@@ -5,15 +5,20 @@ Output: Array of query strings (refer to https://towardsdatascience.com/connecti
 
 from fengine.fuzzers.fuzzer import Fuzzer
 from utils.graphql_request import GraphqlRequest
-from fuzzers.ddos_fuzzer import DDOSFuzzer
-from fuzzers.replace_params_fuzzer import ReplaceParamsFuzzer
-
-
-OPTIONS = {"ddos": DDOSFuzzer, "replace_params": ReplaceParamsFuzzer}
+from typing import List
 
 
 class Fengine(object):
-    @staticmethod
-    def fuzz(fuzz_option: str, request: GraphqlRequest):
-        fuzzer: Fuzzer = OPTIONS[fuzz_option](request)
+    def fuzz(fuzzer: Fuzzer, request: GraphqlRequest) -> List[str]:
+        """
+        Single method to call all fuzzers.
+
+        Args:
+            fuzzer (Fuzzer): Class of the fuzzer to use; IE. DDOSFuzzer, ReplaceParamsFuzzer, ect.
+            request (GraphqlRequest): The GraphqlRequest object to be used
+
+        Returns:
+            List[str]: List of grpahql queries as string
+        """
+        fuzzer = fuzzer(request)
         return fuzzer.create_fuzzed_queries()
