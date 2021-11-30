@@ -5,5 +5,3 @@ class GraphqlRequest:
         self.type = graphqlQueryType
         self.depends_on = depends_on
         self.params = {}
-    
-    
