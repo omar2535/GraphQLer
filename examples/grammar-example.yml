@@ -15,16 +15,13 @@ Queries:
     depends_on:
       - createTodo
     produces:
+      - name: todo
+        type: Todo
+    consumes:
       - name: id
         type: ID
         from: Todo
-  - name: allTodo
-    depends_on:
-      - createTodo
-    produces:
-      - name: todos
-        type: List
-        sub_type: Todo
+
 
 Mutations:
   # createTodo(title: String!completed: Boolean!): Todo
