@@ -1,19 +1,23 @@
+from typing_extensions import ParamSpecArgs
+import requests
+from fengine.fengine import Fengine
+from types.graphql_data_type import GraphqlDataType
+from types.graphql_request import GraphqlRequest
+
 """
 TODO: Hao
 Return [[valid_seq], [bug_seq]]
 """
-# class GraphQLRequest:
+DEFAULT_URL = "http://localhost:3000"
+HEADERS = {}
 
 
-from typing_extensions import ParamSpecArgs
-
-
-def send_request(request_sequence, endpoint):
+def send_request(request_sequence, endpoint=DEFAULT_URL):
     """
     Sends the requests to the specified endpoint
     Return the response (response code and body)
     """
-    pass
+    return requests.post(endpoint, json={"query": request_sequence.body}, headers=HEADERS)
 
 
 DEFAULT_DICT = None
@@ -84,14 +88,10 @@ def parse_res(response):
     return
 
 
-def get_status_code(req_res):
-    pass
-
-
 def execute_seq(prev_seq, last_req, dynamic_dict):
-    if "require previous results" in last_req:
-        require_dynamic_objects = True
-        dynamic_objects = []
+    # if "require previous results" in last_req:
+    #     require_dynamic_objects = True
+    #     dynamic_objects = []
 
     seq = concat_req(prev_seq, last_req)
 
@@ -99,16 +99,15 @@ def execute_seq(prev_seq, last_req, dynamic_dict):
         if i != len(seq) - 1:
             req_res = send_request(req)
             # check response code
-            if require_dynamic_objects:
-                dynamic_objects.append(parse_res(req_res))
+            # if require_dynamic_objects:
+            #     dynamic_objects.append(parse_res(req_res))
         else:
-            if require_dynamic_objects:
-                new_last_req = concretize_dynamic_request(
-                    req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects
-                )  # call fuzz engine
+            # if require_dynamic_objects:
+            #     last_req = concretize_dynamic_request(
+            #         req, dynamic_dict=dynamic_dict, dynamic_objects=dynamic_objects) # call fuzz engine
             req_res = send_request(req)
-            status_code = get_status_code(req_res)
-            new_seq = concat_req(prev_seq, new_last_req)
+            status_code = req_res.status_code
+            new_seq = concat_req(prev_seq, last_req)
 
             return status_code, new_seq
 
