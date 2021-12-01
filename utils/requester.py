@@ -1,8 +1,8 @@
 from typing_extensions import ParamSpecArgs
 import requests
 from fengine.fengine import Fengine
-from types.graphql_data_type import GraphqlDataType
-from types.graphql_request import GraphqlRequest
+from graphqler_types.graphql_data_type import GraphqlDataType
+from graphqler_types.graphql_request import GraphqlRequest
 
 """
 TODO: Hao
