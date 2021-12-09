@@ -56,28 +56,3 @@ class DDOSFuzzer(Fuzzer):
 
         request_param_string = self.remove_last_comma(request_param_string)
         return request_param_string + ")"
-
-    # Adds body to request by recursively generating
-    def generate_body_for_request(self, output_type: str) -> str:
-        if output_type in self.datatypes:
-            request_result_string = self.generate_body_for_datatypes_output_type(output_type)
-        else:
-            raise Exception("Output type not in datatypes!")
-        request_result_string = self.remove_last_comma(request_result_string)
-        return request_result_string
-
-    # Generates a body for the specified datatype
-    def generate_body_for_datatypes_output_type(self, output_type: str) -> str:
-        request_result_string = ""
-        for key, value in self.datatypes[output_type]["params"].items():
-            if self.is_type_primitive(value["type"]):
-                request_result_string += key + ", "
-            else:
-                nested_object = self.generate_body_for_datatypes_output_type(value["type"])
-                request_result_string += f"{{{nested_object}}}"
-        return request_result_string
-
-    # Removes the last comma of the string and white space
-    # IE. lol,5,ok,stuff  -> lol,s,ok,stuff
-    def remove_last_comma(self, input_string: str) -> str:
-        return "".join(input_string.rsplit(",", 1)).strip()
