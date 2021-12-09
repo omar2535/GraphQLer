@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
-            "args": ["examples/grammar-example.yml"]
+            "args": ["examples/grammar-example.yml", "localhost:3000"]
         }
     ]
 }

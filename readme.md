@@ -39,11 +39,11 @@ source .env/bin/activate
 **Testing all files:**
 
 ```sh
-(.env) python -m unittest
+(.env) pytest
 ```
 
 **Testing a single file:**
 
 ```sh
-(.env) python -m unittest test/PATH_TO_YOUR_FILE_HERE
+(.env) pytest -q test_file.py
 ```
