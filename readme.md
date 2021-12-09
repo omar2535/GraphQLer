@@ -33,3 +33,17 @@ source .env/bin/activate
 ```sh
 (.env) python main.py
 ```
+
+## 🧪 Testing
+
+**Testing all files:**
+
+```sh
+(.env) python -m unittest
+```
+
+**Testing a single file:**
+
+```sh
+(.env) python -m unittest test/PATH_TO_YOUR_FILE_HERE
+```
