@@ -1,10 +1,12 @@
 from typing import Dict
-from fengine.fuzzers.defaults import DEFAULT_FUZZABLE
+from fengine.fuzzers.defaults import DEFAULT_FUZZABLE, DEFAULT_PRIMITIVES
 from graphqler_types.graphql_request import GraphqlRequest
 
-# Base class for all fuzzers
-# All fuzzers extend this class
-# Access request param via self.request
+"""
+Base class for all fuzzers
+All fuzzers extend this class
+Access request param via self.request
+"""
 
 
 class Fuzzer:
@@ -31,3 +33,18 @@ class Fuzzer:
             return DEFAULT_FUZZABLE[fuzzable_type]
         else:
             raise "Unsupported type"
+
+    # Checks if type is primitive
+    def is_type_primitive(self, value_type: str) -> bool:
+        """Checks if type is a primitive (case insensitive!)
+
+        Args:
+            value_type (str): type as a string
+
+        Returns:
+            bool: true if type is primitive, false otherwise
+        """
+        for primitive in DEFAULT_PRIMITIVES:
+            if primitive.lower() == value_type.lower():
+                return True
+        return False
