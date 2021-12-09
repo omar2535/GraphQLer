@@ -3,12 +3,18 @@ Graphler - main start
 """
 
 import sys
-from utils.graph_parser import GraphParser
+from utils.grammar_parser import GrammarParser
 from utils.orchestrator import Orchestrator
 
 
 def main(grammar_file_path):
-    graph = GraphParser().generate_dependency_graph(grammar_file_path)
+    grammar_parser = GrammarParser(grammar_file_path)
+    graph = grammar_parser.generate_dependency_graph()
+    datatypes = grammar_parser.get_datatypes()
+
+    # TODO: remove me!
+    print(datatypes)
+
     orchestrator = Orchestrator(graph)
     orchestrator.orchestrate()
 

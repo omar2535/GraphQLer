@@ -1,3 +1,4 @@
+from typing import Dict
 import yaml
 import networkx as nx
 
@@ -6,15 +7,15 @@ from graphqler_types.graphql_request import GraphqlRequest
 POSSIBLE_QUERY_TYPES = {"Mutations": "mutation", "Queries": "query"}
 
 
-class GraphParser:
+class GrammarParser:
 
     dependency_graph = nx.DiGraph()
 
     # Constructor
-    def __init__(self):
-        pass
+    def __init__(self, spec_path: str):
+        self.grammar_contents = self.load_yaml(spec_path)
 
-    def generate_dependency_graph(self, spec_path: str) -> nx.DiGraph:
+    def generate_dependency_graph(self) -> nx.DiGraph:
         """
         Generates dependency graph from grammar specification.
         !Assumes that request method names are unique!
@@ -25,8 +26,7 @@ class GraphParser:
         Returns:
             networkx.DiGraph: Directed graph of methods that depends on each other
         """
-        grammar_contents = self.load_yaml(spec_path)
-        self.parse_nodes(grammar_contents)
+        self.parse_nodes(self.grammar_contents)
         self.parse_dependencies()
         return self.dependency_graph
 
@@ -70,3 +70,7 @@ class GraphParser:
             return
         for dependency in method["depends_on"]:
             self.dependency_graph.add_edge(method["name"], dependency)
+
+    # Get datatypes
+    def get_datatypes(self) -> Dict:
+        return self.grammar_contents["DataTypes"]
