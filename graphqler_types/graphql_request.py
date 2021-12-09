@@ -9,7 +9,7 @@ class GraphqlRequest:
         name: str,
         body: str,
         depends_on: List = [],
-        params: List = [],
+        params: List[GraphqlDataType] = [],
         res: List[GraphqlDataType] = [],
     ):
         self.name = name
