@@ -1,6 +1,7 @@
 from typing import Dict
 from fengine.fuzzers.defaults import DEFAULT_FUZZABLE, DEFAULT_PRIMITIVES
 from graphqler_types.graphql_request import GraphqlRequest
+from random import randint
 
 """
 Base class for all fuzzers
@@ -19,7 +20,7 @@ class Fuzzer:
     def create_fuzzed_queries():
         raise "Didn't override implemented fuzzer!"
 
-    def get_fuzzable(self, fuzzable_type: str):
+    def get_fuzzable(self, fuzzable_type: str, get_random_one: bool = False):
         """
         Gets parameters for fuzzables. First checks in the fuzzables dictionary, then checks
         in the defaults dictionary. If not found in either, then raises an exception.
@@ -28,8 +29,12 @@ class Fuzzer:
             type (str): type to look for in the fuzzable dictionary
         """
         if fuzzable_type in self.fuzzables:
+            if get_random_one:
+                return self.fuzzables[fuzzable_type][randint(0, len(self.fuzzables[fuzzable_type]) - 1)]
             return self.fuzzables[fuzzable_type]
         elif fuzzable_type in DEFAULT_FUZZABLE:
+            if get_random_one:
+                return DEFAULT_FUZZABLE[fuzzable_type][randint(0, len(DEFAULT_FUZZABLE[fuzzable_type]) - 1)]
             return DEFAULT_FUZZABLE[fuzzable_type]
         else:
             raise "Unsupported type"

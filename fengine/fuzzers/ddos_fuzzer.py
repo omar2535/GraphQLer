@@ -52,7 +52,7 @@ class DDOSFuzzer(Fuzzer):
     def generate_params_input(self) -> str:
         request_param_string = "("
         for param in self.request.params:
-            request_param_string += f"{param['name']}: {self.get_fuzzable(param['type'])}, "
+            request_param_string += f"{param['name']}: {self.get_fuzzable(param['type'], get_random_one=True)}, "
 
         request_param_string = self.remove_last_comma(request_param_string)
         return request_param_string + ")"
