@@ -12,3 +12,6 @@ env/
 
 # VScode
 .vscode/settings.json
+
+# Testing
+.coverage
