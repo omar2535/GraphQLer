@@ -32,5 +32,5 @@ if __name__ == "__main__":
     end_point_path = sys.argv[2]
 
     print("(+) Starting Graphler program")
-    main(grammar_file_path)
+    main(grammar_file_path, end_point_path)
     print("(+) Ending Graphler program")

@@ -54,7 +54,8 @@ class GrammarParser:
         name = gql_request["name"]
         depends_on = gql_request["depends_on"] or []
         params = gql_request["consumes"]
-        graphql_request = GraphqlRequest(query_type, name, None, depends_on=depends_on, params=params)
+        res = gql_request["produces"]
+        graphql_request = GraphqlRequest(query_type, name, None, depends_on=depends_on, params=params, res=res)
         return graphql_request
 
     # Finds a node in the graph
