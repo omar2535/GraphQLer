@@ -1,16 +1,20 @@
 import unittest
+from fengine.fuzzers.ddos_fuzzer import DDOSFuzzer
+from graphqler_types.graphql_request import GraphqlRequest
 from utils.grammar_parser import GrammarParser
 
 
 class TestDdosFuzzer(unittest.TestCase):
     def test_fuzzer(self):
-        GRAMMAR_FILE_PATH = "./examples/grammar-example.yml"
+        test_request = GraphqlRequest(
+            graphqlQueryType="mutation",
+            name="createTodo",
+            body=None,
+            params=[{"name": "title", "type": "String"}, {"name": "completed", "type": "Boolean"}],
+        )
 
-        grammar_parser = GrammarParser(GRAMMAR_FILE_PATH)
-        graph = grammar_parser.generate_dependency_graph()
-        datatypes = grammar_parser.get_datatypes()
-
-        print(graph)
-        print(datatypes)
+        ddos_fuzzer = DDOSFuzzer(test_request)
+        ddos_fuzzer.create_fuzzed_queries()
+        breakpoint()
 
         self.assertEqual(1, 1)
