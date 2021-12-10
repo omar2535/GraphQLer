@@ -5,11 +5,12 @@ Output: Array of query strings (refer to https://towardsdatascience.com/connecti
 
 from fengine.fuzzers.fuzzer import Fuzzer
 from graphqler_types.graphql_request import GraphqlRequest
-from typing import List
+from typing import List, Dict
 
 
 class Fengine(object):
-    def fuzz(fuzzer: Fuzzer, request: GraphqlRequest) -> List[str]:
+    @staticmethod
+    def fuzz(fuzzer: Fuzzer, request: GraphqlRequest, datatypes: Dict = {}) -> List[str]:
         """
         Single method to call all fuzzers.
 
@@ -20,5 +21,5 @@ class Fengine(object):
         Returns:
             List[str]: List of grpahql queries as string
         """
-        fuzzer = fuzzer(request)
+        fuzzer = fuzzer(request, datatypes=datatypes)
         return fuzzer.create_fuzzed_queries()
