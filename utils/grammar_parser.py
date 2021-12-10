@@ -65,13 +65,6 @@ class GrammarParser:
                 return node
         raise f"Couldn't find node in graph with method name: {method_name}"
 
-    # Parse depends_on of a method
-    def parse_depends_on(self, method) -> None:
-        if method["depends_on"] is None:
-            return
-        for dependency in method["depends_on"]:
-            self.dependency_graph.add_edge(method["name"], dependency)
-
     # Get datatypes
     def get_datatypes(self) -> Dict:
         return self.grammar_contents["DataTypes"]
