@@ -21,4 +21,7 @@ def test_fuzzer():
     assert 1 == len(queries)
     assert (
         query_string == 'mutation { zero:createTodo(title: "some_string", completed: false){ id, title, completed } }'
+        or query_string == 'mutation { zero:createTodo(title: "", completed: false){ id, title, completed } }'
+        or query_string == 'mutation { zero:createTodo(title: "some_string", completed: true){ id, title, completed } }'
+        or query_string == 'mutation { zero:createTodo(title: "", completed: true){ id, title, completed } }'
     )
