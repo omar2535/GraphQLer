@@ -18,3 +18,6 @@ class GraphqlRequest:
         self.depends_on = depends_on
         self.params = params
         self.res = res
+
+    def set_body(self, body):
+        self.body = body
