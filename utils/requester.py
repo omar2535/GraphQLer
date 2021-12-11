@@ -4,6 +4,8 @@ from typing import List
 from typing import Dict
 from fengine.fengine import Fengine
 from fengine.fuzzers.replace_params_fuzzer import ReplaceParamsFuzzer
+from fengine.fuzzers.ddos_fuzzer import DDOSFuzzer
+from fengine.fuzzers.constants import ALL_FUZEERS
 from graphqler_types.graphql_data_type import GraphqlDataType
 from graphqler_types.graphql_request import GraphqlRequest
 import copy
@@ -124,6 +126,14 @@ class Requester:
                 new_seq = self.concat_req(self.prev_seq, last_req)
                 return status_code, new_seq
 
+    def req_str_to_obj(self, last_req_str_list):
+        last_req_list = []
+        for last_req_str in last_req_str_list:
+            last_req = copy.deepcopy(self.last_req_original)
+            last_req.set_body(body=last_req_str)
+            last_req_list.append(last_req)
+        return last_req_list
+
     def render(self):
         """
         main render function of a sequence
@@ -143,13 +153,26 @@ class Requester:
 
         # last_req_list = Fengine().fuzz(ReplaceParamsFuzzer(self.last_req_original, datatypes=self.datatypes), self.last_req_original)
         last_req_str_list = Fengine.fuzz(ReplaceParamsFuzzer, self.last_req_original, self.datatypes)
-        last_req_list = []
-        # import pdb
-        # pdb.set_trace()
-        for last_req_str in last_req_str_list:
-            last_req = copy.deepcopy(self.last_req_original)
-            last_req.set_body(body=last_req_str)
-            last_req_list.append(last_req)
+        last_req_list = self.req_str_to_obj(last_req_str_list)
+
+        for last_req in last_req_list:
+            status_code, new_seq = self.execute_seq(last_req)
+            if status_code in range(200, 300):
+                valid_seq.append(new_seq)
+            if status_code >= 500:
+                bug_seq.append(new_seq)
+        return [valid_seq, bug_seq]
+
+    def simple_fuzz_render(self, fuzzer):
+        valid_seq = []
+        bug_seq = []
+        requests_str_list = []
+        if "ddos_fuzzer" in fuzzer:
+            requests_str_list.extend(Fengine.fuzz(DDOSFuzzer, self.last_req_original, self.datatypes))
+        if "param_replace_fuzzer" in fuzzer:
+            requests_str_list.extend(Fengine.fuzz(ReplaceParamsFuzzer, self.last_req_original, self.datatypes))
+
+        last_req_list = self.req_str_to_obj(requests_str_list)
 
         for last_req in last_req_list:
             status_code, new_seq = self.execute_seq(last_req)
