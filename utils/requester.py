@@ -178,6 +178,6 @@ class Requester:
             status_code, new_seq = self.execute_seq(last_req)
             if status_code in range(200, 300):
                 valid_seq.append(new_seq)
-            if status_code >= 500:
-                bug_seq.append(new_seq)
+            else:
+                bug_seq.append({"seq": new_seq, "status_code": status_code})
         return [valid_seq, bug_seq]
