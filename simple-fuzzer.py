@@ -7,7 +7,7 @@ from fengine.fuzzers import ddos_fuzzer
 from utils.grammar_parser import GrammarParser
 from utils.orchestrator import Orchestrator
 from utils.requester import Requester
-from fengine.fuzzers.constants import ALL_FUZEERS
+from fengine.constants import POSSIBLE_FUZZERS
 from fengine.fuzzers.ddos_fuzzer import DDOSFuzzer
 from fengine.fuzzers.replace_params_fuzzer import ReplaceParamsFuzzer
 import re
@@ -17,7 +17,7 @@ def parse_fuzzer_arg(fuzzers: str):
     valid_fuzzers = []
     fuzzers = fuzzers.strip().replace(" ", "").split(",")
     for f in fuzzers:
-        if f not in ALL_FUZEERS:
+        if f not in POSSIBLE_FUZZERS.keys():
             # TODO: error handle
             print(f"(-) Error: Fuzzer {f} doesn't exist!")
         else:

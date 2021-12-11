@@ -1,9 +1,11 @@
 # TODO: Omar
 
 from fengine.fuzzers.fuzzer import Fuzzer
-from fengine.fuzzers.constants import DEFAULT_DDOS_NUM
+
+# from fengine.fuzzers.constants import DEFAULT_DDOS_NUM
 from num2words import num2words
 
+DEFAULT_DDOS_NUM = 25
 # DDOS-Fuzzer that is specifically used for query requests
 """
 Example:

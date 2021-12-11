@@ -5,7 +5,7 @@ from typing import Dict
 from fengine.fengine import Fengine
 from fengine.fuzzers.replace_params_fuzzer import ReplaceParamsFuzzer
 from fengine.fuzzers.ddos_fuzzer import DDOSFuzzer
-from fengine.fuzzers.constants import ALL_FUZEERS
+from fengine.constants import POSSIBLE_FUZZERS
 from graphqler_types.graphql_data_type import GraphqlDataType
 from graphqler_types.graphql_request import GraphqlRequest
 import copy
@@ -163,14 +163,16 @@ class Requester:
                 bug_seq.append(new_seq)
         return [valid_seq, bug_seq]
 
-    def simple_fuzz_render(self, fuzzer):
+    def simple_fuzz_render(self, fuzzers):
         valid_seq = []
         bug_seq = []
         requests_str_list = []
-        if "ddos_fuzzer" in fuzzer:
-            requests_str_list.extend(Fengine.fuzz(DDOSFuzzer, self.last_req_original, self.datatypes))
-        if "param_replace_fuzzer" in fuzzer:
-            requests_str_list.extend(Fengine.fuzz(ReplaceParamsFuzzer, self.last_req_original, self.datatypes))
+        for fuzzer in fuzzers:
+            requests_str_list.extend(Fengine.fuzz(POSSIBLE_FUZZERS[fuzzer], self.last_req_original, self.datatypes))
+        # if "ddos_fuzzer" in fuzzers:
+        #     requests_str_list.extend(Fengine.fuzz(DDOSFuzzer, self.last_req_original, self.datatypes))
+        # if "param_replace_fuzzer" in fuzzers:
+        #     requests_str_list.extend(Fengine.fuzz(ReplaceParamsFuzzer, self.last_req_original, self.datatypes))
 
         last_req_list = self.req_str_to_obj(requests_str_list)
 
