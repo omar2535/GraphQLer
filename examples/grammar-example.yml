@@ -35,22 +35,10 @@ Mutations:
         type: String
       - name: completed
         type: Boolean
-  # createManyTodo(data: [TodoInput]): [Todo]
-  - name: createManyTodo
-    depends_on: null
-    produces:
-      - name: todos
-        type: List            # if of type list, then will have subtype
-        sub_type: Todo
-    consumes: 
-      - name: data
-        type: List
-        sub_type: Todo
   # updateTodo( id: ID! title: String completed: Boolean ): Todo
   - name: updateTodo
     depends_on:
       - createTodo
-      - createManyTodo
     produces:
       - name: todo
         type: Todo
@@ -68,7 +56,6 @@ Mutations:
   - name: removeTodo
     depends_on:
       - createTodo
-      - createManyTodo
       - updateTodo
     produces:
       - name: todo
