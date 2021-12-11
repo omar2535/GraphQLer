@@ -1,8 +1,10 @@
 """Fuzzer Defaults"""
 
+ALL_FUZEERS = ["ddos_fuzzer", "param_replace_fuzzer"]
 DEFAULT_STRING = ['"some_string"', '""']
 DEFAULT_BOOL = ["false", "true"]
 DEFAULT_ID = ['"1"', '"0"']
+DEFAULT_DDOS_NUM = 1000
 
 """Primitives and fuzzables"""
 

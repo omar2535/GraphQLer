@@ -1,6 +1,7 @@
 # TODO: Omar
 
 from fengine.fuzzers.fuzzer import Fuzzer
+from fengine.fuzzers.constants import DEFAULT_DDOS_NUM
 from num2words import num2words
 
 # DDOS-Fuzzer that is specifically used for query requests
@@ -26,7 +27,7 @@ query evil {
 class DDOSFuzzer(Fuzzer):
 
     # Extended from parent class
-    def create_fuzzed_queries(self, num_queries: int = 10000):
+    def create_fuzzed_queries(self, num_queries: int = DEFAULT_DDOS_NUM):
         query_type = self.request.type
         query_name = self.request.name
 
