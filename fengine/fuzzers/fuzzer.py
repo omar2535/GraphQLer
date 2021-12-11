@@ -1,5 +1,5 @@
 from typing import Dict
-from fengine.fuzzers.defaults import DEFAULT_FUZZABLE, DEFAULT_PRIMITIVES
+from fengine.fuzzers.constants import DEFAULT_FUZZABLE, DEFAULT_PRIMITIVES
 from graphqler_types.graphql_request import GraphqlRequest
 from random import randint
 
