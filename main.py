@@ -4,7 +4,7 @@ Graphler - main start
 
 import sys
 from utils.grammar_parser import GrammarParser
-from utils.orchestrator import Orchestrator
+from utils.orchestrator2 import Orchestrator2
 
 
 def main(grammar_file_path, end_point_path, max_length=2):
@@ -15,8 +15,8 @@ def main(grammar_file_path, end_point_path, max_length=2):
     # TODO: remove me!
     print(datatypes)
 
-    orchestrator = Orchestrator(graph, int(max_length), [], end_point_path, datatypes)
-    orchestrator.orchestrate()
+    orchestrator = Orchestrator2(graph, int(max_length), [], end_point_path, datatypes)
+    orchestrator.orchestrate2()
 
 
 if __name__ == "__main__":
