@@ -7,7 +7,7 @@ from utils.grammar_parser import GrammarParser
 from utils.orchestrator import Orchestrator
 
 
-def main(grammar_file_path, end_point_path, max_length):
+def main(grammar_file_path, end_point_path, max_length=2):
     grammar_parser = GrammarParser(grammar_file_path)
     graph = grammar_parser.generate_dependency_graph()
     datatypes = grammar_parser.get_datatypes()
@@ -15,7 +15,7 @@ def main(grammar_file_path, end_point_path, max_length):
     # TODO: remove me!
     print(datatypes)
 
-    orchestrator = Orchestrator(graph, max_length, [], end_point_path, datatypes)
+    orchestrator = Orchestrator(graph, int(max_length), [], end_point_path, datatypes)
     orchestrator.orchestrate()
 
 
