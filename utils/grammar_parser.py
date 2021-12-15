@@ -47,7 +47,7 @@ class GrammarParser:
         for node in list(self.dependency_graph.nodes):
             for method_name in node.depends_on:
                 dependency = self.searchForNodeInGraph(method_name)
-                self.dependency_graph.add_edge(node, dependency)
+                self.dependency_graph.add_edge(dependency, node)
 
     # Creates a graphql request object from the yaml file
     def parseGraphqlRequestObject(self, gql_request, query_type) -> GraphqlRequest:
