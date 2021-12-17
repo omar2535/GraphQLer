@@ -1,5 +1,9 @@
 # GraphQLer
 
+<p align="center">
+  <img src="./docs/images/logo.png" />
+</p>
+
 [![Maintainability](https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability)](https://codeclimate.com/github/omar2535/GraphQLer/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/a34db44e691904955ded/test_coverage)](https://codeclimate.com/github/omar2535/GraphQLer/test_coverage)
 [![Tests](https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml)
@@ -34,7 +38,7 @@ source .env/bin/activate
 ## ▶ Running the program
 
 ```sh
-(.env) python main.py
+(.env) python main.py <PATH_TO_GRAMMAR_FILE> <URL> <MAX_REQUEST_CHAIN_DEPTH>
 ```
 
 ## 🧪 Testing
