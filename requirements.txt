@@ -2,7 +2,7 @@ astroid==2.9.0
 attrs==21.2.0
 autopep8==1.6.0
 backports.entry-points-selectable==1.1.1
-black==21.11b1
+black==22.3.0
 certifi==2021.10.8
 cfgv==3.3.1
 charset-normalizer==2.0.7
