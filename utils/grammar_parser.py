@@ -14,6 +14,7 @@ class GrammarParser:
     # Constructor
     def __init__(self, spec_path: str):
         self.grammar_contents = self.load_yaml(spec_path)
+        # breakpoint()
 
     def generate_dependency_graph(self) -> nx.DiGraph:
         """

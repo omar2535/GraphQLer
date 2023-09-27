@@ -1,0 +1,98 @@
+# Grammar file based on the graphql API here: https://github.com/apollographql/starwars-server
+Enums:
+  Episode:
+    - NEWHOPE
+    - EMPIRE
+    - JEDI
+
+  LengthUnit:
+    - METER
+    - FOOT
+
+# Exclamation means not null
+InputTypes:
+  ColorInput:
+    red: Int!
+    green: Int!
+    blue: Int!
+  
+  ReviewInput:
+    stars: Int!
+    commentary: String
+    favorite_color: ColorInput
+
+
+# If a output parameter requires input such as a connection parameter (which has pagination IE. first, after),
+# then it is denoted by args then with an output type.
+# Refer to: https://graphql.org/learn/pagination/ for more information
+
+# All markings with underscore means it's an internal specifier
+Interfaces:
+  Character:
+    id: ID!
+    name: String!
+    friends: Character[]
+    friendsConnection:
+      args_:
+        first: Int
+        after: ID
+      output_: friendsConnection      
+    appearsIn: Episode[]!
+    primaryFunction: String
+
+ObjectTypes:
+  Droid:
+    implements_: Character
+    id: ID!
+    name: String!
+    friends: Character[]
+    friendsConnection:
+      args:
+        first: Int
+        after: ID
+      output: friendsConnection      
+    appearsIn: Episode[]!
+    primaryFunction: String
+
+  Human:
+    implements_: Character
+    id: ID!
+    name: String!
+    friends: Character[]
+    friendsConnection:
+      args_:
+        first: Int
+        after: ID
+      output_: friendsConnection      
+    appearsIn: Episode[]!
+    primaryFunction: String
+
+  FriendsConnection:
+    totalCount: Int
+    edges: [FriendsEdge]
+    friends: [Character]
+    pageInfo: PageInfo!
+  
+  FriendsEdge:
+    cursor: ID!
+    node: Character
+  
+  PageInfo:
+    startCursor: ID
+    endCursor: ID
+    hasNextPage: Boolean!
+
+Queries:
+  hero:
+    args_:
+      episode: Episode
+    returns_: Character
+  reviews:
+    args_:
+      episode: Episode!
+    returns_: [Review]
+  search:
+    args_:
+      text: String
+    returns_: [SearchResult]
+  
