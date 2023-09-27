@@ -9,6 +9,7 @@ __pycache__/
 # Virtual envrionment
 .env/
 env/
+.venv/
 
 # VScode
 .vscode/settings.json

@@ -17,7 +17,7 @@ A stateful GraphQL API fuzzer with many inspirations from [Microsoft's RESTler f
 
 ```sh
 # Creating the virtual environment
-python3 -m venv .env
+python3 -m venv .venv
 
 # Activating the virtual environment
 source .env/bin/activate
