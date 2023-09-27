@@ -3,35 +3,49 @@ Graphler - main start
 """
 
 import sys
-from utils.grammar_parser import GrammarParser
-from utils.orchestrator2 import Orchestrator2
+import argparse
+
+from compiler.compiler import Compiler
 
 
-def main(grammar_file_path, end_point_path, max_length=2):
-    grammar_parser = GrammarParser(grammar_file_path)
-    graph = grammar_parser.generate_dependency_graph()
-    datatypes = grammar_parser.get_datatypes()
+def run_compile_mode(path: str, url: str):
+    """Runs the program in compile mode
 
-    # TODO: remove me!
-    print(datatypes)
+    Args:
+        path (str): Directory for all compilation outputs to be saved to
+        url (str): URL of the target
+    """
+    print("In compile mode!")
+    compiler = Compiler(path, url)
+    compiler.run()
 
-    orchestrator = Orchestrator2(graph, int(max_length), [], end_point_path, datatypes)
-    orchestrator.orchestrate2()
+
+def run_fuzz_mode(path: str, url: str):
+    """Runs the program in fuzz mode
+
+    Args:
+        path (str): Directory for all compilation outputs to be saved to
+        url (str): URL of the target
+    """
+    print("In fuzz mode!")
 
 
 if __name__ == "__main__":
-    number_of_arguments = 3
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compile", help="turns on the compile mode", action="store_true", required=False)
+    parser.add_argument("--fuzz", help="turns on the fuzzing mode", action="store_true", required=False)
+    parser.add_argument("--path", help="directory location for saved files and files to be used from", required=True)
+    parser.add_argument("--url", help="remote host URL", required=True)
+    args = parser.parse_args()
 
-    if len(sys.argv) < number_of_arguments + 1:
-        print(f"(+) Requires {number_of_arguments} arguments")
-        print(f"(+) Example usage: python3 main.py examples/grammar-example.yml http://localhost:3000 3")
+    # Validate arguments
+    if not args.compile and not args.fuzz:
+        print("(!) Need at least one of --fuzz or --compile modes")
         sys.exit()
 
-    file_name = sys.argv[0]
-    grammar_file_path = sys.argv[1]
-    end_point_path = sys.argv[2]
-    max_length = sys.argv[3]
-
-    print("(+) Starting Graphler program")
-    main(grammar_file_path, end_point_path, max_length)
-    print("(+) Ending Graphler program")
+    # Run either compilation or fuzzing mode
+    if args.compile:
+        run_compile_mode(args.path, args.url)
+    elif args.fuzz:
+        run_fuzz_mode(args.path, args.url)

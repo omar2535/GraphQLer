@@ -10,6 +10,7 @@ __pycache__/
 .env/
 env/
 .venv/
+omar-test/
 
 # VScode
 .vscode/settings.json
