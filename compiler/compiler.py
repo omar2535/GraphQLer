@@ -1,10 +1,14 @@
-"""Compiler class - responsible for compiling the introspection query results into various files we can use later on
+"""Compiler class - responsible for:
+    - Getting the introspection query results into various files we can use later on
+    - Resolving dependencies among objects
+    - Tieing queries / mutations to objects
 """
 
 from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, Parser
+from compiler.dependency_resolvers import ObjectDepdenencyResolver
 
 import constants
 import yaml
@@ -42,10 +46,13 @@ class Compiler:
         2. Parsing through results
         3. Storing files into query / mutations
         """
-        introspection_result = self.get_introspection_query()
-        self.run_parser_and_save_list(ObjectListParser(), introspection_result, self.object_list_save_path)
-        self.run_parser_and_save_list(QueryListParser(), introspection_result, self.query_parameter_save_path)
-        self.run_parser_and_save_list(MutationListParser(), introspection_result, self.mutation_parameter_save_path)
+        self.introspection_result = self.get_introspection_query()
+
+        self.run_parser_and_save_list(ObjectListParser(), self.object_list_save_path)
+        self.run_parser_and_save_list(QueryListParser(), self.query_parameter_save_path)
+        self.run_parser_and_save_list(MutationListParser(), self.mutation_parameter_save_path)
+
+        self.run_object_dependency_resolver_and_save()
 
     def get_introspection_query(self) -> dict:
         """Run the introspection query, grab results and output to file
@@ -57,15 +64,19 @@ class Compiler:
         write_json_to_file(result, self.introspection_result_save_path)
         return result
 
-    def run_parser_and_save_list(self, parser_instance: Parser, introspection_result: dict, save_path: str):
+    def run_parser_and_save_list(self, parser_instance: Parser, save_path: str):
         """Runs the given parser instance and saves to the save_path
 
         Args:
             parser_instance (Parser): Parser instance
-            introspection_result (dict): The introspection query result
             save_path (str): Path to save parsed results (in YAML format)
         """
-        parsed_list = parser_instance.parse(introspection_result)
+        parsed_list = parser_instance.parse(self.introspection_result)
         yaml_data = yaml.dump(parsed_list, default_flow_style=False)
         with open(save_path, "w") as yaml_file:
             yaml_file.write(yaml_data)
+
+    def run_object_dependency_resolver_and_save(self):
+        query_object_list = ObjectListParser().parse(self.introspection_result)
+        object_dependency_resolver = ObjectDepdenencyResolver(query_object_list)
+        object_dependency_resolver.parse()
