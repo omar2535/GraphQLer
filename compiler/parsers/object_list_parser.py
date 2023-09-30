@@ -1,8 +1,9 @@
 """Simple singleton class to parse object listings from the introspection query"""
 from typing import List
+from .parser import Parser
 
 
-class ObjectListParser:
+class ObjectListParser(Parser):
     def __init__(self):
         self.excluded_types = [
             "Mutation",

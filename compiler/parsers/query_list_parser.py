@@ -1,8 +1,9 @@
 """Simple singleton class to parse query listings from the introspection query"""
 from typing import List
+from .parser import Parser
 
 
-class QueryListParser:
+class QueryListParser(Parser):
     def __init__(self):
         pass
 

@@ -1,8 +1,9 @@
 """Simple singleton class to parse mutation listings from the introspection query"""
 from typing import List
+from .parser import Parser
 
 
-class MutationListParser:
+class MutationListParser(Parser):
     def __init__(self):
         pass
 

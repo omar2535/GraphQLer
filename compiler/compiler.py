@@ -4,7 +4,7 @@
 from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
-from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser
+from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, Parser
 
 import constants
 import yaml
@@ -43,9 +43,9 @@ class Compiler:
         3. Storing files into query / mutations
         """
         introspection_result = self.get_introspection_query()
-        self.parse_and_save_object_list(introspection_result)
-        self.parse_queries_and_save_list(introspection_result)
-        self.parse_mutations_and_save_list(introspection_result)
+        self.run_parser_and_save_list(ObjectListParser(), introspection_result, self.object_list_save_path)
+        self.run_parser_and_save_list(QueryListParser(), introspection_result, self.query_parameter_save_path)
+        self.run_parser_and_save_list(MutationListParser(), introspection_result, self.mutation_parameter_save_path)
 
     def get_introspection_query(self) -> dict:
         """Run the introspection query, grab results and output to file
@@ -57,38 +57,15 @@ class Compiler:
         write_json_to_file(result, self.introspection_result_save_path)
         return result
 
-    def parse_and_save_object_list(self, introspection_result: dict):
-        """Parse and save the object list from the introspection query result
+    def run_parser_and_save_list(self, parser_instance: Parser, introspection_result: dict, save_path: str):
+        """Runs the given parser instance and saves to the save_path
 
         Args:
-            introspection_result (dict): Introspection query result
+            parser_instance (Parser): Parser instance
+            introspection_result (dict): The introspection query result
+            save_path (str): Path to save parsed results (in YAML format)
         """
-        parser_instance = ObjectListParser()
         parsed_list = parser_instance.parse(introspection_result)
         yaml_data = yaml.dump(parsed_list, default_flow_style=False)
-        with open(self.object_list_save_path, "w") as yaml_file:
-            yaml_file.write(yaml_data)
-
-    def parse_queries_and_save_list(self, introspection_result: dict):
-        """Parse and save the list of available queries from the introspection query result
-
-        Args:
-            introspection_result (dict): Introspection query result
-        """
-        parser_instance = QueryListParser()
-        parsed_list = parser_instance.parse(introspection_result)
-        yaml_data = yaml.dump(parsed_list, default_flow_style=False)
-        with open(self.query_parameter_save_path, "w") as yaml_file:
-            yaml_file.write(yaml_data)
-
-    def parse_mutations_and_save_list(self, introspection_result: dict):
-        """Parse and save the list of available mutations from the introspection query result
-
-        Args:
-            introspection_result (dict): Introspection query result
-        """
-        parser_instance = MutationListParser()
-        parsed_list = parser_instance.parse(introspection_result)
-        yaml_data = yaml.dump(parsed_list, default_flow_style=False)
-        with open(self.mutation_parameter_save_path, "w") as yaml_file:
+        with open(save_path, "w") as yaml_file:
             yaml_file.write(yaml_data)
