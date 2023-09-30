@@ -5,6 +5,7 @@ from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers.object_list_parser import ObjectListParser
+from compiler.parsers.query_list_parser import QueryListParser
 
 import constants
 import yaml
@@ -44,6 +45,7 @@ class Compiler:
         """
         introspection_result = self.get_introspection_query()
         self.parse_and_save_object_list(introspection_result)
+        self.parse_queries_and_save_list(introspection_result)
 
     def get_introspection_query(self) -> dict:
         """Run the introspection query, grab results and output to file
@@ -56,13 +58,25 @@ class Compiler:
         return result
 
     def parse_and_save_object_list(self, introspection_result: dict):
-        """Parse and save the object list from the introspection query result dictionary
+        """Parse and save the object list from the introspection query result
 
         Args:
-            introspection_result (dict): Introspection query result as a dictionary
+            introspection_result (dict): Introspection query result
         """
-        object_list_parser_instance = ObjectListParser()
-        parsed_object_list = object_list_parser_instance.parse(introspection_result)
-        yaml_data = yaml.dump(parsed_object_list, default_flow_style=False)
+        parser_instance = ObjectListParser()
+        parsed_list = parser_instance.parse(introspection_result)
+        yaml_data = yaml.dump(parsed_list, default_flow_style=False)
         with open(self.object_list_save_path, "w") as yaml_file:
+            yaml_file.write(yaml_data)
+
+    def parse_queries_and_save_list(self, introspection_result: dict):
+        """Parse and save the list of available queryes from the introspection query result
+
+        Args:
+            introspection_result (dict): Introspection query result
+        """
+        parser_instance = QueryListParser()
+        parsed_list = parser_instance.parse(introspection_result)
+        yaml_data = yaml.dump(parsed_list, default_flow_style=False)
+        with open(self.query_parameter_save_path, "w") as yaml_file:
             yaml_file.write(yaml_data)
