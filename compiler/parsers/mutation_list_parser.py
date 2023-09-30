@@ -1,8 +1,8 @@
-"""Simple singleton class to parse query listings from the introspection query"""
+"""Simple singleton class to parse mutation listings from the introspection query"""
 from typing import List
 
 
-class QueryListParser:
+class MutationListParser:
     def __init__(self):
         pass
 
@@ -13,6 +13,7 @@ class QueryListParser:
                 "name": arg["name"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
                 "ofType": self.__extract_oftype(arg),
+                "defaultValue": arg["defaultValue"],
             }
             input_args[arg["name"]] = arg_info
         return input_args
@@ -41,24 +42,27 @@ class QueryListParser:
         """
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])
-        queries_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == "Query"]
-        queries = queries_object[0]["fields"]
+        mutation_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == "Mutation"]
+        mutations = mutation_object[0]["fields"]
 
         # Convert it to the YAML structure we want
-        query_info_dict = {}
-        for query in queries:
-            query_name = query["name"]
-            query_args = self.__extract_arg_info(query["args"])
+        mutation_info_dict = {}
+        for mutation in mutations:
+            mutation_name = mutation["name"]
+            mutation_args = self.__extract_arg_info(mutation["args"])
+            is_deprecated = mutation["isDeprecated"]
+
             return_type = {
-                "kind": query["type"]["kind"],
-                "name": query["type"]["name"],
-                "ofType": self.__extract_oftype(query),
+                "kind": mutation["type"]["kind"],
+                "name": mutation["type"]["name"],
+                "ofType": self.__extract_oftype(mutation),
             }
 
-            query_info_dict[query_name] = {
-                "name": query_name,
-                "inputs": query_args,
+            mutation_info_dict[mutation_name] = {
+                "name": mutation_name,
+                "inputs": mutation_args,
                 "output": return_type,
+                "isDepracated": is_deprecated,
             }
 
-        return query_info_dict
+        return mutation_info_dict
