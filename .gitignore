@@ -10,10 +10,13 @@ __pycache__/
 .env/
 env/
 .venv/
-omar-test/
 
 # VScode
 .vscode/settings.json
 
 # Testing
 .coverage
+
+## Omar's personal testing
+omar-test/
+anilist-test/

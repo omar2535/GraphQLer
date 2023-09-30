@@ -22,7 +22,6 @@ class QueryListParser:
         for arg in field:
             arg_info = {
                 "name": arg["name"],
-                "description": arg["description"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
                 "ofType": self.__extract_oftype(arg),
             }
@@ -60,7 +59,6 @@ class QueryListParser:
         query_info_dict = {}
         for query in queries:
             query_name = query["name"]
-            query_description = query["description"] if "description" in query else ""
             query_args = self.__extract_arg_info(query["args"])
             return_type = {
                 "kind": query["type"]["kind"],
@@ -70,7 +68,6 @@ class QueryListParser:
 
             query_info_dict[query_name] = {
                 "name": query_name,
-                "description": query_description,
                 "inputs": query_args,
                 "outputs": return_type,
             }
