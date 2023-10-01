@@ -8,7 +8,7 @@ from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, Parser
-from compiler.dependency_resolvers import ObjectDepdenencyResolver
+from compiler.resolvers import ObjectDepdenencyResolver
 
 import constants
 import yaml
@@ -77,6 +77,6 @@ class Compiler:
             yaml_file.write(yaml_data)
 
     def run_object_dependency_resolver_and_save(self):
-        query_object_list = ObjectListParser().parse(self.introspection_result)
-        object_dependency_resolver = ObjectDepdenencyResolver(query_object_list)
-        object_dependency_resolver.parse()
+        objects = ObjectListParser().parse(self.introspection_result)
+        object_dependency_resolver = ObjectDepdenencyResolver(objects)
+        self.resolved_objects = object_dependency_resolver.resolve()
