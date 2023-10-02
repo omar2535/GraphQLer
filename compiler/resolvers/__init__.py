@@ -1,1 +1,1 @@
-from .object_dependency_resolver import ObjectDepdenencyResolver
+from .object_dependency_resolver import ObjectDependencyResolver

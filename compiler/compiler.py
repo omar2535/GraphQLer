@@ -8,7 +8,7 @@ from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, Parser
-from compiler.resolvers import ObjectDepdenencyResolver
+from compiler.resolvers import ObjectDependencyResolver
 
 import constants
 import yaml
@@ -43,8 +43,8 @@ class Compiler:
     def run(self):
         """The only function required to be run from the caller, will perform:
         1. Introspection query running
-        2. Parsing through results
-        3. Storing files into query / mutations
+        2. Storing files into objects / query / mutations
+        3. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
         self.introspection_result = self.get_introspection_query()
 
@@ -52,7 +52,7 @@ class Compiler:
         self.run_parser_and_save_list(QueryListParser(), self.query_parameter_save_path)
         self.run_parser_and_save_list(MutationListParser(), self.mutation_parameter_save_path)
 
-        self.run_object_dependency_resolver_and_save()
+        self.run_object_dependency_resolver()
 
     def get_introspection_query(self) -> dict:
         """Run the introspection query, grab results and output to file
@@ -76,7 +76,12 @@ class Compiler:
         with open(save_path, "w") as yaml_file:
             yaml_file.write(yaml_data)
 
-    def run_object_dependency_resolver_and_save(self):
+    def run_object_dependency_resolver(self):
+        """Runs object dependency resolver and stores in resolved objects"""
         objects = ObjectListParser().parse(self.introspection_result)
-        object_dependency_resolver = ObjectDepdenencyResolver(objects)
-        self.resolved_objects = object_dependency_resolver.resolve()
+        object_dependency_resolver = ObjectDependencyResolver()
+        self.resolved_objects = object_dependency_resolver.resolve(objects)
+
+    def run_object_method_resolver_and_save(self):
+        """Correlate methods related to an object to the object itself"""
+        pass

@@ -9,11 +9,11 @@
 from constants import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
 
 
-class ObjectDepdenencyResolver:
-    def __init__(self, objects: dict):
-        self.objects = objects
+class ObjectDependencyResolver:
+    def __init__(self):
+        pass
 
-    def resolve(self) -> dict:
+    def resolve(self, objects) -> dict:
         """Resolve dependencies by adding the 'hardDependsOn' key and 'softDependsOn' key
            hardDependsOn: the object must be created for this object to be instantiated
            softDependsOn: the object can be null on instantiation of this object
@@ -21,9 +21,9 @@ class ObjectDepdenencyResolver:
         Returns:
             dict: The new enriched objects with an extra 'dependsOn' key
         """
-        for gql_object_key, gql_object in self.objects.items():
+        for gql_object_key, gql_object in objects.items():
             self.parse_gql_object(gql_object)
-        return self.objects
+        return objects
 
     def parse_gql_object(self, gql_object: dict) -> dict:
         """Parse a single object, noting down all of the other object this object depends on
