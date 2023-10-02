@@ -13,23 +13,10 @@ class QueryListParser(Parser):
             arg_info = {
                 "name": arg["name"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
-                "ofType": self.__extract_oftype(arg),
+                "ofType": self.extract_oftype(arg),
             }
             input_args[arg["name"]] = arg_info
         return input_args
-
-    def __extract_oftype(self, field: dict) -> dict:
-        """Extract the ofType. Assume that the nested ofType will always be null
-
-        Args:
-            field (dict): Field to extract from
-
-        Returns:
-            dict: The ofType dict
-        """
-        ofType = field["type"]["ofType"]
-        if ofType and ofType["name"]:
-            return {"kind": ofType["kind"], "name": ofType["name"]}
 
     def parse(self, introspection_data: dict) -> List[dict]:
         """Parses the introspection data for only objects
@@ -53,7 +40,7 @@ class QueryListParser(Parser):
             return_type = {
                 "kind": query["type"]["kind"],
                 "name": query["type"]["name"],
-                "ofType": self.__extract_oftype(query),
+                "ofType": self.extract_oftype(query),
             }
 
             query_info_dict[query_name] = {
