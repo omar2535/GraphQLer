@@ -7,7 +7,7 @@
 from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file
 from compiler.introspection_query import introspection_query
-from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, Parser
+from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, Parser
 from compiler.resolvers import ObjectDependencyResolver
 
 import constants
@@ -27,6 +27,7 @@ class Compiler:
         self.introspection_result_save_path = Path(save_path) / constants.INTROSPECTION_RESULT_FILE_NAME
         self.function_list_save_path = Path(save_path) / constants.FUNCTION_LIST_FILE_NAME
         self.object_list_save_path = Path(save_path) / constants.OBJECT_LIST_FILE_NAME
+        self.input_object_list_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
         self.mutation_parameter_save_path = Path(save_path) / constants.MUTATION_PARAMETER_FILE_NAME
         self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
         self.schema_save_path = Path(save_path) / constants.SCHEMA_FILE_NAME
@@ -36,6 +37,7 @@ class Compiler:
         open(self.introspection_result_save_path, "a").close()
         open(self.function_list_save_path, "a").close()
         open(self.object_list_save_path, "a").close()
+        open(self.input_object_list_save_path, "a").close()
         open(self.mutation_parameter_save_path, "a").close()
         open(self.query_parameter_save_path, "a").close()
         open(self.schema_save_path, "a").close()
@@ -51,6 +53,7 @@ class Compiler:
         self.run_parser_and_save_list(ObjectListParser(), self.object_list_save_path)
         self.run_parser_and_save_list(QueryListParser(), self.query_parameter_save_path)
         self.run_parser_and_save_list(MutationListParser(), self.mutation_parameter_save_path)
+        self.run_parser_and_save_list(InputObjectListParser(), self.input_object_list_save_path)
 
         self.run_object_dependency_resolver()
 

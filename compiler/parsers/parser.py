@@ -18,3 +18,16 @@ class Parser:
             dict: The parse result
         """
         raise Exception("Should not call parse on base Parser class")
+
+    def extract_oftype(self, field: dict) -> dict:
+        """Extract the ofType. Assume that the nested ofType will always be null
+
+        Args:
+            field (dict): Field to extract from
+
+        Returns:
+            dict: The ofType dict
+        """
+        ofType = field["type"]["ofType"]
+        if ofType and ofType["name"]:
+            return {"kind": ofType["kind"], "name": ofType["name"]}

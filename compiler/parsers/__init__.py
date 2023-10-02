@@ -2,4 +2,5 @@
 from .object_list_parser import ObjectListParser
 from .query_list_parser import QueryListParser
 from .mutation_list_parser import MutationListParser
+from .input_object_list_parser import InputObjectListParser
 from .parser import Parser
