@@ -1,2 +1,2 @@
 from .object_dependency_resolver import ObjectDependencyResolver
-from .object_query_resolver import ObjectQueryResolver
+from .object_method_resolver import ObjectMethodResolver

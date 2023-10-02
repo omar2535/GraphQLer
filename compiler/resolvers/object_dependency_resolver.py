@@ -27,14 +27,14 @@ class ObjectDependencyResolver:
 
     def parse_gql_object(self, gql_object: dict) -> dict:
         """Parse a single object, noting down all of the other object this object depends on
-           Simply adds an extra key in the object 'dependsOn' which is a list of the objects this
-           object depneds on
+           hardDependsOn: Where the object has fields on other objects and it's kind is NON_NULL
+           softDependsOn: Where the object has fields on other objects and it can be NULL
 
         Args:
             gql_object (dict): The graphql object
 
         Returns:
-            dict: The enriched object with an extra 'dependsOn' key
+            dict: The enriched object with extra 'softDependsOn' key and 'hardDependsOn'
         """
         soft_dependent_objects = []
         hard_dependent_objects = []
@@ -51,6 +51,7 @@ class ObjectDependencyResolver:
                     hard_dependent_objects.append(field["ofType"])
             elif field["kind"] == "LIST":
                 if field["ofType"] not in BUILT_IN_TYPES:
+                    # TODO: Figure out if lists can have hard dependencies (a non-zero lengthed list)
                     soft_dependent_objects.append(field["ofType"])
         gql_object["softDependsOn"] = soft_dependent_objects
         gql_object["hardDependsOn"] = hard_dependent_objects

@@ -3,6 +3,7 @@ from typing import Callable
 import requests
 import constants
 import json
+import yaml
 
 
 def send_graphql_request(url: str, query: str, next: Callable[[dict], dict] = None) -> dict:
@@ -35,3 +36,15 @@ def write_json_to_file(contents: dict, output_file: str):
     """
     with open(output_file, "w") as file_handle:
         json.dump(contents, file_handle, indent=4)
+
+
+def write_dict_to_yaml(contents: dict, output_file: str):
+    """Writes dict to YAML file
+
+    Args:
+        contents (dict): Contents of the YAML
+        output_file (str): Output file path
+    """
+    yaml_data = yaml.dump(contents, default_flow_style=False)
+    with open(output_file, "w") as yaml_file:
+        yaml_file.write(yaml_data)

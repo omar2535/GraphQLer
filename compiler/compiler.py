@@ -5,10 +5,10 @@
 """
 
 from pathlib import Path
-from compiler.utils import send_graphql_request, write_json_to_file
+from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, Parser
-from compiler.resolvers import ObjectDependencyResolver, ObjectQueryResolver
+from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver
 
 import constants
 import yaml
@@ -85,22 +85,23 @@ class Compiler:
             save_path (str): Path to save parsed results (in YAML format)
             introspection_result (dict): Introspection result as a dict
         """
-        parsed_list = parser_instance.parse(introspection_result)
-        yaml_data = yaml.dump(parsed_list, default_flow_style=False)
-        with open(save_path, "a") as yaml_file:
-            yaml_file.write(yaml_data)
+        parsed_result = parser_instance.parse(introspection_result)
+        write_dict_to_yaml(parsed_result, save_path)
 
     def run_resolvers_and_enrich_objects_and_save(self, introspection_result: dict):
         """Runs the enrichments to objeccts like so:
             1. Enriches object-object dependency
-            2. Enriches object-query dependency
-            3. Enriches object-mutation dependency
+            2. Enriches object-method dependency
+           and then writes it to a yaml file
 
         Args:
-            introspection_result (dict): _description_
+            introspection_result (dict): Introspection query result
         """
         objects = self.object_list_parser.parse(introspection_result)
         queries = self.query_list_parser.parse(introspection_result)
+        mutations = self.mutation_list_parser.parse(introspection_result)
+
         objects = ObjectDependencyResolver().resolve(objects)
-        objects = ObjectQueryResolver().resolve(objects, queries)
-        # pprint.pprint(objects)
+        objects = ObjectMethodResolver().resolve(objects, queries, mutations)
+
+        write_dict_to_yaml(objects, self.compiled_object_list_save_path)
