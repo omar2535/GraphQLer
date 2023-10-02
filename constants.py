@@ -13,5 +13,8 @@ COMPILED_OBJECT_LIST_FILE_NAME = "compiled_object_list.yml"
 
 """General Graphql definitions: https://spec.graphql.org/June2018/"""
 BUILT_IN_TYPES = ["ID", "Int", "Float", "String", "Boolean"]
-
 BUILT_IN_TYPE_KINDS = ["SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM", "INPUT_OBJECT", "LIST", "NON_NULL"]
+
+
+"""Toggles"""
+USE_FUZZY_ID_SEARCH = True

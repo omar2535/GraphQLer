@@ -13,7 +13,8 @@ class QueryListParser(Parser):
             arg_info = {
                 "name": arg["name"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
-                "ofType": self.extract_oftype(arg),
+                "kind": arg["type"]["kind"] if "kind" in arg["type"] else None,
+                "ofType": self.extract_oftype(arg["type"]),
             }
             input_args[arg["name"]] = arg_info
         return input_args
@@ -40,7 +41,7 @@ class QueryListParser(Parser):
             return_type = {
                 "kind": query["type"]["kind"],
                 "name": query["type"]["name"],
-                "ofType": self.extract_oftype(query),
+                "ofType": self.extract_oftype(query["type"]),
             }
 
             query_info_dict[query_name] = {

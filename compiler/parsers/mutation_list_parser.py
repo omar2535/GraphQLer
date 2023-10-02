@@ -13,7 +13,7 @@ class MutationListParser(Parser):
             arg_info = {
                 "name": arg["name"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
-                "ofType": self.extract_oftype(arg),
+                "ofType": self.extract_oftype(arg["type"]),
                 "defaultValue": arg["defaultValue"],
             }
             input_args[arg["name"]] = arg_info
@@ -43,7 +43,7 @@ class MutationListParser(Parser):
             return_type = {
                 "kind": mutation["type"]["kind"],
                 "name": mutation["type"]["name"],
-                "ofType": self.extract_oftype(mutation),
+                "ofType": self.extract_oftype(mutation["type"]),
             }
 
             mutation_info_dict[mutation_name] = {

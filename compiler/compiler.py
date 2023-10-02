@@ -12,6 +12,7 @@ from compiler.resolvers import ObjectDependencyResolver, ObjectQueryResolver
 
 import constants
 import yaml
+import pprint
 
 
 class Compiler:
@@ -106,3 +107,4 @@ class Compiler:
         queries = self.query_list_parser.parse(introspection_result)
         objects = ObjectDependencyResolver().resolve(objects)
         objects = ObjectQueryResolver().resolve(objects, queries)
+        # pprint.pprint(objects)

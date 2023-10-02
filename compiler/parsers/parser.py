@@ -23,11 +23,12 @@ class Parser:
         """Extract the ofType. Assume that the nested ofType will always be null
 
         Args:
-            field (dict): Field to extract from
+            field (dict): Field's "type" to extract from
 
         Returns:
             dict: The ofType dict
         """
-        ofType = field["type"]["ofType"]
-        if ofType and ofType["name"]:
-            return {"kind": ofType["kind"], "name": ofType["name"]}
+        ofType = field["ofType"]
+        if ofType:
+            nested_ofType = self.extract_oftype(field["ofType"])
+            return {"kind": ofType["kind"], "name": ofType["name"], "ofType": nested_ofType}
