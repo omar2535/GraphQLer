@@ -62,12 +62,8 @@ class Compiler:
 
         self.run_parser_and_save_list(self.object_list_parser, self.object_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.query_list_parser, self.query_parameter_save_path, introspection_result)
-        self.run_parser_and_save_list(
-            self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result
-        )
-        self.run_parser_and_save_list(
-            self.input_object_list_parser, self.input_object_list_save_path, introspection_result
-        )
+        self.run_parser_and_save_list(self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result)
+        self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
 
         self.run_resolvers_and_enrich_objects_and_save(introspection_result)
 
