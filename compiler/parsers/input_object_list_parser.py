@@ -19,14 +19,14 @@ class InputObjectListParser(Parser):
         }
         return field_info
 
-    def parse(self, introspection_data: dict) -> List[dict]:
+    def parse(self, introspection_data: dict) -> dict:
         """Parses the introspection data for only objects
 
         Args:
             data (dict): Introspection JSON as a dictionary
 
         Returns:
-            List[dict]: List of objects with their types
+            dict: List of objects with their types
         """
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])

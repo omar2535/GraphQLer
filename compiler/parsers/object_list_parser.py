@@ -23,26 +23,22 @@ class ObjectListParser(Parser):
             "name": field["name"],
             "kind": field["type"]["kind"],
             "type": field["type"]["name"] if "name" in field["type"] else None,
-            "ofType": field["type"]["ofType"]["name"]
-            if "ofType" in field["type"] and field["type"]["ofType"] and "name" in field["type"]["ofType"]
-            else None,
+            "ofType": field["type"]["ofType"]["name"] if "ofType" in field["type"] and field["type"]["ofType"] and "name" in field["type"]["ofType"] else None,
         }
         return field_info
 
-    def parse(self, introspection_data: dict) -> List[dict]:
+    def parse(self, introspection_data: dict) -> dict:
         """Parses the introspection data for only objects
 
         Args:
             data (dict): Introspection JSON as a dictionary
 
         Returns:
-            List[dict]: List of objects with their types
+            dict: List of objects with their types
         """
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])
-        object_types = [
-            t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") not in self.excluded_types
-        ]
+        object_types = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") not in self.excluded_types]
 
         # Convert it to the YAML structure we want
         object_info_dict = {}

@@ -19,14 +19,14 @@ class QueryListParser(Parser):
             input_args[arg["name"]] = arg_info
         return input_args
 
-    def parse(self, introspection_data: dict) -> List[dict]:
+    def parse(self, introspection_data: dict) -> dict:
         """Parses the introspection data for only objects
 
         Args:
             data (dict): Introspection JSON as a dictionary
 
         Returns:
-            List[dict]: List of objects with their types
+            dict: List of objects with their types
         """
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])

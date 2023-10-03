@@ -7,7 +7,7 @@
 from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml, initialize_file
 from compiler.introspection_query import introspection_query
-from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, Parser
+from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
 from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver
 
 import constants
@@ -30,6 +30,7 @@ class Compiler:
         self.input_object_list_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
         self.mutation_parameter_save_path = Path(save_path) / constants.MUTATION_PARAMETER_FILE_NAME
         self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
+        self.enum_list_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
         self.compiled_object_list_save_path = Path(save_path) / constants.COMPILED_OBJECT_LIST_FILE_NAME
         self.url = url
 
@@ -38,6 +39,7 @@ class Compiler:
         self.query_list_parser = QueryListParser()
         self.mutation_list_parser = MutationListParser()
         self.input_object_list_parser = InputObjectListParser()
+        self.enum_list_parser = EnumListParser()
 
         # Create empty files for these files
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
@@ -46,6 +48,7 @@ class Compiler:
         initialize_file(self.input_object_list_save_path)
         initialize_file(self.mutation_parameter_save_path)
         initialize_file(self.query_parameter_save_path)
+        initialize_file(self.enum_list_save_path)
         initialize_file(self.compiled_object_list_save_path)
 
     def run(self):
@@ -60,6 +63,7 @@ class Compiler:
         self.run_parser_and_save_list(self.query_list_parser, self.query_parameter_save_path, introspection_result)
         self.run_parser_and_save_list(self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result)
         self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
+        self.run_parser_and_save_list(self.enum_list_parser, self.enum_list_save_path, introspection_result)
 
         self.run_resolvers_and_enrich_objects_and_save(introspection_result)
 
