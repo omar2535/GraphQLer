@@ -5,7 +5,7 @@
 """
 
 from pathlib import Path
-from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml
+from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml, initialize_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, Parser
 from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver
@@ -25,13 +25,11 @@ class Compiler:
             url (str): URL for graphql introspection query to hit
         """
         self.save_path = save_path
-        self.introspection_result_save_path = Path(save_path) / constants.INTROSPECTION_RESULT_FILE_NAME
-        self.function_list_save_path = Path(save_path) / constants.FUNCTION_LIST_FILE_NAME
+        self.introspection_result_save_path = Path(save_path) / Path(constants.INTROSPECTION_RESULT_FILE_NAME)
         self.object_list_save_path = Path(save_path) / constants.OBJECT_LIST_FILE_NAME
         self.input_object_list_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
         self.mutation_parameter_save_path = Path(save_path) / constants.MUTATION_PARAMETER_FILE_NAME
         self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
-        self.schema_save_path = Path(save_path) / constants.SCHEMA_FILE_NAME
         self.compiled_object_list_save_path = Path(save_path) / constants.COMPILED_OBJECT_LIST_FILE_NAME
         self.url = url
 
@@ -43,14 +41,12 @@ class Compiler:
 
         # Create empty files for these files
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
-        open(self.introspection_result_save_path, "w").close()
-        open(self.function_list_save_path, "w").close()
-        open(self.object_list_save_path, "w").close()
-        open(self.input_object_list_save_path, "w").close()
-        open(self.mutation_parameter_save_path, "w").close()
-        open(self.query_parameter_save_path, "w").close()
-        open(self.schema_save_path, "w").close()
-        open(self.compiled_object_list_save_path, "w").close()
+        initialize_file(self.introspection_result_save_path)
+        initialize_file(self.object_list_save_path)
+        initialize_file(self.input_object_list_save_path)
+        initialize_file(self.mutation_parameter_save_path)
+        initialize_file(self.query_parameter_save_path)
+        initialize_file(self.compiled_object_list_save_path)
 
     def run(self):
         """The only function required to be run from the caller, will perform:

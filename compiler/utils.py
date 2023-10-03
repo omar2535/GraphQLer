@@ -1,4 +1,5 @@
 from typing import Callable
+from pathlib import Path
 
 import requests
 import constants
@@ -25,6 +26,16 @@ def send_graphql_request(url: str, query: str, next: Callable[[dict], dict] = No
         return next(json.loads(x.text))
 
     return json.loads(x.text)
+
+
+def initialize_file(file_path: Path):
+    """Initialize file_path with an empty file creating any folders along the way
+
+    Args:
+        file_path (Path): The path to the file
+    """
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    open(file_path, "w").close()
 
 
 def write_json_to_file(contents: dict, output_file: str):

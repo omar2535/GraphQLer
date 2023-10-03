@@ -1,14 +1,12 @@
 # Configuration
 
 """For the compiler / parser"""
-RAW_INTROSPECTION_FILE_NAME = "introspection.json"
+EXTRACTED_DIR_NAME = "extracted"
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
-SCHEMA_FILE_NAME = "schema.json"
-FUNCTION_LIST_FILE_NAME = "mutation_function_list.yml"
-QUERY_PARAMETER_FILE_NAME = "query_parameter_list.yml"
-MUTATION_PARAMETER_FILE_NAME = "mutation_parameter_list.yml"
-OBJECT_LIST_FILE_NAME = "object_list.yml"
-INPUT_OBJECT_LIST_FILE_NAME = "input_object_list.yml"
+QUERY_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/query_parameter_list.yml"
+MUTATION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/mutation_parameter_list.yml"
+OBJECT_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/object_list.yml"
+INPUT_OBJECT_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/input_object_list.yml"
 COMPILED_OBJECT_LIST_FILE_NAME = "compiled_object_list.yml"
 
 """General Graphql definitions: https://spec.graphql.org/June2018/"""
