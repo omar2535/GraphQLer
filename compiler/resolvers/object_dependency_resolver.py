@@ -22,13 +22,18 @@ class ObjectDependencyResolver:
             dict: The new enriched objects with an extra 'dependsOn' key
         """
         for gql_object_key, gql_object in objects.items():
-            self.parse_gql_object(gql_object)
+            objects[gql_object_key] = self.parse_gql_object(gql_object)
+
         return objects
 
     def parse_gql_object(self, gql_object: dict) -> dict:
         """Parse a single object, noting down all of the other object this object depends on
            hardDependsOn: Where the object has fields on other objects and it's kind is NON_NULL
            softDependsOn: Where the object has fields on other objects and it can be NULL
+
+
+           !weird edge cases found from this method:
+           - when the field kind is a SCALAR, the ofType will be null
 
         Args:
             gql_object (dict): The graphql object
@@ -53,6 +58,12 @@ class ObjectDependencyResolver:
                 if field["ofType"] not in BUILT_IN_TYPES:
                     # TODO: Figure out if lists can have hard dependencies (a non-zero lengthed list)
                     soft_dependent_objects.append(field["ofType"])
+
+        # TODO: Figure out a way see if we can handle custom scalars dynamically (?) - right now, they show up as none
+        # Remove nons from dependency list
+        soft_dependent_objects = [o for o in soft_dependent_objects if o is not None]
+        hard_dependent_objects = [o for o in hard_dependent_objects if o is not None]
+
         gql_object["softDependsOn"] = soft_dependent_objects
         gql_object["hardDependsOn"] = hard_dependent_objects
         return gql_object
