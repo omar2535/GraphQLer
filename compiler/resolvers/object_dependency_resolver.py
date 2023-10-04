@@ -60,9 +60,9 @@ class ObjectDependencyResolver:
                     soft_dependent_objects.append(field["ofType"])
 
         # TODO: Figure out a way see if we can handle custom scalars dynamically (?) - right now, they show up as none
-        # Remove nons from dependency list
-        soft_dependent_objects = [o for o in soft_dependent_objects if o is not None]
-        hard_dependent_objects = [o for o in hard_dependent_objects if o is not None]
+        # Remove nulls from dependency list and make them unique
+        soft_dependent_objects = list(set([o for o in soft_dependent_objects if o is not None]))
+        hard_dependent_objects = list(set([o for o in hard_dependent_objects if o is not None]))
 
         gql_object["softDependsOn"] = soft_dependent_objects
         gql_object["hardDependsOn"] = hard_dependent_objects
