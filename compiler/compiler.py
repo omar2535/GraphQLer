@@ -54,20 +54,15 @@ class Compiler:
     def run(self):
         """The only function required to be run from the caller, will perform:
         1. Introspection query running
-        2. Storing files into objects / query / mutations
+        2. Run the parsers, storing files into objects / query / mutations
         3. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
-        introspection_result = self.get_introspection_query()
+        introspection_result = self.get_introspection_query_results()
 
-        self.run_parser_and_save_list(self.object_list_parser, self.object_list_save_path, introspection_result)
-        self.run_parser_and_save_list(self.query_list_parser, self.query_parameter_save_path, introspection_result)
-        self.run_parser_and_save_list(self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result)
-        self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
-        self.run_parser_and_save_list(self.enum_list_parser, self.enum_list_save_path, introspection_result)
-
+        self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_enrich_objects_and_save(introspection_result)
 
-    def get_introspection_query(self) -> dict:
+    def get_introspection_query_results(self) -> dict:
         """Run the introspection query, grab results and output to file
 
         Returns:
@@ -76,6 +71,18 @@ class Compiler:
         result = send_graphql_request(self.url, introspection_query)
         write_json_to_file(result, self.introspection_result_save_path)
         return result
+
+    def run_parsers_and_save(self, introspection_result: dict):
+        """Runs all the parsers and saves them to a YAML file
+
+        Args:
+            introspection_result (dict): Introspection results as a dict
+        """
+        self.run_parser_and_save_list(self.object_list_parser, self.object_list_save_path, introspection_result)
+        self.run_parser_and_save_list(self.query_list_parser, self.query_parameter_save_path, introspection_result)
+        self.run_parser_and_save_list(self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result)
+        self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
+        self.run_parser_and_save_list(self.enum_list_parser, self.enum_list_save_path, introspection_result)
 
     def run_parser_and_save_list(self, parser_instance: Parser, save_path: str, introspection_result: dict):
         """Runs the given parser instance on the introspection result and saves to the save_path
