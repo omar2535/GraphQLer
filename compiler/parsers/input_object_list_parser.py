@@ -10,14 +10,17 @@ class InputObjectListParser(Parser):
     def __init__(self):
         pass
 
-    def __extract_field_info(self, field):
-        field_info = {
-            "name": field["name"],
-            "kind": field["type"]["kind"],
-            "type": field["type"]["name"] if "name" in field["type"] else None,
-            "ofType": self.extract_oftype(field["type"]),
-        }
-        return field_info
+    def __extract_field_info(self, input_fields):
+        resulting_input_fields = {}
+        for field in input_fields:
+            field_name = field["name"]
+            resulting_input_fields[field_name] = {
+                "kind": field["type"]["kind"],
+                "type": field["type"]["name"] if "name" in field["type"] else None,
+                "ofType": self.extract_oftype(field["type"]),
+            }
+
+        return resulting_input_fields
 
     def parse(self, introspection_data: dict) -> dict:
         """Parses the introspection data for only objects
@@ -39,7 +42,7 @@ class InputObjectListParser(Parser):
             input_object_info_dict[object_name] = {
                 "kind": obj["kind"],
                 "name": object_name,
-                "inputFields": [self.__extract_field_info(field) for field in obj["inputFields"]],
+                "inputFields": self.__extract_field_info(obj["inputFields"]),
             }
 
         return input_object_info_dict

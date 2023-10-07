@@ -2,18 +2,15 @@
     - Getting the introspection query results into various files we can use later on
     - Resolving dependencies among objects
     - Tieing queries / mutations to objects
-    - Serializing
 """
 
 from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml, initialize_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
-from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver
+from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver
 
 import constants
-import yaml
-import pprint
 
 
 class Compiler:
@@ -32,7 +29,8 @@ class Compiler:
         self.mutation_parameter_save_path = Path(save_path) / constants.MUTATION_PARAMETER_FILE_NAME
         self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
         self.enum_list_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
-        self.compiled_object_list_save_path = Path(save_path) / constants.COMPILED_OBJECT_LIST_FILE_NAME
+        self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
         self.url = url
 
         # Initialize the parsers we will use
@@ -50,7 +48,8 @@ class Compiler:
         initialize_file(self.mutation_parameter_save_path)
         initialize_file(self.query_parameter_save_path)
         initialize_file(self.enum_list_save_path)
-        initialize_file(self.compiled_object_list_save_path)
+        initialize_file(self.compiled_objects_save_path)
+        initialize_file(self.compiled_mutations_save_path)
 
     def run(self):
         """The only function required to be run from the caller, will perform:
@@ -61,7 +60,7 @@ class Compiler:
         introspection_result = self.get_introspection_query_results()
 
         self.run_parsers_and_save(introspection_result)
-        self.run_resolvers_and_enrich_objects_and_save(introspection_result)
+        self.run_resolvers_and_save(introspection_result)
 
     def get_introspection_query_results(self) -> dict:
         """Run the introspection query, grab results and output to file
@@ -96,11 +95,13 @@ class Compiler:
         parsed_result = parser_instance.parse(introspection_result)
         write_dict_to_yaml(parsed_result, save_path)
 
-    def run_resolvers_and_enrich_objects_and_save(self, introspection_result: dict):
-        """Runs the enrichments to objeccts like so:
+    def run_resolvers_and_save(self, introspection_result: dict):
+        """Resolves objects, mutations and queries together so make it a "compiled" look:
             1. Enriches object-object dependency
             2. Enriches object-method dependency
-           and then writes it to a yaml file
+            3. Enriches mutation-object dependency
+            4. Enriches query-object dependency
+            5. Write enrichmend objects to "compiled" directory in a yaml file
 
         Args:
             introspection_result (dict): Introspection query result
@@ -108,8 +109,12 @@ class Compiler:
         objects = self.object_list_parser.parse(introspection_result)
         queries = self.query_list_parser.parse(introspection_result)
         mutations = self.mutation_list_parser.parse(introspection_result)
+        input_objects = self.input_object_list_parser.parse(introspection_result)
 
         objects = ObjectDependencyResolver().resolve(objects)
         objects = ObjectMethodResolver().resolve(objects, queries, mutations)
 
-        write_dict_to_yaml(objects, self.compiled_object_list_save_path)
+        mutations = MutationObjectResolver().resolve(objects, mutations, input_objects)
+
+        write_dict_to_yaml(objects, self.compiled_objects_save_path)
+        write_dict_to_yaml(mutations, self.compiled_mutations_save_path)

@@ -1,5 +1,6 @@
 """Related queries and mutations to objects based on output type.
-We only look at the output to determine if a method is related to an object"""
+We only look at the output to determine if a method is related to an object
+"""
 
 
 class ObjectMethodResolver:

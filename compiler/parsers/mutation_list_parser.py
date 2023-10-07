@@ -13,6 +13,7 @@ class MutationListParser(Parser):
             arg_info = {
                 "name": arg["name"],
                 "type": arg["type"]["name"] if "name" in arg["type"] else None,
+                "kind": arg["type"]["kind"] if "kind" in arg["type"] else None,
                 "ofType": self.extract_oftype(arg["type"]),
                 "defaultValue": arg["defaultValue"],
             }
