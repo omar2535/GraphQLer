@@ -2,6 +2,7 @@
     - Getting the introspection query results into various files we can use later on
     - Resolving dependencies among objects
     - Tieing queries / mutations to objects
+    - Serializing
 """
 
 from pathlib import Path
