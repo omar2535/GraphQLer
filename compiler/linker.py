@@ -5,3 +5,8 @@ The linker does the following:
 - Attach queries to the object node
 - Attach mutations related to the object node
 """
+
+
+class Linker:
+    def __init__(self):
+        pass

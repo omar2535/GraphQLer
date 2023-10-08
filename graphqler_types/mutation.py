@@ -20,4 +20,3 @@ class Mutation:
         self.hard_depends_on = hard_depends_on
         self.soft_depends_on = soft_depends_on
         self.is_deprecated = is_deprecated
-        pass
