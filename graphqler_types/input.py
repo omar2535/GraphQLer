@@ -9,11 +9,12 @@ from __future__ import annotations
 
 
 class Input:
-    def __init__(self, input_name: str, kind: str, name: str, ofType: Input = None):
+    def __init__(self, input_name: str, kind: str, name: str, oftype: Input = None, default_value: str = None):
         self.input_name = input_name
         self.kind = kind
         self.name = name
-        self.ofType = ofType
+        self.oftype = oftype
+        self.default_value = default_value
 
     def is_required(self) -> bool:
         """Whether this parameter is NOT_NULL or not
@@ -29,4 +30,4 @@ class Input:
         Returns:
             bool: True if this input has an oftype, False otherwise
         """
-        return self.ofType is not None
+        return self.oftype is not None
