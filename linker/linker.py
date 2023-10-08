@@ -8,6 +8,7 @@ The linker does the following:
 
 from pathlib import Path
 from .serializers import ObjectsSerializer
+from utils.file_utils import read_yaml_to_dict
 
 import constants
 
@@ -17,6 +18,12 @@ class Linker:
         self.save_path = save_path
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutationss_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
+
+        self.compiled_queries = read_yaml_to_dict(self.compiled_queries_save_path)
+        self.compiled_objects = read_yaml_to_dict(self.compiled_objects_save_path)
+        self.compiled_mutations = read_yaml_to_dict(self.compiled_mutationss_save_path)
 
     def run(self):
-        ObjectsSerializer(self.compiled_objects_save_path).run()
+        """Generater the NX graph and saave it as a pickle"""
+        pass
