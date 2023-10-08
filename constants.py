@@ -14,6 +14,7 @@ ENUM_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/enum_list.yml"
 
 COMPILED_OBJECTS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_objects.yml"
 COMPILED_MUTATIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_mutations.yml"
+COMPILED_QUERIES_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_queries.yml"
 
 """General Graphql definitions: https://spec.graphql.org/June2018/"""
 BUILT_IN_TYPES = ["ID", "Int", "Float", "String", "Boolean"]

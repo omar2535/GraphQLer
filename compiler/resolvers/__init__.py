@@ -5,3 +5,4 @@ the traversal phase
 from .object_dependency_resolver import ObjectDependencyResolver
 from .object_method_resolver import ObjectMethodResolver
 from .mutation_object_resolver import MutationObjectResolver
+from .query_object_resolver import QueryObjectResolver

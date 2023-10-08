@@ -8,7 +8,7 @@ from pathlib import Path
 from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml, initialize_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
-from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver
+from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
 
 import constants
 
@@ -31,6 +31,7 @@ class Compiler:
         self.enum_list_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.url = url
 
         # Initialize the parsers we will use
@@ -50,6 +51,7 @@ class Compiler:
         initialize_file(self.enum_list_save_path)
         initialize_file(self.compiled_objects_save_path)
         initialize_file(self.compiled_mutations_save_path)
+        initialize_file(self.compiled_queries_save_path)
 
     def run(self):
         """The only function required to be run from the caller, will perform:
@@ -115,6 +117,8 @@ class Compiler:
         objects = ObjectMethodResolver().resolve(objects, queries, mutations)
 
         mutations = MutationObjectResolver().resolve(objects, mutations, input_objects)
+        queries = QueryObjectResolver().resolve(objects, queries, input_objects)
 
         write_dict_to_yaml(objects, self.compiled_objects_save_path)
         write_dict_to_yaml(mutations, self.compiled_mutations_save_path)
+        write_dict_to_yaml(queries, self.compiled_queries_save_path)
