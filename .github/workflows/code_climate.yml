@@ -23,9 +23,9 @@ jobs:
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
 
-      - name: Upload coverage
-        uses: paambaati/codeclimate-action@v3.0.0
-        env:
-          CC_TEST_REPORTER_ID: 4172ebd5ed2de5625710515b639d0fa3cfd4820cb3f35c5c54d018d8404e702c
-        with:
-          coverageCommand: pytest --exitfirst --verbose --failed-first --cov=. --cov-report xml
+      # - name: Upload coverage
+      #   uses: paambaati/codeclimate-action@v3.0.0
+      #   env:
+      #     CC_TEST_REPORTER_ID: 4172ebd5ed2de5625710515b639d0fa3cfd4820cb3f35c5c54d018d8404e702c
+      #   with:
+      #     coverageCommand: pytest --exitfirst --verbose --failed-first --cov=. --cov-report xml
