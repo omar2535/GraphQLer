@@ -1,5 +1,6 @@
 from typing import List
-from graphqler_types import Input, Output, Object
+from .input import Input
+from .output import Output
 
 
 class Mutation:

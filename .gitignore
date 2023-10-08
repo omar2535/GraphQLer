@@ -16,6 +16,7 @@ env/
 
 # Testing
 .coverage
+.pytest_cache/
 
 ## Omar's personal testing
 omar-test/

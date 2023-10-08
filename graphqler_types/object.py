@@ -1,5 +1,8 @@
 from __future__ import annotations
-from graphqler_types import Field, Query, Mutation
+from .field import Field
+from .query import Query
+from .mutation import Mutation
+
 from typing import List
 
 

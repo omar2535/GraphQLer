@@ -6,18 +6,23 @@ import sys
 import argparse
 
 from compiler.compiler import Compiler
+from linker.linker import Linker
 
 
 def run_compile_mode(path: str, url: str):
-    """Runs the program in compile mode
+    """Runs the program in compile mode, running two things:
+       - Compiler - compiles the objects and resolves dependencies
+       - Linker - serializes and links objects together making the graph
 
     Args:
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
-    print("In compile mode!")
-    compiler = Compiler(path, url)
-    compiler.run()
+    print("(+) In compile mode!")
+    Compiler(path, url).run()
+
+    print("(+) Finished compiling, starting linker")
+    Linker(path).run()
 
 
 def run_fuzz_mode(path: str, url: str):

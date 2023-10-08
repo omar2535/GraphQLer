@@ -5,7 +5,8 @@
 """
 
 from pathlib import Path
-from compiler.utils import send_graphql_request, write_json_to_file, write_dict_to_yaml, initialize_file
+from utils.request_utils import send_graphql_request
+from utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
 from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver

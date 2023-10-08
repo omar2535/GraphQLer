@@ -1,8 +1,8 @@
 """Internal query type - has the basic query type information + enrichment information from the resolving stage"""
 
 from typing import List
-from graphqler_types import Input
-from graphqler_types import Output
+from .input import Input
+from .output import Output
 
 
 class Query:

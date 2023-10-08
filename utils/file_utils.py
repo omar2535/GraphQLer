@@ -1,31 +1,6 @@
-from typing import Callable
 from pathlib import Path
-
-import requests
-import constants
-import json
 import yaml
-
-
-def send_graphql_request(url: str, query: str, next: Callable[[dict], dict] = None) -> dict:
-    """Send GraphQL request to the specified endpoint
-
-    Args:
-        url (str): URL of the graphql server
-        query (str): Query string to hit the server with
-        next (Callable[[dict], dict], optional): Callback function in case there is action to be done after. Defaults to None.
-
-    Returns:
-        dict: _description_
-    """
-    body = {"query": query}
-
-    x = requests.post(url=url, json=body)
-
-    if next:
-        return next(json.loads(x.text))
-
-    return json.loads(x.text)
+import json
 
 
 def initialize_file(file_path: Path):
@@ -59,3 +34,15 @@ def write_dict_to_yaml(contents: dict, output_file: str):
     yaml_data = yaml.dump(contents, default_flow_style=False)
     with open(output_file, "w") as yaml_file:
         yaml_file.write(yaml_data)
+
+
+def read_yaml_to_dict(read_path: Path) -> dict:
+    """Reads yaml file to dict
+
+    Args:
+        read_path (Path): Path of the yaml file
+
+    Returns:
+        dict: Dictionary of the YAML file contents
+    """
+    return yaml.safe_load(read_path.read_text())
