@@ -11,7 +11,8 @@
 from pathlib import Path
 from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
-from fuzzer.utils import get_node
+from fuzzer.utils import filter_mutation_paths
+from .fengine import FEngine
 
 import constants
 import networkx
@@ -41,22 +42,23 @@ class Fuzzer:
         self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
+        self.fengine = FEngine(self.queries, self.objects, self.mutations, self.input_objects, self.enums, self.url)
 
         self.objects_bucket = {}
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
         1. Gets all nodes that can be run without a dependency (query/mutation)
-        2. 1st Pass: Perform DFS, going through only creation nodes and query nodes
-        3. 2nd Pass: Perform DFS, allow updates as well as creation and query nodes
-        4. 3rd Pass: Perform DFS, allow deletions
+        2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
+        3. 2nd Pass: Perform DFS, allow UPDATE as well as CREATE and also query nodes
+        4. 3rd Pass: Perform DFS, allow DELETE and UNKNOWN
         5. Clean up
         """
         # Step 1
         starter_nodes: list[Node] = self.get_non_dependent_nodes()
 
         # Step 2
-        self.perform_dfs(starter_stack=starter_nodes)
+        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
 
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in
@@ -71,14 +73,17 @@ class Fuzzer:
         non_dependent_nodes = [node for node, centrality in in_degree_centrality.items() if centrality == 0]
         return non_dependent_nodes
 
-    def perform_dfs(self, starter_stack: list[Node]):
+    def perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
         """Performs DFS with the initial starter stack
 
         Args:
             starter_stack (list[Node]): A list of the nodes to start the fuzzing
+            filter_mutation_type (list[str]): A list of mutation types to filter out when performing DFS (IE. [UPDATE,UNKNOWN,DELETE])
         """
         visited: list[Node] = []
         to_visit: list[list[Node]] = [[n] for n in starter_stack]
+        max_run_times = (len(self.dependency_graph.nodes) + len(self.dependency_graph.edges)) * 10
+        run_times = 0
         while len(to_visit) != 0:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
@@ -87,8 +92,17 @@ class Fuzzer:
                 if not was_successful:
                     to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
-                    to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put it at the front of the stack
-                    visited.append(current_node)  # Add this to visited
+                    # Filter out the types we don't want yet
+                    filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)
+                    # Will keep going deeper, put new paths at the front of the stack
+                    to_visit.extend(filtered_new_paths_to_evaluate)
+                    # Add this to visited
+                    visited.append(current_node)
+            # Break out condition
+            run_times += 1
+            if run_times >= max_run_times:
+                print("(F)[Info] Hit max run times. Ending DFS")
+                break
 
     def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], bool]:
         """Evaluates the node, performing the following based on the type of node
@@ -105,17 +119,27 @@ class Fuzzer:
             tuple[list[list[Node]], bool]: A list of the next to_visit paths, and the bool if the node evaluation was successful or not
         """
         neighboring_nodes = self.get_neighboring_nodes(node)
+        new_visit_paths = self.get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
         if node.graphql_type == "Object":
             if node.name not in self.objects_bucket or len(self.objects_bucket[node.name]) == 0:
                 return ([], False)
             else:
-                new_visit_paths = self.get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
                 return (new_visit_paths, True)
         elif node.graphql_type == "Mutation":
-            pass
+            new_objects_bucket, was_successful = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
+            if was_successful:
+                self.objects_bucket = new_objects_bucket
+                return (new_visit_paths, True)
+            else:
+                return ([], False)
         elif node.graphql_type == "Query":
-            pass
+            new_objects_bucket, was_successful = self.fengine.run_regular_query(node.name, self.objects_bucket)
+            if was_successful:
+                self.objects_bucket = new_objects_bucket
+                return (new_visit_paths, True)
+            else:
+                return ([], False)
 
     def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node

@@ -13,8 +13,18 @@ class Node:
             body (dict): The body of the graphql type
         """
         self.graphql_type = graphql_type
+        self.mutation_type = None
         self.name = name
         self.body = body
+
+    def set_mutation_type(self, mutation_type: str):
+        """Only use this if its a mutation type
+
+        Args:
+            mutation_type (str): One of [CREATE,UPDATE,DELETE,UNKNOWN]
+        """
+        if self.graphql_type == "Mutation":
+            self.mutation_type = mutation_type
 
     def __str__(self):
         return f"Node({self.graphql_type} | {self.name})"

@@ -57,7 +57,9 @@ class GraphGenerator:
         """2. Create mutation nodes"""
         mutation_nodes = {}
         for mutation_name, mutation_body in self.compiled_mutations.items():
-            mutation_nodes[mutation_name] = Node("Mutation", mutation_name, mutation_body)
+            mutation_node = Node("Mutation", mutation_name, mutation_body)
+            mutation_node.set_mutation_type(mutation_body["mutationType"])
+            mutation_nodes[mutation_name] = mutation_node
 
         """3. Create object nodes"""
         object_nodes = {}
