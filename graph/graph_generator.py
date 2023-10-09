@@ -5,7 +5,7 @@ The linker does the following:
 - Attach queries to the object node
 - Attach mutations related to the object node
 
-!Note!: We decide to not link object-objects together here as it is not relavent for graph traversal
+!Note!: We decide to not link object-objects together here as it is not relevant for graph traversal
 """
 
 from pathlib import Path
@@ -22,12 +22,12 @@ class GraphGenerator:
         self.save_path = save_path
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutationss_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
         self.dependency_graph_visualization_save_path = Path(save_path) / constants.GRAPH_VISUALIZATION_OUTPUT
 
         self.compiled_queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.compiled_objects = read_yaml_to_dict(self.compiled_objects_save_path)
-        self.compiled_mutations = read_yaml_to_dict(self.compiled_mutationss_save_path)
+        self.compiled_mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
 
         self.dependency_graph = networkx.DiGraph()
 
@@ -124,7 +124,6 @@ class GraphGenerator:
            Case 1: M -> O | When object(O) is produced by query(Q), means O has Q in its "associatedQueries", weight 100
            Case 2: O -> Q | When query(Q) depends on object(O), means Q has O in its "hardDependsOn", weight 100
            Case 3: O -> Q | When query(Q) depends on object(O), means Q has O in its "softDependsOn", weight 1
-
 
         Args:
             object_nodes (dict): Mapping of object_name -> object node
