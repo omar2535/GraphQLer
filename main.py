@@ -24,6 +24,8 @@ def run_compile_mode(path: str, url: str):
     print("(+) Finished compiling, starting graph generator")
     GraphGenerator(path).get_dependency_graph()
 
+    print("(+) Complete compilation phase")
+
 
 def run_fuzz_mode(path: str, url: str):
     """Runs the program in fuzz mode
