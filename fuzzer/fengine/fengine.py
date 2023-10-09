@@ -4,13 +4,12 @@ Output: Array of query strings (refer to https://towardsdatascience.com/connecti
 """
 
 from fengine.fuzzers.fuzzer import Fuzzer
-from graphqler_types.graphql_request import GraphqlRequest
 from typing import List, Dict
 
 
 class Fengine(object):
     @staticmethod
-    def fuzz(fuzzer: Fuzzer, request: GraphqlRequest, datatypes: Dict = {}) -> List[str]:
+    def fuzz(fuzzer: Fuzzer, request, datatypes: Dict = {}) -> List[str]:
         """
         Single method to call all fuzzers.
 

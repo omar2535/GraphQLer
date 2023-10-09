@@ -47,11 +47,10 @@ class Fuzzer:
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
         1. Gets all nodes that can be run without a dependency (query/mutation)
-        2. Adds these to the DFS queue
-        3. 1st Pass: Perform DFS, going through only creation nodes and query nodes
-        4. 2nd Pass: Perform DFS, allow updates as well as creation and query nodes
-        5. 3rd Pass: Perform DFS, allow deletions
-        6. Clean up
+        2. 1st Pass: Perform DFS, going through only creation nodes and query nodes
+        3. 2nd Pass: Perform DFS, allow updates as well as creation and query nodes
+        4. 3rd Pass: Perform DFS, allow deletions
+        5. Clean up
         """
         # Step 1
         starter_nodes: list[Node] = self.get_non_dependent_nodes()
