@@ -6,13 +6,13 @@ import sys
 import argparse
 
 from compiler.compiler import Compiler
-from linker.linker import Linker
+from graph import GraphGenerator
 
 
 def run_compile_mode(path: str, url: str):
     """Runs the program in compile mode, running two things:
        - Compiler - compiles the objects and resolves dependencies
-       - Linker - serializes and links objects together making the graph
+       - GraphGeneration - links objects together making the graph
 
     Args:
         path (str): Directory for all compilation outputs to be saved to
@@ -21,8 +21,8 @@ def run_compile_mode(path: str, url: str):
     print("(+) In compile mode!")
     Compiler(path, url).run()
 
-    print("(+) Finished compiling, starting linker")
-    Linker(path).run()
+    print("(+) Finished compiling, starting graph generator")
+    GraphGenerator(path).get_dependency_graph()
 
 
 def run_fuzz_mode(path: str, url: str):

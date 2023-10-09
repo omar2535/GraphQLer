@@ -15,3 +15,9 @@ class Node:
         self.graphql_type = graphql_type
         self.name = name
         self.body = body
+
+    def __str__(self):
+        return f"Node({self.graphql_type} | {self.name})"
+
+    def __repr__(self):
+        return f"Node({self.graphql_type} | {self.name})"

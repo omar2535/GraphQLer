@@ -10,8 +10,8 @@ def draw_graph(graph: networkx.DiGraph, save_path: str):
         graph (networkx.DiGraph): The networkx graph
         save_path (str): The path to save the visualization
     """
-    pos = networkx.spring_layout(graph)
-    networkx.draw(graph, pos, with_labels=False, node_size=500, node_color="skyblue", font_size=10, font_color="black", font_weight="bold", edge_color="gray", width=2)
+    pos = networkx.random_layout(graph)
+    networkx.draw(graph, pos, with_labels=False, node_size=100, node_color="skyblue", font_size=8, font_color="black", font_weight="bold", edge_color="gray", width=2)
     custom_labels = get_custom_labels(graph)
     networkx.draw_networkx_labels(graph, pos, labels=custom_labels, font_size=8, verticalalignment="bottom", horizontalalignment="right")
     plt.savefig(save_path, format="png")
