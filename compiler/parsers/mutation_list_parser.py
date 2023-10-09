@@ -32,6 +32,10 @@ class MutationListParser(Parser):
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])
         mutation_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == "Mutation"]
+
+        # If no mutations, just early return
+        if len(mutation_object) == 0:
+            return {}
         mutations = mutation_object[0]["fields"]
 
         # Convert it to the YAML structure we want

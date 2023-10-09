@@ -40,6 +40,10 @@ class GraphGenerator:
         self.run()
         return self.dependency_graph
 
+    def draw_dependency_graph(self):
+        """Draws the dependency graph based on the GRAPH_VISUALIZATION_OUTPUT constant"""
+        draw_graph(self.dependency_graph, self.dependency_graph_visualization_save_path)
+
     def run(self):
         """Generates the graph, creating nodes and creating edges between nodes.
         3 types of nodes (Objects, Queries, Mutations)
@@ -70,9 +74,6 @@ class GraphGenerator:
 
         """6. Link objects and queries together"""
         self.create_object_query_edges(object_nodes, query_nodes)
-
-        """7. Draw the graph as well"""
-        draw_graph(self.dependency_graph, self.dependency_graph_visualization_save_path)
 
     def create_object_mutation_edges(self, object_nodes: dict, mutation_nodes: dict):
         """Updates the dependency graph with edges between objects and mutations. 3 cases:

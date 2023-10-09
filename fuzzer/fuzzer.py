@@ -6,10 +6,19 @@ Fuzzer actually does 2 things:
 2. Run the actual fuzzing
 """
 
+from graph import GraphGenerator
+
 
 class Fuzzer:
-    def __init__(self):
-        pass
+    def __init__(self, save_path: str, url: str):
+        """Initializes the fuzzer, reading information from the compiled files
+
+        Args:
+            save_path (str): Save directory path
+            url (str): URL for graphql introspection query to hit
+        """
+        self.save_path = save_path
+        self.url = url
 
     def run(self):
         pass
