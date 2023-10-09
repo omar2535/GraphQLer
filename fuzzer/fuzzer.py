@@ -84,17 +84,17 @@ class Fuzzer:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
             if current_node not in visited:
-                new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, ["UPDATE", "DELETE"])
+                new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
                 if not was_successful:
                     to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put it at the front of the stack
                     visited.append(current_node)  # Add this to visited
 
-    def evaluate_node(self, node: Node, avoid_mutation_type: list[str]) -> tuple[list[list[Node]], bool]:
+    def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], bool]:
         """Evaluates the node, performing the following based on the type of node
-           Case 1: If it's an object node, then we simply add back up the mutations / queries
-                   where their pre-conditions are already satisfied
+           Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
+                   then queue up the next neighboring nodes to visit
            Case 2: If it's an query node, run the query with the required objects, then store in the object bucket
            Case 3: If it's a mutation node, run the mutation with the required objects
 
@@ -105,3 +105,41 @@ class Fuzzer:
         Returns:
             tuple[list[list[Node]], bool]: A list of the next to_visit paths, and the bool if the node evaluation was successful or not
         """
+        neighboring_nodes = self.get_neighboring_nodes(node)
+
+        if node.graphql_type == "Object":
+            if node.name not in self.objects_bucket or len(self.objects_bucket[node.name]) == 0:
+                return ([], False)
+            else:
+                new_visit_paths = self.get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
+                return (new_visit_paths, True)
+        elif node.graphql_type == "Mutation":
+            pass
+        elif node.graphql_type == "Query":
+            pass
+
+    def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
+        """Gets the new visit path with the neighbors by creating a new path for each neighboring node
+
+        Args:
+            neighboring_nodes (list[Node]): The list of neighboring nodes
+            visit_path (list[Node]): The visit path that the current iteration is on
+
+        Returns:
+            list[list[Node]]: A list of visit_paths where each visit_path is just the visit_path + neighboring_node
+        """
+        new_visit_paths = []
+        for node in neighboring_nodes:
+            new_visit_paths.append(visit_path + [node])
+        return new_visit_paths
+
+    def get_neighboring_nodes(self, node: Node) -> list[Node]:
+        """Get nodes that this node goes out of
+
+        Args:
+            node (Node): The node we want to find that is pointing to this node
+
+        Returns:
+            list[Node]: List of nodes that are dependent on the input node
+        """
+        return [n for n in self.dependency_graph.successors(node)]
