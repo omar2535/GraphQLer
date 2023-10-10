@@ -26,6 +26,12 @@ class ObjectDependencyResolver:
 
         return objects
 
+    def get_base_oftype(self, oftype: dict) -> dict:
+        if "ofType" in oftype and oftype["ofType"] is not None:
+            return self.get_base_oftype(oftype["ofType"])
+        else:
+            return oftype
+
     def parse_gql_object(self, gql_object: dict) -> dict:
         """Parse a single object, noting down all of the other object this object depends on
            hardDependsOn: Where the object has fields on other objects and it's kind is NON_NULL
@@ -52,12 +58,14 @@ class ObjectDependencyResolver:
                 if field["type"] not in BUILT_IN_TYPES:
                     soft_dependent_objects.append(field["type"])
             if field["kind"] == "NON_NULL":
-                if field["ofType"] not in BUILT_IN_TYPES:
-                    hard_dependent_objects.append(field["ofType"])
+                base_oftype = self.get_base_oftype(field["ofType"])
+                if base_oftype["kind"] not in BUILT_IN_TYPES:
+                    hard_dependent_objects.append(base_oftype["name"])
             elif field["kind"] == "LIST":
-                if field["ofType"] not in BUILT_IN_TYPES:
+                base_oftype = self.get_base_oftype(field["ofType"])
+                if base_oftype["kind"] not in BUILT_IN_TYPES:
                     # TODO: Figure out if lists can have hard dependencies (a non-zero lengthed list)
-                    soft_dependent_objects.append(field["ofType"])
+                    soft_dependent_objects.append(base_oftype["name"])
 
         # TODO: Figure out a way see if we can handle custom scalars dynamically (?) - right now, they show up as none
         # Remove nulls from dependency list and make them unique

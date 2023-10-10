@@ -23,7 +23,7 @@ class ObjectListParser(Parser):
             "name": field["name"],
             "kind": field["type"]["kind"],
             "type": field["type"]["name"] if "name" in field["type"] else None,
-            "ofType": field["type"]["ofType"]["name"] if "ofType" in field["type"] and field["type"]["ofType"] and "name" in field["type"]["ofType"] else None,
+            "ofType": self.extract_oftype(field["type"]),
         }
         return field_info
 
