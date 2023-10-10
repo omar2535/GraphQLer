@@ -1,3 +1,10 @@
+"""FEngine: Responsible for getting the materialized query, running it against the API, and returning if it succeeds
+            and the new objects that were returned (if any were updated)
+"""
+
+from .materializers import RegularMutationMaterializer
+
+
 class FEngine:
     def __init__(self, queries: dict, objects: dict, mutations: dict, input_objects: dict, enums: dict, url: str):
         """The intiialization of the FEnginer
@@ -30,8 +37,18 @@ class FEngine:
         Returns:
             tuple[dict, bool]: The new objects bucket, and whether the mutation succeeded or not
         """
-        # mutation_info = self.mutations[mutation_name]
-        return (objects_bucket, True)  # Stub
+        # Step 1
+        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
+        materializer.get_payload(mutation_name, objects_bucket)
+
+        # Step 2
+        pass
+
+        # Step 3
+        pass
+
+        # Stub - TODO: Change this
+        return (objects_bucket, True)
 
     def run_regular_query(self, name: str, objects_bucket: dict) -> tuple[dict, bool]:
         """Runs the query, and returns a new objects bucket

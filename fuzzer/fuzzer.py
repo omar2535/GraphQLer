@@ -80,17 +80,30 @@ class Fuzzer:
             starter_stack (list[Node]): A list of the nodes to start the fuzzing
             filter_mutation_type (list[str]): A list of mutation types to filter out when performing DFS (IE. [UPDATE,UNKNOWN,DELETE])
         """
+
+        """DFS visit specific"""
         visited: list[Node] = []
+        failed_visited: dict = {}
         to_visit: list[list[Node]] = [[n] for n in starter_stack]
+
+        """Initialize some counters for cases when we need to break out of DFS"""
         max_run_times = (len(self.dependency_graph.nodes) + len(self.dependency_graph.edges)) * 10
         run_times = 0
+        max_requeue_for_same_node = 3
+
         while len(to_visit) != 0:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
+            print(f"(F)(DFS)Current node: {current_node}")
             if current_node not in visited:
                 new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
+                # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not was_successful:
-                    to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
+                    if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
+                        continue  # Stop counting failures, just skip the node for retry
+                    else:
+                        failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
+                        to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     # Filter out the types we don't want yet
                     filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)

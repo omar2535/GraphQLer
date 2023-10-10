@@ -31,4 +31,4 @@ class Parser:
         ofType = field["ofType"]
         if ofType:
             nested_ofType = self.extract_oftype(field["ofType"])
-            return {"kind": ofType["kind"], "name": ofType["name"], "ofType": nested_ofType}
+            return {"kind": ofType["kind"], "name": ofType["name"], "ofType": nested_ofType, "type": ofType["name"]}
