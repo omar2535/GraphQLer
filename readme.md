@@ -13,6 +13,8 @@ A stateful GraphQL API fuzzer with many inspirations from [Microsoft's RESTler f
 
 ## ⚒ Setup
 
+Make sure to use python 3.11!
+
 **Setting up the environment:**
 
 ```sh
@@ -37,8 +39,24 @@ source .env/bin/activate
 
 ## ▶ Running the program
 
+### Compile mode
+
 ```sh
-(.env) python main.py <PATH_TO_GRAMMAR_FILE> <URL> <MAX_REQUEST_CHAIN_DEPTH>
+(.env) python main.py --compile --url <URL> --path <SAVE_PATH>
+```
+
+### Fuzz mode
+
+```sh
+(.env) python main.py --fuzz --url <URL> --path <SAVE_PATH>
+```
+
+### Run mode
+
+Runs both the Compile mode and Fuzz mode
+
+```sh
+(.env) python main.py --run --url <URL> --path <SAVE_PATH>
 ```
 
 ## 🧪 Testing
