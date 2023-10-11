@@ -22,3 +22,6 @@ GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
 """General Graphql definitions: https://spec.graphql.org/June2018/"""
 BUILT_IN_TYPES = ["ID", "Int", "Float", "String", "Boolean"]
 BUILT_IN_TYPE_KINDS = ["SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM", "INPUT_OBJECT", "LIST", "NON_NULL"]
+
+"""For materializers"""
+MAX_OBJECT_CYCLES = 2

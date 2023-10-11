@@ -36,3 +36,21 @@ def filter_mutation_paths(paths_to_evalute: list[list[Node]], filter_mutation_ty
         else:
             filtered_paths.append(path)
     return filtered_paths
+
+
+def put_in_object_bucket(objects_bucket: dict, object_name: str, object_val: str) -> dict:
+    """Puts an object in the bucket, returns the new bucket
+
+    Args:
+        objects_bucket (dict): The objects bucket
+        object_name (str): The objects name
+        object_val (str): The objects value (for example ID)
+
+    Returns:
+        dict: The new bucket with the object_name: [..., object_val]
+    """
+    if object_name in objects_bucket:
+        objects_bucket[object_name].append(object_val)
+    else:
+        objects_bucket[object_name] = [object_val]
+    return objects_bucket

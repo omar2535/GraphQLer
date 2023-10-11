@@ -12,7 +12,7 @@ from pathlib import Path
 from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
 from fuzzer.utils import filter_mutation_paths
-from .fengine import FEngine
+from .fengine.fengine import FEngine
 
 import constants
 import networkx
@@ -59,6 +59,12 @@ class Fuzzer:
 
         # Step 2
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
+
+        # Step 3: TODO
+
+        # Step 4: TODO
+
+        # Step 5: TODO
 
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in

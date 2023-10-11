@@ -3,7 +3,9 @@ Materializes a mutation that is ready to be sent off
 """
 
 from .utils import get_random_scalar, get_random_enum_value, get_random_id_from_bucket
+from utils.parser_utils import get_base_oftype
 import random
+import constants
 
 
 class RegularMutationMaterializer:
@@ -27,7 +29,7 @@ class RegularMutationMaterializer:
         """
         mutation_info = self.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket)
-        mutation_output = self.materialize_output(mutation_info["output"], [])
+        mutation_output = self.materialize_output(mutation_info["output"], [], False)
 
         mutation_payload = f"""
         mutation {{
@@ -37,43 +39,45 @@ class RegularMutationMaterializer:
             {mutation_output}
         }}
         """
-        print(mutation_payload)
-        breakpoint()
+        return mutation_payload
 
-    def materialize_output(self, output: dict, used_objects: list[str]) -> str:
-        """Materializes the output
+    def materialize_output(self, output: dict, used_objects: list[str], include_name) -> str:
+        """Materializes the output. Some interesting cases:
+           - If we want to stop on an object materializing its fields, we need to not even include the object name
+             IE: {id, firstName, user {}} should just be {id, firstName}
+           Note: This function should be called on a base output type
 
         Args:
             output (dict): The output
             used_objects (list[str]): A list of used objects
+            include_name (list[str]): Whether to include the name of the field or not
 
         Returns:
             str: The built output payload
         """
         built_str = ""
-        if output["kind"] == "OBJECT" and used_objects.count(output["name"]) >= 2:
-            # this is to avoid cycles
-            built_str += ""
-        elif output["kind"] == "OBJECT":
-            used_objects.append(output["name"])
-
-            built_str += "{"
-            object_name = output["name"]
-            found_object = self.objects[object_name]
-            built_str += self.materialize_object_fields(found_object, used_objects)
-            built_str += "}"
+        if output["kind"] == "OBJECT":
+            materialized_object_fields = self.materialize_object_fields(output["type"], used_objects)
+            if materialized_object_fields != "":
+                if include_name:
+                    built_str += output["name"]
+                built_str += " {"
+                built_str += materialized_object_fields
+                built_str += "},"
         elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":
-            built_str += f"{output['name']}" + self.materialize_output(output["ofType"]) + ","
+            base_oftype = get_base_oftype(output["ofType"])
+            if base_oftype["kind"] == "SCALAR":
+                built_str += f"{output['name']}, "
+            else:
+                materialized_output = self.materialize_output(base_oftype, used_objects, False)
+                if materialized_output != "":
+                    built_str += f"{output['name']}" + materialized_output + ", "
         else:
-            built_str += "{"
-            built_str += f"{output['name']}"
-            built_str += "}"
+            built_str += f"{output['name']}, "
         return built_str
 
-    def materialize_object_fields(self, object_information: dict, used_objects: list[str]) -> str:
-        """Materialize the objects fields, working through an object and materializing more of the object if the object
-           depends on any other objects. Note that used_objects array means cycles in object dependencies are
-           limited
+    def materialize_object_fields(self, object_name: str, used_objects: list[str]) -> str:
+        """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
             object_information (dict): The object's information
@@ -83,45 +87,20 @@ class RegularMutationMaterializer:
             str: The built output string
         """
         built_str = ""
-        for field in object_information["fields"]:
-            if field["kind"] == "OBJECT" and used_objects.count(field["name"]) >= 2:
-                built_str += ""
-            elif field["kind"] == "OBJECT":
-                used_objects.append(field["name"])
-                built_str += f"{field['name']}" + "{"
-                object_name = field["type"]
-                found_object = self.objects[object_name]
-                built_str += self.materialize_object_fields(found_object, used_objects)
-                built_str += "}"
-            elif field["kind"] == "NON_NULL" or field["kind"] == "LIST":
-                base_oftype = self.get_base_oftype(field["ofType"])
-                if base_oftype["kind"] == "OBJECT" and used_objects.count(base_oftype["name"]) >= 2:
-                    built_str += ""
-                elif base_oftype["kind"] == "OBJECT":
-                    used_objects.append(base_oftype["name"])
-                    object_name = base_oftype["name"]
-                    found_object = self.objects[object_name]
-                    built_str += f"{field['name']} " + "{" + self.materialize_object_fields(found_object, used_objects) + "},"
-                else:
-                    built_str += f"{field['name']}" + ","
-            else:
-                built_str += field["name"]
-                built_str += ", "
+        # If we've seen this object more than the max object cycles, don't use it again
+        if used_objects.count(object_name) >= constants.MAX_OBJECT_CYCLES:
+            return built_str
+
+        # Mark that we've used this object
+        used_objects.append(object_name)
+
+        # Go through each of the object's fields, materialize
+        object_info = self.objects[object_name]
+        for field in object_info["fields"]:
+            field_output = self.materialize_output(field, used_objects, True)
+            if field_output != "" and field_output != "{}":
+                built_str += field_output
         return built_str
-
-    def get_base_oftype(self, oftype: dict) -> dict:
-        """Gets the base oftype from a NON_NULL/LIST oftype
-
-        Args:
-            oftype (dict): Oftype to get
-
-        Returns:
-            dict: the base oftype with kind, name, and ofType
-        """
-        if "ofType" in oftype and oftype["ofType"] is not None:
-            return self.get_base_oftype(oftype["ofType"])
-        else:
-            return oftype
 
     def materialize_inputs(self, mutation_info, inputs: dict, objects_bucket: dict) -> str:
         """Materialize the mutation's inputs

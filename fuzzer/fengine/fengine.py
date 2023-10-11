@@ -3,6 +3,10 @@
 """
 
 from .materializers import RegularMutationMaterializer
+from fuzzer.utils import put_in_object_bucket
+
+from utils.request_utils import send_graphql_request
+from utils.parser_utils import get_mutation_output_type
 
 
 class FEngine:
@@ -28,7 +32,7 @@ class FEngine:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
-           3. Saves the result in the objects_bucket
+           3. Saves the result in the objects_bucket if it's an object
 
         Args:
             mutation_name (str): Name of the mutation
@@ -37,18 +41,24 @@ class FEngine:
         Returns:
             tuple[dict, bool]: The new objects bucket, and whether the mutation succeeded or not
         """
-        # Step 1
-        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
-        materializer.get_payload(mutation_name, objects_bucket)
+        try:
+            # Step 1
+            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
+            mutation_payload_string = materializer.get_payload(mutation_name, objects_bucket)
 
-        # Step 2
-        pass
+            # Step 2
+            response = send_graphql_request(self.url, mutation_payload_string)
 
-        # Step 3
-        pass
+            # Step 3
+            mutation_output_type = get_mutation_output_type(mutation_name, self.mutations)
+            if "id" in response["data"][mutation_name]:
+                returned_id = response["data"][mutation_name]["id"]
+                objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
 
-        # Stub - TODO: Change this
-        return (objects_bucket, True)
+            return (objects_bucket, True)
+        except Exception as e:
+            print(e)
+            return (objects_bucket, False)
 
     def run_regular_query(self, name: str, objects_bucket: dict) -> tuple[dict, bool]:
         """Runs the query, and returns a new objects bucket
