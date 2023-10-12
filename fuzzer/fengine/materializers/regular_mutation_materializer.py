@@ -39,9 +39,11 @@ class RegularMutationMaterializer:
             {mutation_output}
         }}
         """
+        print(mutation_payload)
+        # breakpoint()
         return mutation_payload
 
-    def materialize_output(self, output: dict, used_objects: list[str], include_name) -> str:
+    def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:
         """Materializes the output. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
@@ -50,7 +52,7 @@ class RegularMutationMaterializer:
         Args:
             output (dict): The output
             used_objects (list[str]): A list of used objects
-            include_name (list[str]): Whether to include the name of the field or not
+            include_name (bool): Whether to include the name of the field or not
 
         Returns:
             str: The built output payload
@@ -102,125 +104,65 @@ class RegularMutationMaterializer:
                 built_str += field_output
         return built_str
 
-    def materialize_inputs(self, mutation_info, inputs: dict, objects_bucket: dict) -> str:
-        """Materialize the mutation's inputs
+    def materialize_inputs(self, mutation_info: dict, inputs: dict, objects_bucket: dict) -> str:
+        """Goes through the inputs of the mutation
 
         Args:
-            mutation_info (dict): The mutation info
-            objects_bucket (dict): Objects currently in the bucket
+            mutation_info (dict): The mutation information dictionary
+            inputs (dict): The inputs of to be parsed
+            objects_bucket (dict): The dynamically available objects that are currently in circulation
 
         Returns:
-            str: a string of key: val, key: val, and possible more based on input object
+            str: The input parameters as a string
         """
         built_str = ""
-        for input_name, input_info in inputs.items():
-            if input_info is None:
-                return ""
-            elif "kind" in input_info and input_info["kind"] == "INPUT_OBJECT":
-                input_object_name = input_info["name"]
-                input_object = self.input_objects[input_object_name]
-                built_str += f"{input_name}: "
-                built_str += self.materialize_inputs(mutation_info, input_object["inputFields"], objects_bucket)
-                built_str += ", "
-            elif input_info["kind"] == "NON_NULL":
-                built_str += f"{input_name}: "
-                oftype = input_info["ofType"]
-                built_str += self.materialize_field(mutation_info, input_name, oftype, objects_bucket)
-                built_str += ", "
-            elif input_info["kind"] == "LIST":
-                oftype = input_info["ofType"]
-                built_str += f"{input_name}: "
-                built_str += self.materialize_field(mutation_info, input_name, oftype, objects_bucket)
-                built_str += ", "
-            elif input_info["kind"] == "SCALAR":
-                scalar_val = ""
-                # If it's a ID that's hard depends on, then try to use from object bucket, if can't, then raise error
-                # If it's an ID that's a soft depends on, then try to use from object bucket, if can't, then skip
-                if input_info["type"] == "ID" and input_name in mutation_info["hardDependsOn"].keys():
-                    object_name = mutation_info["hardDependsOn"][input_name]
-                    if object_name in objects_bucket and len(objects_bucket[object_name] != 0):
-                        grabbed_object = random.choice(objects_bucket[object_name])
-                        scalar_val = grabbed_object["id"]
-                    elif object_name == "UNKNOWN":
-                        # If it's unknown, get a random ID from our objects bucket
-                        scalar_val = get_random_id_from_bucket(objects_bucket)
-                    else:
-                        raise Exception("Couldn't materialize a hard depends on ID")
-                elif input_info["type"] == "ID" and input_name in mutation_info["softDependsOn"].keys():
-                    object_name = mutation_info["softDependsOn"][input_name]
-                    if object_name in objects_bucket and len(objects_bucket[object_name] != 0):
-                        grabbed_object = random.choice(objects_bucket[object_name])
-                        scalar_val = grabbed_object["id"]
-                    elif object_name == "UNKNOWN":
-                        # If it's unknown, get a random ID from our objects bucket
-                        scalar_val = get_random_id_from_bucket(objects_bucket)
-                    else:
-                        scalar_val = ""
-                elif input_info["type"] == "String":
-                    scalar_val = f"\"{get_random_scalar(input_name, input_info['type'])}\""
-                else:
-                    scalar_val = get_random_scalar(input_name, input_info["type"])
-                built_str += f"{input_name} : {scalar_val},"
+        for input_name, input_field in inputs.items():
+            built_str += f"{input_name}: " + self.materialize_input_field(mutation_info, input_field, objects_bucket, True) + ","
         return built_str
 
-    def materialize_field(self, mutation_info: dict, input_name: str, field: dict, objects_bucket: dict) -> str:
-        """Attempt to materialize the field
+    def materialize_input_field(self, mutation_info: dict, input_field: dict, objects_bucket: dict, check_deps: bool) -> str:
+        """Materializes a single input field
+           - if the field is one we already know it depends on, just instantly resolve. Or else going down into
+             the oftype will make us lose its name
 
         Args:
-            mutation_info (dict): The mutation info
-            input_name (str): The input name (from the very top)
-            field (dict): The field (has kind, name, type, ofType)
-            objects_bucket (dict): The objects bucket
-
-        Raises:
-            Exception: If materialization fails
+            mutation_info (dict): The mutation information dictionary
+            input_field (dict): The field for a mutation (has the)
+            objects_bucket (dict): The dynamically available objects that are currently in circulation
+            check_deps (bool): Whether to check the dependencies first or not
 
         Returns:
-            str: The materialized scalar
+            str: _description_
         """
-        if field["kind"] == "LIST":
-            return "[" + self.materialize_field(field["ofType"]) + "]"
-        elif field["kind"] == "NON_NULL":
-            return self.materialize_field(field["ofType"])
-        elif field["kind"] == "INPUT_OBJECT":
-            input_object_name = field["name"]
-            input_object = self.input_objects[input_object_name]
-            return self.materialize_inputs(mutation_info, input_object["inputFields"], objects_bucket)
-        elif field["kind"] == "SCALAR":
-            # If it's a ID that's hard depends on, then try to use from object bucket, if can't, then raise error
-            # If it's an ID that's a soft depends on, then try to use from object bucket, if can't, then skip
-            if field["name"] == "ID" and input_name in mutation_info["hardDependsOn"].keys():
-                object_name = mutation_info["hardDependsOn"][input_name]
-                if object_name in objects_bucket and len(objects_bucket[object_name] != 0):
-                    grabbed_object = random.choice(objects_bucket[object_name])
-                    return grabbed_object["id"]
-                elif object_name == "UNKNOWN":
-                    # If it's unknown, get a random ID from our objects bucket
-                    return get_random_id_from_bucket(objects_bucket)
-                else:
-                    raise Exception("Couldn't materialize a hard depends on ID")
-            elif field["name"] == "ID" and input_name in mutation_info["softDependsOn"].keys():
-                object_name = mutation_info["softDependsOn"][input_name]
-                if object_name in objects_bucket and len(objects_bucket[object_name] != 0):
-                    grabbed_object = random.choice(objects_bucket[object_name])
-                    return grabbed_object["id"]
-                elif object_name == "UNKNOWN":
-                    # If it's unknown, get a random ID from our objects bucket
-                    return get_random_id_from_bucket(objects_bucket)
-                else:
-                    return ""
-            elif field["type"] == "String":
-                return f"\"{get_random_scalar(input_name, field['type'])}\""
+        built_str = ""
+        hard_dependencies: dict = mutation_info["hardDependsOn"]
+        soft_dependencies: dict = mutation_info["softDependsOn"]
+
+        # Must first resolve any dependencies we have access to(since if we go down and resolve ofTypes we lose its name)
+        if check_deps and input_field["name"] in hard_dependencies:
+            hard_dependency_name = hard_dependencies[input_field["name"]]
+            if hard_dependency_name in objects_bucket:
+                built_str += f'"{random.choice(objects_bucket[hard_dependency_name])}"'
+            elif hard_dependency_name == "UNKNOWN":
+                print(f"(F)(RegularMutationMaterializer) Using UNKNOWN input for field: {input_field}")
+                built_str += self.materialize_input_field(mutation_info, input_field, objects_bucket, False)
             else:
-                return get_random_scalar(input_name, field["type"])
-        elif field["kind"] == "ENUM":
-            enum_name = field["type"]
-            enums = self.enums[enum_name]
-            enum_value = get_random_enum_value(enums)
-            if enum_value:
-                return enum_value
+                raise Exception(f"Hard dependency not found in objects bucket for: {input_field['name']}:{hard_dependency_name}")
+        elif check_deps and input_field["name"] in soft_dependencies:
+            soft_depedency_name = soft_dependencies[input_field["name"]]
+            if soft_depedency_name in objects_bucket:
+                built_str += f'"{random.choice(objects_bucket[soft_depedency_name])}"'
             else:
-                return ""
+                built_str += self.materialize_input_field(mutation_info, input_field, objects_bucket, False)
+        elif input_field["kind"] == "NON_NULL":
+            built_str += self.materialize_input_field(mutation_info, input_field["ofType"], objects_bucket, True)
+        elif input_field["kind"] == "LIST":
+            built_str += f"[{self.materialize_input_field(mutation_info, input_field['ofType'], objects_bucket), True}]"
+        elif input_field["kind"] == "INPUT_OBJECT":
+            input_object = self.input_objects[input_field["type"]]
+            built_str += "{" + self.materialize_inputs(mutation_info, input_object["inputFields"], objects_bucket) + "}"
+        elif input_field["kind"] == "SCALAR":
+            built_str += get_random_scalar(input_field["name"], input_field["type"])
         else:
-            # Non-recognized kind
-            return ""
+            built_str += ""
+        return built_str

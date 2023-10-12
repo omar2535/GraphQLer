@@ -3,7 +3,7 @@ import random
 
 def get_random_string(input_name: str) -> str:
     # Maybe we can use the input name somehow? (Like if the input name contains "name")
-    return "Bob"
+    return '"Bob"'
 
 
 def get_random_int(input_name: str) -> int:
@@ -19,7 +19,7 @@ def get_random_bool(input_name: str) -> bool:
 
 
 def get_random_id(input_name: str) -> str:
-    return "1234567890"
+    return '"1234567890"'
 
 
 # Gets a random scalar for the scalar type given

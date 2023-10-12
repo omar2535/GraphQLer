@@ -56,6 +56,7 @@ class Fuzzer:
         """
         # Step 1
         starter_nodes: list[Node] = self.get_non_dependent_nodes()
+        print(f"Starter nodes: {starter_nodes}")
 
         # Step 2
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])

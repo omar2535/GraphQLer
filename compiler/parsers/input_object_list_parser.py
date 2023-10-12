@@ -18,6 +18,7 @@ class InputObjectListParser(Parser):
                 "kind": field["type"]["kind"],
                 "type": field["type"]["name"] if "name" in field["type"] else None,
                 "ofType": self.extract_oftype(field["type"]),
+                "name": field["type"]["name"] if "name" in field["type"] else None,
             }
 
         return resulting_input_fields

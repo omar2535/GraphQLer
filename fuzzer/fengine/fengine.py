@@ -7,6 +7,8 @@ from fuzzer.utils import put_in_object_bucket
 
 from utils.request_utils import send_graphql_request
 from utils.parser_utils import get_mutation_output_type
+import traceback
+import pprint
 
 
 class FEngine:
@@ -48,6 +50,12 @@ class FEngine:
 
             # Step 2
             response = send_graphql_request(self.url, mutation_payload_string)
+            if not response:
+                return (objects_bucket, False)
+            if "data" not in response:
+                return (objects_bucket, False)  # TODO: we should note down the errors that occurred
+            if response["data"][mutation_name] is None:
+                return (objects_bucket, False)
 
             # Step 3
             mutation_output_type = get_mutation_output_type(mutation_name, self.mutations)
@@ -57,7 +65,7 @@ class FEngine:
 
             return (objects_bucket, True)
         except Exception as e:
-            print(e)
+            print(f"(F)(FEngine)Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             return (objects_bucket, False)
 
     def run_regular_query(self, name: str, objects_bucket: dict) -> tuple[dict, bool]:
