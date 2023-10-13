@@ -61,9 +61,11 @@ class Fuzzer:
         # Step 2
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
 
-        # Step 3: TODO
+        # Step 3
+        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
 
-        # Step 4: TODO
+        # Step 4
+        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=[])
 
         # Step 5: TODO
 
