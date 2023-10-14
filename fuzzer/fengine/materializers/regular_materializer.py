@@ -63,7 +63,8 @@ class RegularMaterializer:
                     else:
                         built_str += materialized_output
         else:
-            built_str += f"{output['name']}, "
+            if include_name:
+                built_str += f"{output['name']}, "
         return built_str
 
     def materialize_object_fields(self, object_name: str, used_objects: list[str]) -> str:

@@ -62,16 +62,19 @@ class FEngine:
             materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, self.logger)
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
 
-            # Step 2
+            # Step 2: Handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:{mutation_payload_string}")
             response = send_graphql_request(self.url, mutation_payload_string)
             if not response:
+                return (objects_bucket, False)
+            if "errors" in response:
+                self.logger.info(f"[{mutation_name}] Mutation failed: {response['errors'][0]}")
                 return (objects_bucket, False)
             if "data" not in response:
                 self.logger.error(f"[{mutation_name}] No data in response: {response}")
                 return (objects_bucket, False)
             if response["data"][mutation_name] is None:
-                self.logger.info(f"[{mutation_name}] Mutation failed (returned None)")
+                self.logger.info(f"[{mutation_name}] Mutation failed ({mutation_name} not in data)")
                 return (objects_bucket, False)
 
             # Step 3
@@ -124,11 +127,14 @@ class FEngine:
             response = send_graphql_request(self.url, query_payload_string)
             if not response:
                 return (objects_bucket, False)
+            if "errors" in response:
+                self.logger.info(f"[{query_name}] Query failed: {response['errors'][0]}")
+                return (objects_bucket, False)
             if "data" not in response:
                 self.logger.error(f"[{query_name}] No data in response: {response}")
                 return (objects_bucket, False)
             if response["data"][query_name] is None:
-                self.logger.info(f"[{query_name}] Query failed (returned None)")
+                self.logger.info(f"[{query_name}] Query failed {query_name} not in data")
                 return (objects_bucket, False)
 
             # Step 3
