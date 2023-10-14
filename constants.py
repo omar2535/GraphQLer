@@ -29,4 +29,4 @@ MAX_OBJECT_CYCLES = 2
 """For loggers"""
 FENGINE_LOG_FILE_PATH = "logs/fengine.log"
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
-COMPILER_LOG_FILE_PATH = "logs/complier.log"
+COMPILER_LOG_FILE_PATH = "logs/compiler.log"

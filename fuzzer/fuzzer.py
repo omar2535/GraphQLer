@@ -125,12 +125,16 @@ class Fuzzer:
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     self.logger.info(f"[{current_node}]Node was successful")
-                    # Filter out the types we don't want yet
-                    filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)
-                    # Will keep going deeper, put new paths at the front of the stack
-                    to_visit.extend(filtered_new_paths_to_evaluate)
-                    # Add this to visited
-                    visited.append(current_node)
+                    filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)  # Filter out the types we don't want yet
+                    to_visit.extend(filtered_new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
+                    visited.append(current_node)  # We've visited this node, so add it to the visited list
+
+                    if current_node.name in failed_visited:  # If it was in the failed visited, remove it
+                        del failed_visited[current_node.name]
+
+                self.logger.info(f"Visited: {visited}")
+                self.logger.info(f"Failed visited: {failed_visited}")
+                self.logger.info(f"Objects bucket: {self.objects_bucket}")
             # Break out condition
             run_times += 1
             if run_times >= max_run_times:

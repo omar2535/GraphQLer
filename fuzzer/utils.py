@@ -39,7 +39,7 @@ def filter_mutation_paths(paths_to_evaluate: list[list[Node]], filter_mutation_t
 
 
 def put_in_object_bucket(objects_bucket: dict, object_name: str, object_val: str) -> dict:
-    """Puts an object in the bucket, returns the new bucket
+    """Puts an object in the bucket, returns the new bucket. If the object already exists, it will not be added.
 
     Args:
         objects_bucket (dict): The objects bucket
@@ -50,7 +50,25 @@ def put_in_object_bucket(objects_bucket: dict, object_name: str, object_val: str
         dict: The new bucket with the object_name: [..., object_val]
     """
     if object_name in objects_bucket:
-        objects_bucket[object_name].append(object_val)
+        if object_val not in objects_bucket[object_name]:
+            objects_bucket[object_name].append(object_val)
     else:
         objects_bucket[object_name] = [object_val]
+    return objects_bucket
+
+
+def remove_from_object_bucket(objects_bucket: dict, object_name: str, object_val: str) -> dict:
+    """Removes an object in the bucket, returns the new bucket. If the object doesn't exist, it will not be removed.
+
+    Args:
+        objects_bucket (dict): The objects bucket
+        object_name (str): The objects name
+        object_val (str): The objects value
+
+    Returns:
+        dict: The new bucket
+    """
+    if object_name in objects_bucket:
+        if object_val in objects_bucket[object_name]:
+            objects_bucket[object_name].remove(object_val)
     return objects_bucket
