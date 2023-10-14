@@ -3,6 +3,7 @@
 """
 
 import re
+import bdb
 import traceback
 from pathlib import Path
 
@@ -94,6 +95,8 @@ class FEngine:
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
             return (objects_bucket, False)
+        except bdb.BdbQuit as exc:
+            raise exc
         except Exception as e:
             print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
@@ -114,7 +117,7 @@ class FEngine:
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
             materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, self.logger)
-            query_payload_string = materializer.get_payload(query_name, objects_bucket)
+            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket)
 
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string: {query_payload_string}")
@@ -135,6 +138,8 @@ class FEngine:
                 objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
 
             return (objects_bucket, True)
+        except bdb.BdbQuit as exc:
+            raise exc
         except Exception as e:
             self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.print_exc()}")
             return (objects_bucket, False)

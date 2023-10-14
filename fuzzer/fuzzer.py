@@ -11,7 +11,6 @@
 from pathlib import Path
 from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
-from fuzzer.utils import filter_mutation_paths
 from utils.logging_utils import get_logger
 from .fengine.fengine import FEngine
 
@@ -113,7 +112,7 @@ class Fuzzer:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
             self.logger.info(f"Current node: {current_node}")
-            if current_node not in visited:
+            if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
                 new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not was_successful:
@@ -125,8 +124,7 @@ class Fuzzer:
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     self.logger.info(f"[{current_node}]Node was successful")
-                    filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)  # Filter out the types we don't want yet
-                    to_visit.extend(filtered_new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
+                    to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
 
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it

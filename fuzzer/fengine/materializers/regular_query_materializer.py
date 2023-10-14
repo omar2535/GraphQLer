@@ -31,12 +31,14 @@ class RegularQueryMaterializer(RegularMaterializer):
         query_info = self.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket)
         query_outputs = self.materialize_output(query_info["output"], [], False)
+
+        if query_inputs != "":
+            query_inputs = f"({query_inputs})"
+
         payload = f"""
         query {{
-            {query_name} (
-                {query_inputs}
-            )
+            {query_name} {query_inputs}
             {query_outputs}
         }}
         """
-        return payload
+        return payload, self.used_objects
