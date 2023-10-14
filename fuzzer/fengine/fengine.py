@@ -2,11 +2,11 @@
             and the new objects that were returned (if any were updated)
 """
 
-from .materializers import RegularMutationMaterializer
+from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
 from fuzzer.utils import put_in_object_bucket
 
 from utils.request_utils import send_graphql_request
-from utils.parser_utils import get_mutation_output_type
+from utils.parser_utils import get_output_type
 import traceback
 import pprint
 
@@ -58,7 +58,7 @@ class FEngine:
                 return (objects_bucket, False)
 
             # Step 3
-            mutation_output_type = get_mutation_output_type(mutation_name, self.mutations)
+            mutation_output_type = get_output_type(mutation_name, self.mutations)
             if "id" in response["data"][mutation_name]:
                 returned_id = response["data"][mutation_name]["id"]
                 objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
@@ -68,14 +68,37 @@ class FEngine:
             print(f"(F)(FEngine)Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             return (objects_bucket, False)
 
-    def run_regular_query(self, name: str, objects_bucket: dict) -> tuple[dict, bool]:
+    def run_regular_query(self, query_name: str, objects_bucket: dict) -> tuple[dict, bool]:
         """Runs the query, and returns a new objects bucket
 
         Args:
-            name (str): The name of the query
+            query_name (str): The name of the query
             objects_bucket (dict): The objects bucket
 
         Returns:
             tuple[dict, bool]: The new objects bucket, and whether the mutation succeeded or not
         """
-        return (objects_bucket, True)
+        try:
+            # Step 1
+            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+            query_payload_string = materializer.get_payload(query_name, objects_bucket)
+
+            # Step 2
+            response = send_graphql_request(self.url, query_payload_string)
+            if not response:
+                return (objects_bucket, False)
+            if "data" not in response:
+                return (objects_bucket, False)  # TODO: we should note down the errors that occurred
+            if response["data"][query_name] is None:
+                return (objects_bucket, False)
+
+            # Step 3
+            query_output_type = get_output_type(query_name, self.queries)
+            if "id" in response["data"][query_name]:
+                returned_id = response["data"][query_name]["id"]
+                objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
+
+            return (objects_bucket, True)
+        except Exception as e:
+            print(f"(F)(FEngine)Exception when running: {query_name}: {e}, {traceback.print_exc()}")
+            return (objects_bucket, False)

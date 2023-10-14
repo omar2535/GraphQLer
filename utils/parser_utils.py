@@ -18,18 +18,18 @@ def get_base_oftype(oftype: dict) -> dict:
         return oftype
 
 
-def get_mutation_output_type(mutation_name: str, mutations: dict) -> str:
-    """Gets the mutation's output type. If it's a SCALAR, just returns the name of the field
+def get_output_type(payload_name: str, mutations: dict) -> str:
+    """Gets the mutation/query's output type. If it's a SCALAR, just returns the name of the field
        If it's an object, returns the Object's name
 
     Args:
-        mutation_name (str): The mutation name
+        payload_name (str): The name of either the mutation or query
         mutations (dict): The mutations in this API
 
     Returns:
         str: The output name
     """
-    mutation_info = mutations[mutation_name]
+    mutation_info = mutations[payload_name]
     if mutation_info["output"]["ofType"] is not None:
         type_to_parse = get_base_oftype(mutation_info["output"]["ofType"])
     else:

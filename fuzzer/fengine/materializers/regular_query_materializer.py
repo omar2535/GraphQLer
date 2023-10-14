@@ -8,39 +8,39 @@ import random
 import constants
 
 
-class RegularMutationMaterializer:
-    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict):
+class RegularQueryMaterializer:
+    def __init__(self, objects: dict, queries: dict, input_objects: dict, enums: dict):
         self.objects = objects
-        self.mutations = mutations
+        self.queries = queries
         self.input_objects = input_objects
         self.enums = enums
 
-    def get_payload(self, mutation_name: str, objects_bucket: dict) -> str:
+    def get_payload(self, query_name: str, objects_bucket: dict) -> str:
         """Materializes the mutation with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
 
         Args:
-            mutation_name (str): The mutation name
+            query_name (str): The query name
             objects_bucket (dict): The bucket of objects that have already been created
 
         Returns:
             str: The string of the mutation
         """
-        mutation_info = self.mutations[mutation_name]
-        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket)
-        mutation_output = self.materialize_output(mutation_info["output"], [], False)
+        query_info = self.queries[query_name]
+        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket)
+        query_outputs = self.materialize_output(query_info["output"], [], False)
 
-        mutation_payload = f"""
-        mutation {{
-            {mutation_name} (
-                {mutation_inputs}
+        payload = f"""
+        query {{
+            {query_name} (
+                {query_inputs}
             )
-            {mutation_output}
+            {query_outputs}
         }}
         """
-        print(mutation_payload)
-        return mutation_payload
+        print(payload)
+        return payload
 
     def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:
         """Materializes the output. Some interesting cases:
@@ -56,6 +56,7 @@ class RegularMutationMaterializer:
         Returns:
             str: The built output payload
         """
+        print(output)
         built_str = ""
         if output["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_object_fields(output["type"], used_objects)
@@ -103,11 +104,11 @@ class RegularMutationMaterializer:
                 built_str += field_output
         return built_str
 
-    def materialize_inputs(self, mutation_info: dict, inputs: dict, objects_bucket: dict) -> str:
-        """Goes through the inputs of the mutation
+    def materialize_inputs(self, query_info: dict, inputs: dict, objects_bucket: dict) -> str:
+        """Goes through the inputs of the payload
 
         Args:
-            mutation_info (dict): The mutation information dictionary
+            query_info (dict): The query information as a dictionary
             inputs (dict): The inputs of to be parsed
             objects_bucket (dict): The dynamically available objects that are currently in circulation
 
@@ -116,26 +117,26 @@ class RegularMutationMaterializer:
         """
         built_str = ""
         for input_name, input_field in inputs.items():
-            built_str += f"{input_name}: " + self.materialize_input_field(mutation_info, input_field, objects_bucket, True) + ","
+            built_str += f"{input_name}: " + self.materialize_input_field(query_info, input_field, objects_bucket, True) + ","
         return built_str
 
-    def materialize_input_field(self, mutation_info: dict, input_field: dict, objects_bucket: dict, check_deps: bool) -> str:
+    def materialize_input_field(self, query_info: dict, input_field: dict, objects_bucket: dict, check_deps: bool) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name
 
         Args:
-            mutation_info (dict): The mutation information dictionary
+            query_info (dict): The Query information dictionary
             input_field (dict): The field for a mutation (has the)
             objects_bucket (dict): The dynamically available objects that are currently in circulation
             check_deps (bool): Whether to check the dependencies first or not
 
         Returns:
-            str: _description_
+            str: String of the materialized input field
         """
         built_str = ""
-        hard_dependencies: dict = mutation_info["hardDependsOn"]
-        soft_dependencies: dict = mutation_info["softDependsOn"]
+        hard_dependencies: dict = query_info["hardDependsOn"]
+        soft_dependencies: dict = query_info["softDependsOn"]
 
         # Must first resolve any dependencies we have access to(since if we go down and resolve ofTypes we lose its name)
         if check_deps and input_field["name"] in hard_dependencies:
@@ -144,7 +145,7 @@ class RegularMutationMaterializer:
                 built_str += f'"{random.choice(objects_bucket[hard_dependency_name])}"'
             elif hard_dependency_name == "UNKNOWN":
                 print(f"(F)(RegularMutationMaterializer) Using UNKNOWN input for field: {input_field}")
-                built_str += self.materialize_input_field(mutation_info, input_field, objects_bucket, False)
+                built_str += self.materialize_input_field(query_info, input_field, objects_bucket, False)
             else:
                 raise Exception(f"Hard dependency not found in objects bucket for: {input_field['name']}:{hard_dependency_name}")
         elif check_deps and input_field["name"] in soft_dependencies:
@@ -152,14 +153,14 @@ class RegularMutationMaterializer:
             if soft_depedency_name in objects_bucket:
                 built_str += f'"{random.choice(objects_bucket[soft_depedency_name])}"'
             else:
-                built_str += self.materialize_input_field(mutation_info, input_field, objects_bucket, False)
+                built_str += self.materialize_input_field(query_info, input_field, objects_bucket, False)
         elif input_field["kind"] == "NON_NULL":
-            built_str += self.materialize_input_field(mutation_info, input_field["ofType"], objects_bucket, True)
+            built_str += self.materialize_input_field(query_info, input_field["ofType"], objects_bucket, True)
         elif input_field["kind"] == "LIST":
-            built_str += f"[{self.materialize_input_field(mutation_info, input_field['ofType'], objects_bucket), True}]"
+            built_str += f"[{self.materialize_input_field(query_info, input_field['ofType'], objects_bucket), True}]"
         elif input_field["kind"] == "INPUT_OBJECT":
             input_object = self.input_objects[input_field["type"]]
-            built_str += "{" + self.materialize_inputs(mutation_info, input_object["inputFields"], objects_bucket) + "}"
+            built_str += "{" + self.materialize_inputs(query_info, input_object["inputFields"], objects_bucket) + "}"
         elif input_field["kind"] == "SCALAR":
             built_str += get_random_scalar(input_field["name"], input_field["type"])
         else:
