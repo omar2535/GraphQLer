@@ -39,7 +39,6 @@ class RegularQueryMaterializer:
             {query_outputs}
         }}
         """
-        print(payload)
         return payload
 
     def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:

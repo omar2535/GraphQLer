@@ -39,7 +39,6 @@ class RegularMutationMaterializer:
             {mutation_output}
         }}
         """
-        print(mutation_payload)
         return mutation_payload
 
     def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:

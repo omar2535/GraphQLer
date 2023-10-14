@@ -12,6 +12,7 @@ from pathlib import Path
 from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
 from fuzzer.utils import filter_mutation_paths
+from utils.logging_utils import get_logger
 from .fengine.fengine import FEngine
 
 import constants
@@ -42,9 +43,10 @@ class Fuzzer:
         self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
-        self.fengine = FEngine(self.queries, self.objects, self.mutations, self.input_objects, self.enums, self.url)
+        self.fengine = FEngine(self.queries, self.objects, self.mutations, self.input_objects, self.enums, self.url, self.save_path)
 
         self.objects_bucket = {}
+        self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
@@ -56,18 +58,25 @@ class Fuzzer:
         """
         # Step 1
         starter_nodes: list[Node] = self.get_non_dependent_nodes()
-        print(f"Starter nodes: {starter_nodes}")
+        self.logger.info(f"Starter nodes: {starter_nodes}")
 
         # Step 2
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
+        self.logger.info("Completed 1st pass using CREATE and QUERY")
+        self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
         # Step 3
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
+        self.logger.info("Completed 2nd pass using CREATE, QUERY, UPDATE")
+        self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
         # Step 4
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=[])
+        self.logger.info("Completed 3rd pass using all available mutations and queries")
+        self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
-        # Step 5: TODO
+        # Step 5: do nothing
+        self.logger.info("Completed fuzzing")
 
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in
@@ -103,7 +112,7 @@ class Fuzzer:
         while len(to_visit) != 0:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
-            print(f"(F)(DFS)Current node: {current_node}")
+            self.logger.info(f"(F)(DFS)Current node: {current_node}")
             if current_node not in visited:
                 new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
@@ -123,7 +132,7 @@ class Fuzzer:
             # Break out condition
             run_times += 1
             if run_times >= max_run_times:
-                print("(F)[Info] Hit max run times. Ending DFS")
+                self.logger.info("(F)[Info] Hit max run times. Ending DFS")
                 break
 
     def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], bool]:
