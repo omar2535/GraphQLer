@@ -9,6 +9,7 @@ from pathlib import Path
 from utils.request_utils import send_graphql_request
 from utils.parser_utils import get_output_type
 from utils.logging_utils import get_logger
+from .exceptions import HardDependencyNotMetException
 import traceback
 import constants
 
@@ -49,7 +50,7 @@ class FEngine:
         """
         try:
             # Step 1
-            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
+            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, self.logger)
             mutation_payload_string = materializer.get_payload(mutation_name, objects_bucket)
             self.logger.info(f"[{mutation_name}] Sending mutation payload string: {mutation_payload_string}")
 
@@ -70,9 +71,15 @@ class FEngine:
                 returned_id = response["data"][mutation_name]["id"]
                 objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
 
+            # TODO: Check for mutation type, if it's an UPDATE, then we need to update the object in the objects_bucket
+            # TODO: Check for mutation type, if it's an DELETE, then we need to remove the object in the objects_bucket
+
             return (objects_bucket, True)
+        except HardDependencyNotMetException as e:
+            self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
+            return (objects_bucket, False)
         except Exception as e:
-            self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
+            self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, False)
 
     def run_regular_query(self, query_name: str, objects_bucket: dict) -> tuple[dict, bool]:
@@ -87,7 +94,7 @@ class FEngine:
         """
         try:
             # Step 1
-            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, self.logger)
             query_payload_string = materializer.get_payload(query_name, objects_bucket)
             self.logger.info("[{query_name}] Sending query payload string: {query_payload_string}")
 

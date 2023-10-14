@@ -3,17 +3,20 @@ Materializes a mutation that is ready to be sent off
 """
 
 from .utils import get_random_scalar, get_random_enum_value, get_random_id_from_bucket
+from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 from utils.parser_utils import get_base_oftype
 import random
 import constants
+import logging
 
 
 class RegularMutationMaterializer:
-    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict):
+    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict, logger: logging.Logger):
         self.objects = objects
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
+        self.logger = logger
 
     def get_payload(self, mutation_name: str, objects_bucket: dict) -> str:
         """Materializes the mutation with parameters filled in
@@ -142,10 +145,10 @@ class RegularMutationMaterializer:
             if hard_dependency_name in objects_bucket:
                 built_str += f'"{random.choice(objects_bucket[hard_dependency_name])}"'
             elif hard_dependency_name == "UNKNOWN":
-                print(f"(F)(RegularMutationMaterializer) Using UNKNOWN input for field: {input_field}")
+                self.logger.info(f"[RegularMutationMaterializer] Using UNKNOWN input for field: {input_field}")
                 built_str += self.materialize_input_field(mutation_info, input_field, objects_bucket, False)
             else:
-                raise Exception(f"Hard dependency not found in objects bucket for: {input_field['name']}:{hard_dependency_name}")
+                raise HardDependencyNotMetException(hard_dependency_name)
         elif check_deps and input_field["name"] in soft_dependencies:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:

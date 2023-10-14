@@ -112,17 +112,19 @@ class Fuzzer:
         while len(to_visit) != 0:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
-            self.logger.info(f"(F)(DFS)Current node: {current_node}")
+            self.logger.info(f"Current node: {current_node}")
             if current_node not in visited:
                 new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not was_successful:
+                    self.logger.info(f"[{current_node}]Node was not successful")
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
                         continue  # Stop counting failures, just skip the node for retry
                     else:
                         failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
+                    self.logger.info(f"[{current_node}]Node was successful")
                     # Filter out the types we don't want yet
                     filtered_new_paths_to_evaluate = filter_mutation_paths(new_paths_to_evaluate, filter_mutation_type)
                     # Will keep going deeper, put new paths at the front of the stack
@@ -132,7 +134,7 @@ class Fuzzer:
             # Break out condition
             run_times += 1
             if run_times >= max_run_times:
-                self.logger.info("(F)[Info] Hit max run times. Ending DFS")
+                self.logger.info("Hit max run times. Ending DFS")
                 break
 
     def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], bool]:
