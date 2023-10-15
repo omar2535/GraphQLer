@@ -16,6 +16,7 @@ from .fengine.fengine import FEngine
 
 import constants
 import networkx
+import pprint
 
 
 class Fuzzer:
@@ -28,6 +29,7 @@ class Fuzzer:
         """
         self.save_path = save_path
         self.url = url
+        self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
 
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
@@ -45,7 +47,9 @@ class Fuzzer:
         self.fengine = FEngine(self.queries, self.objects, self.mutations, self.input_objects, self.enums, self.url, self.save_path)
 
         self.objects_bucket = {}
-        self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
+
+        # Stats about the run
+        self.successfull_actions = self.get_new_initialized_successful_actions()
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
@@ -76,6 +80,7 @@ class Fuzzer:
 
         # Step 5: do nothing
         self.logger.info("Completed fuzzing")
+        pprint.pprint(self.successfull_actions)
 
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in
@@ -126,6 +131,9 @@ class Fuzzer:
                     self.logger.info(f"[{current_node}]Node was successful")
                     to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
+
+                    # Mark as a successfull run
+                    self.successfull_actions[current_node.name] = self.successfull_actions[current_node.name] + 1
 
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it
                         del failed_visited[current_node.name]
@@ -201,3 +209,14 @@ class Fuzzer:
             list[Node]: List of nodes that are dependent on the input node
         """
         return [n for n in self.dependency_graph.successors(node)]
+
+    def get_new_initialized_successful_actions(self) -> dict:
+        """Gets a new successful actions with all the queries and mutations and objects set to 0
+
+        Returns:
+            dict: The new successful actions dictionary
+        """
+        successful_actions = {}
+        for node in self.dependency_graph.nodes:
+            successful_actions[node.name] = 0
+        return successful_actions
