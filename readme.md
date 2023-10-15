@@ -13,7 +13,10 @@ A stateful GraphQL API fuzzer with many inspirations from [Microsoft's RESTler f
 
 ## ⚒ Setup
 
-Make sure to use python 3.11!
+**Pre-requisites:**
+
+- **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+- Make sure to have **python 3.11** or higher already installed
 
 **Setting up the environment:**
 
@@ -59,16 +62,10 @@ Runs both the Compile mode and Fuzz mode
 (.env) python main.py --run --url <URL> --path <SAVE_PATH>
 ```
 
-## 🧪 Testing
+## 🔎 Sample graph
 
-**Testing all files:**
+This graph is an example of the dependency graph generated during compilation run
 
-```sh
-(.env) pytest
-```
-
-**Testing a single file:**
-
-```sh
-(.env) pytest -q test_file.py
-```
+<p align="center">
+  <img src="./docs/images/example_graph.png" />
+</p>
