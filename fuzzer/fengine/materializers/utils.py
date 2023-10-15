@@ -47,7 +47,7 @@ def get_random_scalar(input_name: str, scalar_type: str) -> str:
         return str(get_random_id(input_name))
     else:
         # Must be a custom scalar, skip for now
-        raise Exception("Custom scalars are not supported at this time")
+        raise Exception(f"Custom scalars are not supported at this time: {input_name}:{scalar_type}")
 
 
 def get_random_enum_value(enum_values: list[dict]) -> str:

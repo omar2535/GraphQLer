@@ -152,7 +152,7 @@ class RegularMaterializer:
         elif input_field["kind"] == "NON_NULL":
             built_str += self.materialize_input_field(operator_info, input_field["ofType"], objects_bucket, True)
         elif input_field["kind"] == "LIST":
-            built_str += f"[{self.materialize_input_field(operator_info, input_field['ofType'], objects_bucket), True}]"
+            built_str += f"[{self.materialize_input_field(operator_info, input_field['ofType'], objects_bucket, True)}]"
         elif input_field["kind"] == "INPUT_OBJECT":
             input_object = self.input_objects[input_field["type"]]
             built_str += "{" + self.materialize_inputs(operator_info, input_object["inputFields"], objects_bucket) + "}"
