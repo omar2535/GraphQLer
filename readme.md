@@ -40,7 +40,14 @@ source .env/bin/activate
 (.env) pre-commit install
 ```
 
-## ▶ Running the program
+## ▶ Usage
+
+Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.
+
+- **Compilation mode**:This mode is responsible for running an *introspection query* against the given API and generating the dependency graphh
+- **Fuzzing mode**: This mode is responsible for traversing the dependency graph and sending test requests to the API
+
+A third mode is also included for ease of use, called **run** mode. this mode compiles both the compilation and fuzzing mode into one single command.
 
 ### Compile mode
 
