@@ -1,3 +1,4 @@
+from graphql import parse, print_ast
 import random
 
 
@@ -86,3 +87,17 @@ def get_random_id_from_bucket(objects_bucket: dict) -> str:
         if "id" in random_object:
             return random_object["id"]
     return get_random_id("")
+
+
+def prettify_graphql_payload(payload: str) -> str:
+    """Uses graphql-core to prettify the payload
+
+    Args:
+        payload (str): The QUERY or MUTATION as a string
+
+    Returns:
+        str: A string of the formatted graphql payload
+    """
+    parsed_query = parse(payload)
+    formatted_query = print_ast(parsed_query).strip()
+    return formatted_query

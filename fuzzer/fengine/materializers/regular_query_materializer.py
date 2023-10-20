@@ -3,6 +3,7 @@ Materializes a mutation that is ready to be sent off
 """
 
 from .regular_materializer import RegularMaterializer
+from .utils import prettify_graphql_payload
 import logging
 
 
@@ -41,4 +42,4 @@ class RegularQueryMaterializer(RegularMaterializer):
             {query_outputs}
         }}
         """
-        return payload, self.used_objects
+        return prettify_graphql_payload(payload), self.used_objects
