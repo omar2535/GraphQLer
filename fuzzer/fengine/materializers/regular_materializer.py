@@ -106,10 +106,10 @@ class RegularMaterializer:
         """
         built_str = ""
         for input_name, input_field in inputs.items():
-            built_str += f"{input_name}: " + self.materialize_input_field(operator_info, input_field, objects_bucket, True) + ","
+            built_str += f"{input_name}: " + self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, True) + ","
         return built_str
 
-    def materialize_input_field(self, operator_info: dict, input_field: dict, objects_bucket: dict, check_deps: bool) -> str:
+    def materialize_input_field(self, operator_info: dict, input_field: dict, objects_bucket: dict, input_name: str, check_deps: bool) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name
@@ -118,6 +118,7 @@ class RegularMaterializer:
             operator_info (dict): All information about the operator (either all QUERYs or all MUTATIONs) that we want to materialize
             input_field (dict): The field for a mutation (has the)
             objects_bucket (dict): The dynamically available objects that are currently in circulation
+            input_name (str): The input's name in the overall query (not to be confused with input_field["name"] - which is the field's name in the struct)
             check_deps (bool): Whether to check the dependencies first or not
 
         Returns:
@@ -137,7 +138,7 @@ class RegularMaterializer:
                 built_str += f'"{randomly_chosen_dependency_val}"'
             elif hard_dependency_name == "UNKNOWN":
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
-                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, False)
+                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
             else:
                 raise HardDependencyNotMetException(hard_dependency_name)
         elif check_deps and input_field["name"] in soft_dependencies:
@@ -148,16 +149,16 @@ class RegularMaterializer:
                 self.used_objects[hard_dependency_name] = randomly_chosen_dependency_val
                 built_str += f'"{randomly_chosen_dependency_val}"'
             else:
-                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, False)
+                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
         elif input_field["kind"] == "NON_NULL":
-            built_str += self.materialize_input_field(operator_info, input_field["ofType"], objects_bucket, True)
+            built_str += self.materialize_input_field(operator_info, input_field["ofType"], objects_bucket, input_name, True)
         elif input_field["kind"] == "LIST":
-            built_str += f"[{self.materialize_input_field(operator_info, input_field['ofType'], objects_bucket, True)}]"
+            built_str += f"[{self.materialize_input_field(operator_info, input_field['ofType'], objects_bucket, input_name, True)}]"
         elif input_field["kind"] == "INPUT_OBJECT":
             input_object = self.input_objects[input_field["type"]]
             built_str += "{" + self.materialize_inputs(operator_info, input_object["inputFields"], objects_bucket) + "}"
         elif input_field["kind"] == "SCALAR":
-            built_str += get_random_scalar(input_field["name"], input_field["type"])
+            built_str += get_random_scalar(input_name, input_field["type"], objects_bucket)
         else:
             built_str += ""
         return built_str
