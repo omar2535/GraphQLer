@@ -76,3 +76,7 @@ This graph is an example of the dependency graph generated during compilation ru
 <p align="center">
   <img src="./docs/images/example_graph.png" />
 </p>
+
+## 🌟 Demo
+
+![Video Demo](./docs/demo.gif)
