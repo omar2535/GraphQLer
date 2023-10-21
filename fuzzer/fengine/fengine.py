@@ -63,7 +63,7 @@ class FEngine:
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
 
             # Step 2: Handle response
-            self.logger.info(f"[{mutation_name}] Sending mutation payload string:{mutation_payload_string}")
+            self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
             response = send_graphql_request(self.url, mutation_payload_string)
             if not response:
                 return (objects_bucket, False)
@@ -123,7 +123,7 @@ class FEngine:
             query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket)
 
             # Step 2
-            self.logger.info(f"[{query_name}] Sending query payload string: {query_payload_string}")
+            self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
             response = send_graphql_request(self.url, query_payload_string)
             if not response:
                 return (objects_bucket, False)

@@ -26,6 +26,6 @@ jobs:
         python3 -m pip install --upgrade pip
         pip3 install -r requirements.txt
 
-    # - name: Test with pytest
-    #   run: |
-    #     pytest --exitfirst --verbose --failed-first --cov=. --cov-report html
+    - name: Test with pytest
+      run: |
+        pytest --exitfirst --verbose --failed-first --cov=. --cov-report html
