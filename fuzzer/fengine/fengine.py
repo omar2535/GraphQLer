@@ -81,7 +81,7 @@ class FEngine:
             if response["data"][mutation_name] is None:
                 # Special case, this could indicate a failure or could also not, we mark it as success since there is no "error"
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {response} -- returning early")
-                return (objects_bucket, True)
+                return (objects_bucket, False)
 
             # Step 3
             mutation_output_type = get_output_type(mutation_name, self.mutations)
@@ -146,7 +146,7 @@ class FEngine:
             if response["data"][query_name] is None:
                 # Special case, this could indicate a failure or could also not, we mark it as success since there is no "error"
                 self.logger.info(f"[{query_name}] No data in response: {response} -- returning early")
-                return (objects_bucket, True)
+                return (objects_bucket, False)
 
             # Step 3
             query_output_type = get_output_type(query_name, self.queries)

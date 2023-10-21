@@ -142,7 +142,7 @@ class Fuzzer:
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
 
                     # Mark as a successfull run
-                    self.successfull_actions[current_node.name] = self.successfull_actions[current_node.name] + 1
+                    self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
 
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it
                         del failed_visited[current_node.name]
@@ -227,7 +227,7 @@ class Fuzzer:
         """
         successful_actions = {}
         for node in self.dependency_graph.nodes:
-            successful_actions[node.name] = 0
+            successful_actions[f"{node.graphql_type}|{node.name}"] = 0
         return successful_actions
 
     def print_stats(self):

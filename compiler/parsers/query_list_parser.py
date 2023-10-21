@@ -31,6 +31,11 @@ class QueryListParser(Parser):
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])
         queries_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == "Query"]
+
+        # No queries in the introspection
+        if len(queries_object) == 0:
+            return {}
+
         queries = queries_object[0]["fields"]
 
         # Convert it to the YAML structure we want
