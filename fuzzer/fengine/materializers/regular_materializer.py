@@ -28,7 +28,7 @@ class RegularMaterializer:
         self.logger = logger.getChild(__name__)  # Get a child logger
         self.used_objects = {}
 
-    def materialize_output(self, output: dict, used_objects: list[str], include_name: bool, skip_keys: list[str] = []) -> str:
+    def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:
         """Materializes the output. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
@@ -38,7 +38,6 @@ class RegularMaterializer:
             output (dict): The output
             used_objects (list[str]): A list of used objects
             include_name (bool): Whether to include the name of the field or not
-            skip_keys (list[str]): Keys to skip over in the output (IE: if we don't want to materialize the user field)
 
         Returns:
             str: The built output payload
