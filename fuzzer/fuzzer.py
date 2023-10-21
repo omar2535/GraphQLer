@@ -80,8 +80,9 @@ class Fuzzer:
         self.logger.info("Completed 3rd pass using all available mutations and queries")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
-        # Step 5: do nothing
+        # Step 5: Finish
         self.logger.info("Completed fuzzing")
+        print("\n")
         pprint.pprint(self.successfull_actions)
 
     def get_non_dependent_nodes(self) -> list[Node]:
