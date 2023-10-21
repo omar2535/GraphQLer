@@ -50,6 +50,8 @@ class Fuzzer:
 
         # Stats about the run
         self.successfull_actions = self.get_new_initialized_successful_actions()
+        self.num_successes = 0
+        self.num_failures = 0
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
@@ -114,6 +116,10 @@ class Fuzzer:
         max_requeue_for_same_node = 3
 
         while len(to_visit) != 0:
+            # Print stats first
+            self.print_stats()
+
+            # Now for the actual DFS
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
             self.logger.info(f"Current node: {current_node}")
@@ -122,6 +128,7 @@ class Fuzzer:
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not was_successful:
                     self.logger.info(f"[{current_node}]Node was not successful")
+                    self.num_failures += 1
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
                         continue  # Stop counting failures, just skip the node for retry
                     else:
@@ -129,6 +136,7 @@ class Fuzzer:
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     self.logger.info(f"[{current_node}]Node was successful")
+                    self.num_successes += 1
                     to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
 
@@ -220,3 +228,10 @@ class Fuzzer:
         for node in self.dependency_graph.nodes:
             successful_actions[node.name] = 0
         return successful_actions
+
+    def print_stats(self):
+        print(f"(F) ", end="")
+        print(f"Number of success: {self.num_successes}", end="")
+        print("|", end="")
+        print(f"Number of failures: {self.num_failures}", end="")
+        print("\r", end="", flush=True)
