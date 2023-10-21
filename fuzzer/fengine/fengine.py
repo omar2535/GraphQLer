@@ -15,6 +15,7 @@ from utils.request_utils import send_graphql_request
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
+from .retrier import Retrier
 
 
 class FEngine:
@@ -69,7 +70,10 @@ class FEngine:
                 return (objects_bucket, False)
             if "errors" in response:
                 self.logger.info(f"[{mutation_name}] Mutation failed: {response['errors'][0]}")
-                return (objects_bucket, False)
+                self.logger.info("[{mutation_name}] Retrying ---")
+                response, retry_success = Retrier(self.logger).retry(self.url, mutation_payload_string, response, 0)
+                if not retry_success:
+                    return (objects_bucket, False)
             if "data" not in response:
                 self.logger.error(f"[{mutation_name}] No data in response: {response}")
                 return (objects_bucket, False)
@@ -129,7 +133,10 @@ class FEngine:
                 return (objects_bucket, False)
             if "errors" in response:
                 self.logger.info(f"[{query_name}] Query failed: {response['errors'][0]}")
-                return (objects_bucket, False)
+                self.logger.info("[{query_name}] Retrying ---")
+                response, retry_success = Retrier(self.logger).retry(self.url, query_payload_string, response, 0)
+                if not retry_success:
+                    return (objects_bucket, False)
             if "data" not in response:
                 self.logger.error(f"[{query_name}] No data in response: {response}")
                 return (objects_bucket, False)
