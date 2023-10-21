@@ -19,7 +19,7 @@ env/
 .pytest_cache/
 
 ## Omar's personal testing
-omar-test/
+omar-test*/
 anilist-test/
 finland-test/
 *-test/

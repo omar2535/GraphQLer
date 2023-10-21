@@ -40,4 +40,5 @@ class RegularMutationMaterializer(RegularMaterializer):
             {mutation_output}
         }}
         """
-        return prettify_graphql_payload(mutation_payload), self.used_objects
+        pretty_payload = prettify_graphql_payload(mutation_payload)
+        return pretty_payload, self.used_objects

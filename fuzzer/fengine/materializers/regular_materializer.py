@@ -2,7 +2,7 @@
 Base class for a regular materializer
 """
 
-from .utils import get_random_scalar
+from .utils import get_random_scalar, get_random_enum_value
 from utils.parser_utils import get_base_oftype
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 import random
@@ -159,6 +159,8 @@ class RegularMaterializer:
             built_str += "{" + self.materialize_inputs(operator_info, input_object["inputFields"], objects_bucket) + "}"
         elif input_field["kind"] == "SCALAR":
             built_str += get_random_scalar(input_name, input_field["type"], objects_bucket)
+        elif input_field["kind"] == "ENUM":
+            built_str += get_random_enum_value(self.enums[input_field["type"]]["enumValues"])
         else:
             built_str += ""
         return built_str

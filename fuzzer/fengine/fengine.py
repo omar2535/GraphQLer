@@ -1,5 +1,6 @@
 """FEngine: Responsible for getting the materialized query, running it against the API, and returning if it succeeds
-            and the new objects that were returned (if any were updated)
+            and the new objects that were returned (if any were updated).
+   Note: The run_regular_mutation and run_regular_query functions are very similar, but they are kept separate for clarity purposes
 """
 
 import re
@@ -89,7 +90,8 @@ class FEngine:
                 mutation_type = self.mutations[mutation_name]["mutationType"]
 
                 if mutation_type == "CREATE":
-                    objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
+                    if returned_id is not None:
+                        objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
                 elif mutation_type == "UPDATE":
                     pass  # updates don't generally do anything to the objects bucket
                 elif mutation_type == "DELETE":
@@ -150,7 +152,8 @@ class FEngine:
             query_output_type = get_output_type(query_name, self.queries)
             if "id" in response["data"][query_name]:
                 returned_id = response["data"][query_name]["id"]
-                objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
+                if returned_id is not None:
+                    objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
 
             return (objects_bucket, True)
         except bdb.BdbQuit as exc:

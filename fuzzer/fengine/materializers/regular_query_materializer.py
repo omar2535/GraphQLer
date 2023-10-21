@@ -42,4 +42,5 @@ class RegularQueryMaterializer(RegularMaterializer):
             {query_outputs}
         }}
         """
-        return prettify_graphql_payload(payload), self.used_objects
+        pretty_payload = prettify_graphql_payload(payload)
+        return pretty_payload, self.used_objects
