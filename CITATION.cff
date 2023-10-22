@@ -4,6 +4,10 @@ authors:
 - family-names: "Tsai"
   given-names: "Omar"
   orcid: "https://orcid.org/0000-0002-6335-3335"
+- family-names: "Zhu"
+  given-names: "Hao"
+- family-names: "Xiao"
+  given-names: "Jianrui"
 title: "GraphQLer"
 version: 2.0.4
 date-released: 2023-10-22
