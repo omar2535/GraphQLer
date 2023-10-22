@@ -34,7 +34,7 @@ source .env/bin/activate
 (.env) pip install -r requirements.txt
 ```
 
-**Setting up pre-commit hooks:**
+**Setting up pre-commit hooks (optional):**
 
 ```sh
 (.env) pre-commit install
