@@ -1,4 +1,5 @@
 from graphql import parse, print_ast
+from datetime import datetime
 import random
 import Levenshtein
 
@@ -24,6 +25,10 @@ def get_random_id(input_name: str) -> str:
     return '"1234567890"'
 
 
+def get_random_date(input_name: str) -> str:
+    return f"\"{datetime.today().strftime('%Y-%m-%d')}\""
+
+
 # Gets a random scalar for the scalar type given
 def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -> str:
     """Gets a random scalar based on the scalar type, the return value will
@@ -46,6 +51,8 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
         return str(get_random_float(input_name))
     elif scalar_type == "Boolean":
         return str(get_random_bool(input_name))
+    elif scalar_type == "Date":
+        return get_random_date(input_name)
     elif scalar_type == "ID":
         random_id = get_random_id_from_bucket(input_name, objects_bucket)
         if random_id == "":
