@@ -82,8 +82,7 @@ class Fuzzer:
 
         # Step 5: Finish
         self.logger.info("Completed fuzzing")
-        print("\n")
-        pprint.pprint(self.successfull_actions)
+        self.print_results()
 
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in
@@ -236,3 +235,19 @@ class Fuzzer:
         print("|", end="")
         print(f"Number of failures: {self.num_failures}", end="")
         print("\r", end="", flush=True)
+
+    def print_results(self):
+        print("\n----------------------RESULTS-------------------------")
+        pprint.pprint(self.successfull_actions)
+        number_success_of_mutations_and_queries = 0
+        num_mutations_and_queries = len(self.mutations.keys()) + len(self.queries.keys())
+        for action, num_success in self.successfull_actions.items():
+            action_name = action.split("|")[0]
+            if action_name == "Mutation" or action_name == "Query":
+                if num_success > 0:
+                    number_success_of_mutations_and_queries += 1
+        print(f"(RESULTS): Number of queries: {len(self.queries.keys())}")
+        print(f"(RESULTS): Number of mutations: {len(self.mutations.keys())}")
+        print(f"(RESULTS): Number of objects: {len(self.objects.keys())}")
+        print(f"(RESULTS): Number of unique QUERY/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
+        print("------------------------------------------------------")
