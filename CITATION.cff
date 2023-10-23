@@ -8,6 +8,12 @@ authors:
   given-names: "Hao"
 - family-names: "Xiao"
   given-names: "Jianrui"
+- family-names: "Li"
+  given-names: "Jianing"
+- family-names: "Cheung"
+  given-names: "Neo"
+- family-names: "Huang"
+  given-names: "Lejing"
 title: "GraphQLer"
 version: 2.0.4
 date-released: 2023-10-22
