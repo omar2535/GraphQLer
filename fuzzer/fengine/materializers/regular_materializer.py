@@ -140,7 +140,11 @@ class RegularMaterializer:
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
                 built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
             else:
-                raise HardDependencyNotMetException(hard_dependency_name)
+                if constants.USE_DEPENDENCY_GRAPH:  # If we are using the dependency graph, then we should be careful dependencies aren't met
+                    raise HardDependencyNotMetException(hard_dependency_name)
+                else:  # Otherwise, in regular non-dependency aware mode, we just materialize the input field
+                    self.logger.info("Hard dependency not met -- using random input")
+                    built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
         elif check_deps and input_field["name"] in soft_dependencies:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:

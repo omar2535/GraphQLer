@@ -13,6 +13,7 @@ from fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
 from utils.logging_utils import get_logger
 from utils.parser_utils import get_output_type
 from utils.request_utils import send_graphql_request
+from .utils import check_is_data_empty
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
@@ -84,22 +85,32 @@ class FEngine:
                 return (objects_bucket, False)
 
             # Step 3
-            mutation_output_type = get_output_type(mutation_name, self.mutations)
-            if "id" in response["data"][mutation_name]:
-                returned_id = response["data"][mutation_name]["id"]
-                mutation_type = self.mutations[mutation_name]["mutationType"]
+            self.logger.info(f"Response: {response}")
 
-                if mutation_type == "CREATE":
-                    if returned_id is not None:
-                        objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
-                elif mutation_type == "UPDATE":
-                    pass  # updates don't generally do anything to the objects bucket
-                elif mutation_type == "DELETE":
-                    if mutation_output_type in used_objects:
-                        used_object_value = used_objects[mutation_output_type]
-                        remove_from_object_bucket(objects_bucket, mutation_output_type, used_object_value)
-                else:
-                    pass  # The UNKNOWN mutation type, we don't know what to do with it so just don't do anything
+            # If it is an empty data, we return early, mark it as false
+            if check_is_data_empty(response["data"]):
+                self.logger.info(f"[{mutation_name}] Empty data in response, returning early")
+                return (objects_bucket, False)
+
+            if type(response["data"][mutation_name]) is dict:
+                mutation_output_type = get_output_type(mutation_name, self.mutations)
+                if "id" in response["data"][mutation_name]:
+                    returned_id = response["data"][mutation_name]["id"]
+                    mutation_type = self.mutations[mutation_name]["mutationType"]
+
+                    if mutation_type == "CREATE":
+                        if returned_id is not None:
+                            objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
+                    elif mutation_type == "UPDATE":
+                        pass  # updates don't generally do anything to the objects bucket
+                    elif mutation_type == "DELETE":
+                        if mutation_output_type in used_objects:
+                            used_object_value = used_objects[mutation_output_type]
+                            remove_from_object_bucket(objects_bucket, mutation_output_type, used_object_value)
+                    else:
+                        pass  # The UNKNOWN mutation type, we don't know what to do with it so just don't do anything
+            else:
+                pass
 
             return (objects_bucket, True)
         except HardDependencyNotMetException as e:
@@ -149,11 +160,21 @@ class FEngine:
                 return (objects_bucket, False)
 
             # Step 3
-            query_output_type = get_output_type(query_name, self.queries)
-            if "id" in response["data"][query_name]:
-                returned_id = response["data"][query_name]["id"]
-                if returned_id is not None:
-                    objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
+            self.logger.info(f"Response: {response}")
+
+            # If it is an empty data, we return early, mark it as false
+            if check_is_data_empty(response["data"]):
+                self.logger.info(f"[{query_name}] Empty data in response, returning early")
+                return (objects_bucket, False)
+
+            if type(response["data"][query_name]) is dict:
+                query_output_type = get_output_type(query_name, self.queries)
+                if "id" in response["data"][query_name]:
+                    returned_id = response["data"][query_name]["id"]
+                    if returned_id is not None:
+                        objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
+            else:
+                pass
 
             return (objects_bucket, True)
         except bdb.BdbQuit as exc:

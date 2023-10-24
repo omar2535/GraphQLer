@@ -30,3 +30,7 @@ MAX_OBJECT_CYCLES = 2
 FENGINE_LOG_FILE_PATH = "logs/fengine.log"
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
+
+"""For using GraphQLer in different modes"""
+USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket
+USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through the dependency graph

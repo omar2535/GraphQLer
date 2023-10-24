@@ -84,6 +84,31 @@ class Fuzzer:
         self.logger.info("Completed fuzzing")
         self.print_results()
 
+    def run_no_dfs(self):
+        """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
+        for current_node in self.dependency_graph.nodes:
+            self.print_stats()
+            was_successful = False
+            new_objects_bucket = self.objects_bucket
+            if current_node.graphql_type == "Mutation":
+                new_objects_bucket, was_successful = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket)
+            elif current_node.graphql_type == "Query":
+                new_objects_bucket, was_successful = self.fengine.run_regular_query(current_node.name, self.objects_bucket)
+            elif current_node.graphql_type == "Object":
+                was_successful = True
+            else:
+                raise Exception(f"Unknown GraphQL type: {current_node.graphql_type}")
+
+            # Now evaluate the was_successful
+            if was_successful:
+                self.objects_bucket = new_objects_bucket
+                self.num_successes += 1
+                self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
+            else:
+                self.num_failures += 1
+        self.logger.info("Completed fuzzing")
+        self.print_results()
+
     def get_non_dependent_nodes(self) -> list[Node]:
         """Gets all non-dependent nodes (nodes that don't have any edges going in
            Note: We choose to "include" any that have UNKNOWNS as they will fail during DFS execution anyways.

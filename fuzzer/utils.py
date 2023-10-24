@@ -1,3 +1,4 @@
+from constants import USE_OBJECTS_BUCKET
 from graph import Node
 import networkx
 
@@ -29,6 +30,10 @@ def put_in_object_bucket(objects_bucket: dict, object_name: str, object_val: str
     Returns:
         dict: The new bucket with the object_name: [..., object_val]
     """
+    # If we're not using the objects bucket, just return an empty dict
+    if not USE_OBJECTS_BUCKET:
+        return {}
+
     if object_name in objects_bucket:
         if object_val not in objects_bucket[object_name]:
             objects_bucket[object_name].append(object_val)
@@ -48,6 +53,10 @@ def remove_from_object_bucket(objects_bucket: dict, object_name: str, object_val
     Returns:
         dict: The new bucket
     """
+    # If we're not using the objects bucket, just return an empty dict
+    if not USE_OBJECTS_BUCKET:
+        return {}
+
     if object_name in objects_bucket:
         if object_val in objects_bucket[object_name]:
             objects_bucket[object_name].remove(object_val)

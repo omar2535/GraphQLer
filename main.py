@@ -48,7 +48,15 @@ def run_fuzz_mode(path: str, url: str):
     file_utils.initialize_file(Path(path) / constants.FENGINE_LOG_FILE_PATH)
 
     print("(F) Starting fuzzer")
-    Fuzzer(path, url).run()
+    if not constants.USE_OBJECTS_BUCKET:
+        print("(F) Not using Objects Bucket")
+
+    if constants.USE_DEPENDENCY_GRAPH:
+        print("(F) Running in dependency graph mode")
+        Fuzzer(path, url).run()
+    else:
+        print("(F) Not using dependency graph")
+        Fuzzer(path, url).run_no_dfs()
 
     print("(F) Complete fuzzing phase")
 
