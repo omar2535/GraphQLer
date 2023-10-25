@@ -42,6 +42,19 @@ source .env/bin/activate
 
 ## ▶ Usage
 
+```sh
+❯ python3 main.py -h
+usage: main.py [-h] [--compile] [--fuzz] [--run] --path PATH --url URL
+
+options:
+  -h, --help   show this help message and exit
+  --compile    runs on compile mode
+  --fuzz       runs on fuzzing mode
+  --run        run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)
+  --path PATH  directory location for saved files and files to be used from
+  --url URL    remote host URL
+```
+
 Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.
 
 - **Compilation mode**:This mode is responsible for running an *introspection query* against the given API and generating the dependency graphh
