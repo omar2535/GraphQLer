@@ -17,6 +17,7 @@ from .fengine.fengine import FEngine
 import constants
 import networkx
 import pprint
+import random
 
 
 class Fuzzer:
@@ -62,7 +63,7 @@ class Fuzzer:
         5. Clean up
         """
         # Step 1
-        starter_nodes: list[Node] = self.get_non_dependent_nodes()
+        starter_nodes: list[Node] = self.get_starter_nodes()
         self.logger.info(f"Starter nodes: {starter_nodes}")
 
         # Step 2
@@ -109,18 +110,23 @@ class Fuzzer:
         self.logger.info("Completed fuzzing")
         self.print_results()
 
-    def get_non_dependent_nodes(self) -> list[Node]:
-        """Gets all non-dependent nodes (nodes that don't have any edges going in
-           Note: We choose to "include" any that have UNKNOWNS as they will fail during DFS execution anyways.
-                 This getting non_dependency is simply based on the program's "world view"
+    def get_starter_nodes(self) -> list[Node]:
+        """Gets a list of starter nodes to start the fuzzing with.
+           First, looks for independent nodes. If no independent nodes are found,
+           then nodes with the fewest dependencies are returned, if there aren't any, then returns random nodes
 
         Returns:
-            list[Node]: List of Nodes that don't require any pre-existing objects
+            list[Node]: A list of starter nodes
         """
-
         in_degree_centrality = networkx.in_degree_centrality(self.dependency_graph)
-        non_dependent_nodes = [node for node, centrality in in_degree_centrality.items() if centrality == 0]
-        return non_dependent_nodes
+        for num_dependencies in range(0, 100000):  # choose a very large number, most likely never hit it
+            nodes = [node for node, centrality in in_degree_centrality.items() if centrality == num_dependencies]
+            if len(nodes) != 0:
+                return nodes
+
+        # This shouldn't ever be hit, but in case, then we choose random nodes as the starter nodes
+        self.logger.error("No starter nodes found, choosing a random node")
+        return [random.choice(self.dependency_graph.nodes)]
 
     def perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
         """Performs DFS with the initial starter stack
