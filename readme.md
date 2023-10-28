@@ -2,45 +2,31 @@
 
 <p align="center">
   <img src="./docs/images/logo.png" />
+  <p align="center">The <strong>only</strong> dependency-aware GraphQL API testing tool!</p>
 </p>
 
-[![Maintainability](https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability)](https://codeclimate.com/github/omar2535/GraphQLer/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/a34db44e691904955ded/test_coverage)](https://codeclimate.com/github/omar2535/GraphQLer/test_coverage)
-[![Tests](https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml)
-[![Lint](https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg)](https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml)
+<p align="center">
+<a href="https://codeclimate.com/github/omar2535/GraphQLer/maintainability" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability" alt="Maintainability" /></a>
+<a href="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg" alt="lint" /></a>
+<a href="https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml/badge.svg?branch=main" alt="tests_status" /></a>
+<!-- <a href="https://codeclimate.com/github/omar2535/GraphQLer/test_coverage" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/test_coverage" alt="coverage" /></a> -->
+</p>
 
-A stateful GraphQL API fuzzer with many inspirations from [Microsoft's RESTler fuzzer!](https://github.com/microsoft/restler-fuzzer)
+GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with a focus on adaptability and comprehensive testing. It offers a range of sophisticated features that streamline the testing process and ensure robust analysis of GraphQL APIs. By leveraging intelligent tracking mechanisms, GraphQLer proficiently manages created objects and resources, effectively identifies dependencies on objects, queries, and mutations, and dynamically rectifies errors within queries based on the API's restrictions.
 
-## ⚒ Setup
+![Video Demo](./docs/demo.gif)
 
-**Pre-requisites:**
+## Key features
 
-- **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- Make sure to have **python 3.11** or higher already installed
+- Dependency awareness: Run queries and mutations based on their dependencies!
+- Dynamic testing: Keep track of resources created during testing
+- Error correction: Try and fix requests so that the GraphQL API accepts them
 
-**Setting up the environment:**
+## Getting started
 
-```sh
-# Creating the virtual environment
-python3 -m venv .venv
+To begin using GraphQLer, check out the [installation guide](./docs/installation.md).
 
-# Activating the virtual environment
-source .env/bin/activate
-```
-
-**Installing dependencies:**
-
-```sh
-(.env) pip install -r requirements.txt
-```
-
-**Setting up pre-commit hooks (optional):**
-
-```sh
-(.env) pre-commit install
-```
-
-## ▶ Usage
+## Usage
 
 ```sh
 ❯ python3 main.py -h
@@ -81,15 +67,3 @@ Runs both the Compile mode and Fuzz mode
 ```sh
 (.env) python main.py --run --url <URL> --path <SAVE_PATH>
 ```
-
-## 🔎 Sample graph
-
-This graph is an example of the dependency graph generated during compilation run
-
-<p align="center">
-  <img src="./docs/images/example_graph.png" />
-</p>
-
-## 🌟 Demo
-
-![Video Demo](./docs/demo.gif)
