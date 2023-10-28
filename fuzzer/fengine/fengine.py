@@ -50,7 +50,7 @@ class FEngine(object):
         """
         pass
 
-    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict) -> tuple[dict, bool]:
+    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, max_output_depth: int = 1) -> tuple[dict, bool]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -63,6 +63,7 @@ class FEngine(object):
         Args:
             mutation_name (str): Name of the mutation
             objects_bucket (dict): The current objects bucket
+            max_output_depth (int): The maximum depth of nested object to go to in the output (default = 1)
 
         Returns:
             tuple[dict, bool]: The new objects bucket, and whether the mutation succeeded or not
@@ -76,36 +77,42 @@ class FEngine(object):
 
             # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
-            response = send_graphql_request(self.url, mutation_payload_string)
-            if not response:
+            graphql_response, request_response = send_graphql_request(self.url, mutation_payload_string)
+
+            # For the requests response
+            if request_response.status_code != 200:
+                self.logger.info(f"Request failed: {request_response.text}")
+
+            # For the GraphQL reponse
+            if not graphql_response:
                 return (objects_bucket, False)
-            if "errors" in response:
-                self.logger.info(f"[{mutation_name}] Mutation failed: {response['errors'][0]}")
+            if "errors" in graphql_response:
+                self.logger.info(f"[{mutation_name}] Mutation failed: {graphql_response['errors'][0]}")
                 self.logger.info("[{mutation_name}] Retrying ---")
-                response, retry_success = Retrier(self.logger).retry(self.url, mutation_payload_string, response, 0)
+                graphql_response, retry_success = Retrier(self.logger).retry(self.url, mutation_payload_string, graphql_response, 0)
                 if not retry_success:
                     return (objects_bucket, False)
-            if "data" not in response:
-                self.logger.error(f"[{mutation_name}] No data in response: {response}")
+            if "data" not in graphql_response:
+                self.logger.error(f"[{mutation_name}] No data in response: {graphql_response}")
                 return (objects_bucket, False)
-            if response["data"][mutation_name] is None:
+            if graphql_response["data"][mutation_name] is None:
                 # Special case, this could indicate a failure or could also not, we mark it as fail
-                self.logger.info(f"[{mutation_name}] Mutation returned no data: {response} -- returning early")
+                self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
                 return (objects_bucket, False)
 
             # Step 3
-            self.logger.info(f"Response: {response}")
+            self.logger.info(f"Response: {graphql_response}")
 
             # If it is an empty data, we return early, mark it as false
-            if check_is_data_empty(response["data"]):
+            if check_is_data_empty(graphql_response["data"]):
                 self.logger.info(f"[{mutation_name}] Empty data in response, returning early")
                 return (objects_bucket, False)
 
             # If there is information in the response, we need to process it
-            if type(response["data"][mutation_name]) is dict:
+            if type(graphql_response["data"][mutation_name]) is dict:
                 mutation_output_type = get_output_type(mutation_name, self.mutations)
-                if "id" in response["data"][mutation_name]:
-                    returned_id = response["data"][mutation_name]["id"]
+                if "id" in graphql_response["data"][mutation_name]:
+                    returned_id = graphql_response["data"][mutation_name]["id"]
                     mutation_type = self.mutations[mutation_name]["mutationType"]
 
                     if mutation_type == "CREATE":
@@ -152,35 +159,40 @@ class FEngine(object):
 
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
-            response = send_graphql_request(self.url, query_payload_string)
-            if not response:
+            graphql_response, request_response = send_graphql_request(self.url, query_payload_string)
+            # For the requests response
+            if request_response.status_code != 200:
+                self.logger.info(f"Request failed: {request_response.text}")
+
+            # For the GraphQL response
+            if not graphql_response:
                 return (objects_bucket, False)
-            if "errors" in response:
-                self.logger.info(f"[{query_name}] Query failed: {response['errors'][0]}")
+            if "errors" in graphql_response:
+                self.logger.info(f"[{query_name}] Query failed: {graphql_response['errors'][0]}")
                 self.logger.info("[{query_name}] Retrying ---")
-                response, retry_success = Retrier(self.logger).retry(self.url, query_payload_string, response, 0)
+                graphql_response, retry_success = Retrier(self.logger).retry(self.url, query_payload_string, graphql_response, 0)
                 if not retry_success:
                     return (objects_bucket, False)
-            if "data" not in response:
-                self.logger.error(f"[{query_name}] No data in response: {response}")
+            if "data" not in graphql_response:
+                self.logger.error(f"[{query_name}] No data in response: {graphql_response}")
                 return (objects_bucket, False)
-            if response["data"][query_name] is None:
+            if graphql_response["data"][query_name] is None:
                 # Special case, this could indicate a failure or could also not, we mark it as fail
-                self.logger.info(f"[{query_name}] No data in response: {response} -- returning early")
+                self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
                 return (objects_bucket, False)
 
             # Step 3
-            self.logger.info(f"Response: {response}")
+            self.logger.info(f"Response: {graphql_response}")
 
             # If it is an empty data, we return early, mark it as false
-            if check_is_data_empty(response["data"]):
+            if check_is_data_empty(graphql_response["data"]):
                 self.logger.info(f"[{query_name}] Empty data in response, returning early")
                 return (objects_bucket, False)
 
-            if type(response["data"][query_name]) is dict:
+            if type(graphql_response["data"][query_name]) is dict:
                 query_output_type = get_output_type(query_name, self.queries)
-                if "id" in response["data"][query_name]:
-                    returned_id = response["data"][query_name]["id"]
+                if "id" in graphql_response["data"][query_name]:
+                    returned_id = graphql_response["data"][query_name]["id"]
                     if returned_id is not None:
                         objects_bucket = put_in_object_bucket(objects_bucket, query_output_type, returned_id)
             else:

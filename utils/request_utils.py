@@ -4,7 +4,7 @@ import constants
 import json
 
 
-def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> dict:
+def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> tuple[dict, requests.Response]:
     """Send GraphQL request to the specified endpoint
 
     Args:
@@ -13,7 +13,7 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
         next (Callable[[dict], dict], optional): Callback function in case there is action to be done after. Defaults to None.
 
     Returns:
-        dict: Dictionary of the response
+        tuple[dict, requests.Response]: Dictionary of the graphql response, and the request's response
     """
     # Make the headers first
     headers = {"content-type": "application/json"}
@@ -23,9 +23,9 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     # Make the body
     body = {"query": payload}
 
-    x = requests.post(url=url, json=body, headers=headers)
+    response = requests.post(url=url, json=body, headers=headers)
 
     if next:
-        return next(json.loads(x.text))
+        return next(json.loads(response.text))
 
-    return json.loads(x.text)
+    return json.loads(response.text), response

@@ -71,7 +71,7 @@ class Compiler:
         Returns:
             dict: Dictionary of the resulting JSON from the introspection query
         """
-        result = send_graphql_request(self.url, introspection_query)
+        result, response = send_graphql_request(self.url, introspection_query)
         write_json_to_file(result, self.introspection_result_save_path)
         return result
 

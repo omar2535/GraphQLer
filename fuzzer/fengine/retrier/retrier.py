@@ -17,34 +17,34 @@ class Retrier:
         self.logger = logger.getChild(__name__)
         self.max_retries = 3
 
-    def retry(self, url: str, payload: str, response: dict, retry_count) -> tuple[dict, bool]:
+    def retry(self, url: str, payload: str, gql_response: dict, retry_count) -> tuple[dict, bool]:
         """Retries the payload based on the error
 
         Args:
             url (str): The url of the endpoint
             payload (str): The payload (either a query or mutation)
-            response (dict): The response containing the error
+            gql_response (dict): The GraphQL response containing the error
             retry_count (int): The number of times we've retried
 
         Returns:
             tuple[dict, bool]: The response, and whether the retry succeeded or not
         """
-        error = response["errors"][0]
+        error = gql_response["errors"][0]
         if "Cannot return null for non-nullable field" in error["message"]:
             locations = error["locations"]
             for location in locations:
                 payload = self.get_new_payload_for_retry_non_null(payload, location)
             self.logger.info(f"Retrying with new payload:\n {payload}")
-            response = send_graphql_request(url, payload)
-            if "errors" in response:
+            gql_response, request_response = send_graphql_request(url, payload)
+            if "errors" in gql_response:
                 if retry_count < self.max_retries:
-                    return self.retry(url, payload, response, retry_count + 1)
+                    return self.retry(url, payload, gql_response, retry_count + 1)
                 else:
-                    return (response, False)
+                    return (gql_response, False)
             else:
-                return (response, True)
+                return (gql_response, True)
         else:
-            return (response, False)
+            return (gql_response, False)
 
     def get_new_payload_for_retry_non_null(self, payload: str, location: dict) -> str:
         """Gets a new payload from the original payload, and the location of the error

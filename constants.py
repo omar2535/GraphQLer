@@ -28,6 +28,7 @@ BUILT_IN_TYPE_KINDS = ["SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM", "INPUT_
 
 """For materializers"""
 MAX_OBJECT_CYCLES = 2
+HARD_CUTOFF_DEPTH = 10
 
 """For loggers"""
 FENGINE_LOG_FILE_PATH = "logs/fengine.log"

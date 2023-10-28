@@ -28,8 +28,32 @@ class RegularMaterializer:
         self.logger = logger.getChild(__name__)  # Get a child logger
         self.used_objects = {}
 
-    def materialize_output(self, output: dict, used_objects: list[str], include_name: bool) -> str:
-        """Materializes the output. Some interesting cases:
+    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 2) -> str:
+        """Materializes the output. If returns empty string,
+           then tries to get at least something, bypassing the max depth until the hard cutoff.
+
+        Args:
+            output_info (dict): The output information
+            used_objects (list[str]): The used objects
+            include_name (bool): The included name
+            max_depth (int, optional): Maximum depth for recursive expansion of objects. Defaults to 2.
+                                       If nothing is returned for this max depth, then we try to get at least something
+                                        by bypassing the max depth until the hard cutoff.
+
+        Returns:
+            str: The otput selectors
+        """
+        output_selectors = ""
+        max_depth = max_depth
+        while output_selectors == "":
+            output_selectors = self.materialize_output_recursive(output_info, used_objects, include_name, max_depth, 0)
+            if max_depth > constants.HARD_CUTOFF_DEPTH:
+                break
+            max_depth += 1
+        return output_selectors
+
+    def materialize_output_recursive(self, output: dict, used_objects: list[str], include_name: bool, max_depth: int, current_depth: int = 0) -> str:
+        """Materializes the output recursively. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
            Note: This function should be called on a base output type
@@ -38,13 +62,19 @@ class RegularMaterializer:
             output (dict): The output
             used_objects (list[str]): A list of used objects
             include_name (bool): Whether to include the name of the field or not
+            max_depth (int): The maximum depth to expand outputs for nested objects
+            current_depth (int): The current depth of the output
 
         Returns:
             str: The built output payload
         """
+        # Case: if we are already at max depth, just return none
+        if current_depth >= max_depth:
+            return ""
+
         built_str = ""
         if output["kind"] == "OBJECT":
-            materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects)
+            materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects, max_depth, current_depth)
             if materialized_object_fields != "":
                 if include_name:
                     built_str += output["name"]
@@ -56,7 +86,8 @@ class RegularMaterializer:
             if base_oftype["kind"] == "SCALAR":
                 built_str += f"{output['name']}, "
             else:
-                materialized_output = self.materialize_output(base_oftype, used_objects, False)
+                # Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
+                materialized_output = self.materialize_output_recursive(base_oftype, used_objects, False, max_depth, current_depth)
                 if materialized_output != "":
                     if include_name:
                         built_str += f"{output['name']}" + materialized_output + ", "
@@ -67,12 +98,14 @@ class RegularMaterializer:
                 built_str += f"{output['name']}, "
         return built_str
 
-    def materialize_output_object_fields(self, object_name: str, used_objects: list[str]) -> str:
+    def materialize_output_object_fields(self, object_name: str, used_objects: list[str], max_depth: int, current_depth: int) -> str:
         """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
             object_information (dict): The object's information
             used_objects (list[str]): A list of used objects
+            max_depth (int): The maximum depth to expand outputs for nested objects
+            current_depth (int): The current depth of the output
 
         Returns:
             str: The built output string
@@ -88,7 +121,7 @@ class RegularMaterializer:
         # Go through each of the object's fields, materialize
         object_info = self.objects[object_name]
         for field in object_info["fields"]:
-            field_output = self.materialize_output(field, used_objects, True)
+            field_output = self.materialize_output_recursive(field, used_objects, True, max_depth, current_depth + 1)
             if field_output != "" and field_output != "{}":
                 built_str += field_output
         return built_str
