@@ -13,6 +13,7 @@ from fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
 from utils.logging_utils import get_logger
 from utils.parser_utils import get_output_type
 from utils.request_utils import send_graphql_request
+from utils.singleton import singleton
 from .utils import check_is_data_empty
 
 from .exceptions import HardDependencyNotMetException
@@ -20,7 +21,8 @@ from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
 from .retrier import Retrier
 
 
-class FEngine:
+@singleton
+class FEngine(object):
     def __init__(self, queries: dict, objects: dict, mutations: dict, input_objects: dict, enums: dict, url: str, save_path: str):
         """The intiialization of the FEnginer
 
@@ -40,6 +42,13 @@ class FEngine:
         self.enums = enums
         self.url = url
         self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
+
+    def run_mutation(self):
+        """Responsible for running mutations. Does the following:
+        - runs a regular mutations slowly increasing the output depth, until failed response (or reaches max depth)
+        - any fuzzing modules that try to fuzz the parameters
+        """
+        pass
 
     def run_regular_mutation(self, mutation_name: str, objects_bucket: dict) -> tuple[dict, bool]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
@@ -65,7 +74,7 @@ class FEngine:
             materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, self.logger)
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
 
-            # Step 2: Handle response
+            # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
             response = send_graphql_request(self.url, mutation_payload_string)
             if not response:
@@ -80,7 +89,7 @@ class FEngine:
                 self.logger.error(f"[{mutation_name}] No data in response: {response}")
                 return (objects_bucket, False)
             if response["data"][mutation_name] is None:
-                # Special case, this could indicate a failure or could also not, we mark it as success since there is no "error"
+                # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {response} -- returning early")
                 return (objects_bucket, False)
 
@@ -92,6 +101,7 @@ class FEngine:
                 self.logger.info(f"[{mutation_name}] Empty data in response, returning early")
                 return (objects_bucket, False)
 
+            # If there is information in the response, we need to process it
             if type(response["data"][mutation_name]) is dict:
                 mutation_output_type = get_output_type(mutation_name, self.mutations)
                 if "id" in response["data"][mutation_name]:
@@ -155,7 +165,7 @@ class FEngine:
                 self.logger.error(f"[{query_name}] No data in response: {response}")
                 return (objects_bucket, False)
             if response["data"][query_name] is None:
-                # Special case, this could indicate a failure or could also not, we mark it as success since there is no "error"
+                # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{query_name}] No data in response: {response} -- returning early")
                 return (objects_bucket, False)
 

@@ -209,6 +209,7 @@ class Fuzzer:
             else:
                 return (new_visit_paths, True)
         elif node.graphql_type == "Mutation":
+            # TODO: Run mutation, first with depth 1, then 2, then 3, so on until we error
             new_objects_bucket, was_successful = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
             if was_successful:
                 self.objects_bucket = new_objects_bucket
