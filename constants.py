@@ -1,7 +1,7 @@
 # Configuration
 
 """For any authentication tokens"""
-GRAPHQL_TOKEN = None  # Use this if there is a API token required
+GRAPHQL_TOKEN = ""  # Use this if there is a API token required
 
 """For the compiler / parser"""
 EXTRACTED_DIR_NAME = "extracted"
@@ -28,12 +28,16 @@ BUILT_IN_TYPE_KINDS = ["SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM", "INPUT_
 
 """For materializers"""
 MAX_OBJECT_CYCLES = 2
+MAX_OUTPUT_SELECTOR_DEPTH = 2
 HARD_CUTOFF_DEPTH = 10
 
 """For loggers"""
 FENGINE_LOG_FILE_PATH = "logs/fengine.log"
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
+
+"""For stats"""
+STATS_FILE_PATH = "stats.txt"
 
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket

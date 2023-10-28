@@ -14,6 +14,7 @@ from utils.logging_utils import get_logger
 from utils.parser_utils import get_output_type
 from utils.request_utils import send_graphql_request
 from utils.singleton import singleton
+from utils.stats import Stats
 from .utils import check_is_data_empty
 
 from .exceptions import HardDependencyNotMetException
@@ -43,13 +44,6 @@ class FEngine(object):
         self.url = url
         self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
 
-    def run_mutation(self):
-        """Responsible for running mutations. Does the following:
-        - runs a regular mutations slowly increasing the output depth, until failed response (or reaches max depth)
-        - any fuzzing modules that try to fuzz the parameters
-        """
-        pass
-
     def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, max_output_depth: int = 1) -> tuple[dict, bool]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
@@ -78,10 +72,11 @@ class FEngine(object):
             # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
             graphql_response, request_response = send_graphql_request(self.url, mutation_payload_string)
+            status_code = request_response.status_code
 
-            # For the requests response
-            if request_response.status_code != 200:
-                self.logger.info(f"Request failed: {request_response.text}")
+            # Stats tracking stuff
+            self.logger.info(f"Request Response code: {status_code}")
+            Stats().add_http_status_code(mutation_name, status_code)
 
             # For the GraphQL reponse
             if not graphql_response:
@@ -136,7 +131,7 @@ class FEngine(object):
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
-            print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
+            # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, False)
 
@@ -160,9 +155,11 @@ class FEngine(object):
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
             graphql_response, request_response = send_graphql_request(self.url, query_payload_string)
-            # For the requests response
-            if request_response.status_code != 200:
-                self.logger.info(f"Request failed: {request_response.text}")
+            status_code = request_response.status_code
+
+            # Stats tracking stuff
+            self.logger.info(f"Request Response code: {status_code}")
+            Stats().add_http_status_code(query_name, status_code)
 
             # For the GraphQL response
             if not graphql_response:

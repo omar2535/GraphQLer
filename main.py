@@ -12,6 +12,8 @@ from graph import GraphGenerator
 from utils import file_utils
 from pathlib import Path
 
+from utils.stats import Stats
+
 
 def run_compile_mode(path: str, url: str):
     """Runs the program in compile mode, running two things:
@@ -46,6 +48,10 @@ def run_fuzz_mode(path: str, url: str):
     print("(F) Initializing log files")
     file_utils.initialize_file(Path(path) / constants.FUZZER_LOG_FILE_PATH)
     file_utils.initialize_file(Path(path) / constants.FENGINE_LOG_FILE_PATH)
+
+    print("(F) Initializing stats file")
+    stats = Stats()
+    stats.set_file_path(path)
 
     print("(F) Starting fuzzer")
     if not constants.USE_OBJECTS_BUCKET:

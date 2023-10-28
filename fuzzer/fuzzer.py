@@ -174,7 +174,7 @@ class Fuzzer:
                     # Mark as a successfull run
                     self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
 
-                    if current_node.name in failed_visited:  # If it was in the failed visited, remove it
+                    if current_node.name in failed_visited:  # If it was in the failed visited, remove it since it passed
                         del failed_visited[current_node.name]
 
                 self.logger.info(f"Visited: {visited}")
@@ -209,7 +209,6 @@ class Fuzzer:
             else:
                 return (new_visit_paths, True)
         elif node.graphql_type == "Mutation":
-            # TODO: Run mutation, first with depth 1, then 2, then 3, so on until we error
             new_objects_bucket, was_successful = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
             if was_successful:
                 self.objects_bucket = new_objects_bucket
