@@ -1,5 +1,6 @@
 from typing import Callable
 import requests
+import constants
 import json
 
 
@@ -14,9 +15,15 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     Returns:
         dict: Dictionary of the response
     """
+    # Make the headers first
+    headers = {"content-type": "application/json"}
+    if constants.GRAPHQL_TOKEN:
+        headers["Authorization"] = f"Bearer {constants.GRAPHQL_TOKEN}"
+
+    # Make the body
     body = {"query": payload}
 
-    x = requests.post(url=url, json=body)
+    x = requests.post(url=url, json=body, headers=headers)
 
     if next:
         return next(json.loads(x.text))

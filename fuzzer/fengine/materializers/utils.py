@@ -1,5 +1,5 @@
 from graphql import parse, print_ast
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import Levenshtein
 
@@ -27,6 +27,12 @@ def get_random_id(input_name: str) -> str:
 
 def get_random_date(input_name: str) -> str:
     return f"\"{datetime.today().strftime('%Y-%m-%d')}\""
+
+
+def get_random_time(input_name: str) -> str:
+    random_date_interval = random.randint(-10, 10)
+    calculated_date = datetime.today() + timedelta(days=random_date_interval)
+    return f"\"{calculated_date.strftime('%Y-%m-%d')}TT00:00:00+00:00\""
 
 
 # Gets a random scalar for the scalar type given
@@ -59,8 +65,16 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
             random_id = str(get_random_id(input_name))
         return random_id
     else:
-        # Must be a custom scalar, skip for now
-        raise Exception(f"Custom scalars are not supported at this time: {input_name}:{scalar_type}")
+        # Must be a custom scalar, check if it's an ID, if not then just fail
+        if scalar_type.lower().endswith("id") or scalar_type.lower().endswith("ids"):
+            random_id = get_random_id_from_bucket(input_name, objects_bucket)
+            if random_id == "":
+                random_id = str(get_random_id(input_name))
+            return random_id
+        elif scalar_type.lower() == "time":
+            return get_random_time(input_name)
+        else:
+            raise Exception(f"Custom scalars are not supported at this time: {input_name}:{scalar_type}")
 
 
 def get_random_enum_value(enum_values: list[dict]) -> str:

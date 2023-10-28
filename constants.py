@@ -1,5 +1,8 @@
 # Configuration
 
+"""For any authentication tokens"""
+GRAPHQL_TOKEN = None  # Use this if there is a API token required
+
 """For the compiler / parser"""
 EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
