@@ -18,7 +18,7 @@ def get_random_float(input_name: str) -> float:
 
 
 def get_random_bool(input_name: str) -> bool:
-    return bool(random.getrandbits(1))
+    return str(bool(random.getrandbits(1))).lower()
 
 
 def get_random_id(input_name: str) -> str:
