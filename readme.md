@@ -12,7 +12,7 @@
 <!-- <a href="https://codeclimate.com/github/omar2535/GraphQLer/test_coverage" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/test_coverage" alt="coverage" /></a> -->
 </p>
 
-GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with a focus on adaptability and comprehensive testing. It offers a range of sophisticated features that streamline the testing process and ensure robust analysis of GraphQL APIs. By leveraging intelligent tracking mechanisms, GraphQLer proficiently manages created objects and resources, effectively identifies dependencies on objects, queries, and mutations, and dynamically rectifies errors within queries based on the API's restrictions.
+GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with a focus on adaptability. It offers a range of sophisticated features that streamline the testing process and ensure robust analysis of GraphQL APIs. GraphQLer proficiently manages created objects and resources, effectively identifies dependencies on objects, queries, and mutations, and dynamically rectifies errors within queries based on the API's restrictions. GraphQLer has been used to find many bugs in production-grade GraphQL APIs!
 
 ![Video Demo](./docs/demo.gif)
 
