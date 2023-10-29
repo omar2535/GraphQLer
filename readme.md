@@ -29,8 +29,8 @@ To begin using GraphQLer, check out the [installation guide](./docs/installation
 ## Usage
 
 ```sh
-❯ python3 main.py -h
-usage: main.py [-h] [--compile] [--fuzz] [--run] --path PATH --url URL
+❯ python3 main.py --help
+usage: main.py [-h] [--compile] [--fuzz] [--run] --path PATH [--auth AUTH] --url URL
 
 options:
   -h, --help   show this help message and exit
@@ -38,6 +38,7 @@ options:
   --fuzz       runs on fuzzing mode
   --run        run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)
   --path PATH  directory location for saved files and files to be used from
+  --auth AUTH  authentication token Example: 'Bearer arandompat-abcdefgh'
   --url URL    remote host URL
 ```
 

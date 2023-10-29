@@ -182,8 +182,8 @@ class RegularMaterializer:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_dependency_val = random.choice(objects_bucket[hard_dependency_name])
-                self.used_objects[hard_dependency_name] = randomly_chosen_dependency_val
+                randomly_chosen_dependency_val = random.choice(objects_bucket[soft_depedency_name])
+                self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
                 built_str += f'"{randomly_chosen_dependency_val}"'
             else:
                 built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
