@@ -178,8 +178,8 @@ class Fuzzer:
                         del failed_visited[current_node.name]
 
                 self.logger.info(f"Visited: {visited}")
-                self.logger.info(f"Failed visited: {failed_visited}")
-                self.logger.info(f"Objects bucket: {self.objects_bucket}")
+                self.logger.debug(f"Failed visited: {failed_visited}")
+                self.logger.debug(f"Objects bucket: {self.objects_bucket}")
             # Break out condition
             run_times += 1
             if run_times >= max_run_times:

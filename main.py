@@ -13,6 +13,7 @@ from utils import file_utils
 from pathlib import Path
 
 from utils.stats import Stats
+from utils.argument_parser import set_auth_token_constant
 
 
 def run_compile_mode(path: str, url: str):
@@ -74,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--fuzz", help="runs on fuzzing mode", action="store_true", required=False)
     parser.add_argument("--run", help="run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)", action="store_true", required=False)
     parser.add_argument("--path", help="directory location for saved files and files to be used from", required=True)
+    parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--url", help="remote host URL", required=True)
     args = parser.parse_args()
 
@@ -81,6 +83,10 @@ if __name__ == "__main__":
     if not args.compile and not args.fuzz and not args.run:
         print("(!) Need at least one of --fuzz or --compile modes")
         sys.exit()
+
+    # Set auth token
+    if args.auth:
+        set_auth_token_constant(args.auth)
 
     # Run either compilation or fuzzing mode
     if args.compile:

@@ -1,7 +1,7 @@
 # Configuration
 
 """For any authentication tokens"""
-GRAPHQL_TOKEN = ""  # Use this if there is a API token required
+AUTHORIZATION = None  # Don't use this, this will be overriten by argparse
 
 """For the compiler / parser"""
 EXTRACTED_DIR_NAME = "extracted"

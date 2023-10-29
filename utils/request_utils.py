@@ -17,8 +17,8 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     """
     # Make the headers first
     headers = {"content-type": "application/json"}
-    if constants.GRAPHQL_TOKEN:
-        headers["Authorization"] = f"Bearer {constants.GRAPHQL_TOKEN}"
+    if constants.AUTHORIZATION:
+        headers["Authorization"] = f"{constants.AUTHORIZATION}"
 
     # Make the body
     body = {"query": payload}
