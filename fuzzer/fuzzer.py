@@ -50,9 +50,10 @@ class Fuzzer:
         self.objects_bucket = {}
 
         # Stats about the run
-        self.successfull_actions = self.get_new_initialized_successful_actions()
-        self.num_successes = 0
-        self.num_failures = 0
+        self.dfs_ran_nodes: set[Node] = set()
+        self.successfull_actions: dict[str, int] = self.get_new_initialized_successful_actions()
+        self.num_successes: int = 0
+        self.num_failures: int = 0
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
@@ -60,7 +61,8 @@ class Fuzzer:
         2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
         3. 2nd Pass: Perform DFS, allow UPDATE as well as CREATE and also query nodes
         4. 3rd Pass: Perform DFS, allow DELETE and UNKNOWN
-        5. Clean up
+        5. Get all nodes that still haven't been ran, run them (these are the nodes that may be in islands of the graph - very rare)
+        6. Clean up
         """
         # Step 1
         starter_nodes: list[Node] = self.get_starter_nodes()
@@ -81,13 +83,32 @@ class Fuzzer:
         self.logger.info("Completed 3rd pass using all available mutations and queries")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
-        # Step 5: Finish
+        # Step 5
+        nodes_to_run = [node for node in self.dependency_graph.nodes if node not in self.dfs_ran_nodes]
+        self.run_nodes(nodes_to_run)
+        self.logger.info("Completed running all nodes that haven't been ran yet")
+
+        # Step 6: Finish
         self.logger.info("Completed fuzzing")
         self.print_results()
 
     def run_no_dfs(self):
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
-        for current_node in self.dependency_graph.nodes:
+        nodes_to_run = self.dependency_graph.nodes
+        self.run_nodes(nodes_to_run)
+        self.logger.info("Completed fuzzing")
+        self.print_results()
+
+    def run_nodes(self, nodes: list[Node]):
+        """Runs the nodes given in the list
+
+        Args:
+            nodes (list[Node]): List of nodes to run
+
+        Raises:
+            Exception: If the GraphQL type of the node is unknown
+        """
+        for current_node in nodes:
             self.print_stats()
             was_successful = False
             new_objects_bucket = self.objects_bucket
@@ -107,8 +128,6 @@ class Fuzzer:
                 self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
             else:
                 self.num_failures += 1
-        self.logger.info("Completed fuzzing")
-        self.print_results()
 
     def get_starter_nodes(self) -> list[Node]:
         """Gets a list of starter nodes to start the fuzzing with.
@@ -177,7 +196,9 @@ class Fuzzer:
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it since it passed
                         del failed_visited[current_node.name]
 
-                self.logger.info(f"Visited: {visited}")
+                # Mark the node as dfs used (independent from visited since visited is used for each run, dfs_ran_nodes is noted for all 3 DFS phases)
+                self.dfs_ran_nodes.add(current_node)
+                self.logger.debug(f"Visited: {visited}")
                 self.logger.debug(f"Failed visited: {failed_visited}")
                 self.logger.debug(f"Objects bucket: {self.objects_bucket}")
             # Break out condition
@@ -281,4 +302,5 @@ class Fuzzer:
         print(f"(RESULTS): Number of mutations: {len(self.mutations.keys())}")
         print(f"(RESULTS): Number of objects: {len(self.objects.keys())}")
         print(f"(RESULTS): Number of unique QUERY/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
+        print(f"(RESULTS): Please check {Path(self.save_path) / 'stats.txt'} for more information regarding the run")
         print("------------------------------------------------------")

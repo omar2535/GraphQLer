@@ -9,8 +9,6 @@ import constants
 from compiler import Compiler
 from fuzzer import Fuzzer
 from graph import GraphGenerator
-from utils import file_utils
-from pathlib import Path
 
 from utils.stats import Stats
 from utils.argument_parser import set_auth_token_constant
