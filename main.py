@@ -14,6 +14,7 @@ from pathlib import Path
 
 from utils.stats import Stats
 from utils.argument_parser import set_auth_token_constant
+from utils.logging_utils import Logger
 
 
 def run_compile_mode(path: str, url: str):
@@ -26,7 +27,8 @@ def run_compile_mode(path: str, url: str):
         url (str): URL of the target
     """
     print("(F) Initializing log files")
-    file_utils.initialize_file(Path(path) / constants.COMPILER_LOG_FILE_PATH)
+    logger = Logger()
+    logger.initialize_loggers("compile", path)
 
     print("(C) In compile mode!")
     Compiler(path, url).run()
@@ -47,8 +49,8 @@ def run_fuzz_mode(path: str, url: str):
         url (str): URL of the target
     """
     print("(F) Initializing log files")
-    file_utils.initialize_file(Path(path) / constants.FUZZER_LOG_FILE_PATH)
-    file_utils.initialize_file(Path(path) / constants.FENGINE_LOG_FILE_PATH)
+    logger = Logger()
+    logger.initialize_loggers("fuzz", path)
 
     print("(F) Initializing stats file")
     stats = Stats()

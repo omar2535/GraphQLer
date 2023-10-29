@@ -9,13 +9,12 @@ import logging
 
 
 class RegularMutationMaterializer(RegularMaterializer):
-    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict, logger: logging.Logger):
-        super().__init__(objects, mutations, input_objects, enums, logger)
+    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict):
+        super().__init__(objects, mutations, input_objects, enums)
         self.objects = objects
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
-        self.logger = self.logger  # use the base class' logger instead
 
     def get_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in

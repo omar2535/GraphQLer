@@ -4,6 +4,7 @@ Base class for a regular materializer
 
 from .utils import get_random_scalar, get_random_enum_value
 from utils.parser_utils import get_base_oftype
+from utils.logging_utils import Logger
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 import random
 import logging
@@ -11,7 +12,7 @@ import constants
 
 
 class RegularMaterializer:
-    def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict, logger: logging.Logger):
+    def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict):
         """Default constructor for a regular materializer
 
         Args:
@@ -25,7 +26,7 @@ class RegularMaterializer:
         self.operator_info = operator_info
         self.input_objects = input_objects
         self.enums = enums
-        self.logger = logger.getChild(__name__)  # Get a child logger
+        self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.used_objects = {}
 
     def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 2) -> str:

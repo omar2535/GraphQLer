@@ -3,23 +3,23 @@
    Note: The run_regular_mutation and run_regular_query functions are very similar, but they are kept separate for clarity purposes
 """
 
-import re
 import bdb
+import re
 import traceback
 from pathlib import Path
 
 import constants
 from fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
-from utils.logging_utils import get_logger
+from utils.logging_utils import Logger
 from utils.parser_utils import get_output_type
 from utils.request_utils import send_graphql_request
 from utils.singleton import singleton
 from utils.stats import Stats
-from .utils import check_is_data_empty
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
 from .retrier import Retrier
+from .utils import check_is_data_empty
 
 
 @singleton
@@ -42,7 +42,7 @@ class FEngine(object):
         self.input_objects = input_objects
         self.enums = enums
         self.url = url
-        self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
+        self.logger = Logger().get_fuzzer_logger()
 
     def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, max_output_depth: int = 1) -> tuple[dict, bool]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
@@ -66,7 +66,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
             self.logger.info(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, self.logger)
+            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
 
             # Step 2: Send the request & handle response
@@ -149,7 +149,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
-            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, self.logger)
+            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
             query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket)
 
             # Step 2

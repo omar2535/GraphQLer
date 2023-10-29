@@ -11,7 +11,7 @@
 from pathlib import Path
 from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
-from utils.logging_utils import get_logger
+from utils.logging_utils import Logger
 from .fengine.fengine import FEngine
 
 import constants
@@ -30,7 +30,7 @@ class Fuzzer:
         """
         self.save_path = save_path
         self.url = url
-        self.logger = get_logger(__name__, Path(save_path) / constants.FUZZER_LOG_FILE_PATH)
+        self.logger = Logger().get_fuzzer_logger()
 
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
