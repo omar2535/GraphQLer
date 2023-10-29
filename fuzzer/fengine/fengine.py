@@ -199,5 +199,5 @@ class FEngine(object):
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
-            self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.print_exc()}")
+            self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, False)
