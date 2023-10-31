@@ -11,7 +11,6 @@ class Logger:
     compiler_logger = None
     fuzzer_log_path = ""
     compiler_log_path = ""
-    fengine_log_path = ""
 
     def __init__(self):
         pass
@@ -25,21 +24,16 @@ class Logger:
         """
         self.fuzzer_log_path = Path(save_path) / constants.FUZZER_LOG_FILE_PATH
         self.compiler_log_path = Path(save_path) / constants.COMPILER_LOG_FILE_PATH
-        self.fengine_log_path = Path(save_path) / constants.FENGINE_LOG_FILE_PATH
         if mode == "fuzz":
             self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.fengine_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.fuzzer_log_path)
-            initialize_file(self.fengine_log_path)
         elif mode == "compile":
             self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.compiler_log_path)
         else:
             self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.fengine_log_path.parent.mkdir(parents=True, exist_ok=True)
             self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.fuzzer_log_path)
-            initialize_file(self.fengine_log_path)
             initialize_file(self.compiler_log_path)
 
         self.fuzzer_logger = self._get_logger("fuzzer", self.fuzzer_log_path)

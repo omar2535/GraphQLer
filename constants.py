@@ -32,7 +32,6 @@ MAX_OUTPUT_SELECTOR_DEPTH = 2
 HARD_CUTOFF_DEPTH = 10
 
 """For loggers"""
-FENGINE_LOG_FILE_PATH = "logs/fengine.log"
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
 
