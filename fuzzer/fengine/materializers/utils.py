@@ -64,6 +64,11 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
         if random_id == "":
             random_id = str(get_random_id(input_name))
         return random_id
+    elif scalar_type == "Cursor":
+        if input_name == "after" or input_name == "from":
+            return '"YXJyYXljb25uZWN0aW9uOjA="'
+        else:
+            return str(1)
     else:
         # Must be a custom scalar, check if it's an ID, if not then just fail
         if scalar_type.lower().endswith("id") or scalar_type.lower().endswith("ids"):
