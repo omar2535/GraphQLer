@@ -30,7 +30,8 @@ class QueryListParser(Parser):
         """
         # Grab just the objects from the dict
         schema_types = introspection_data.get("data", {}).get("__schema", {}).get("types", [])
-        queries_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == "Query"]
+        query_type_name = introspection_data.get("data", {}).get("__schema", {}).get("queryType", {}).get("name", "Query")
+        queries_object = [t for t in schema_types if t.get("kind") == "OBJECT" and t.get("name") == query_type_name]
 
         # No queries in the introspection
         if len(queries_object) == 0:
