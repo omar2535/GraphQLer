@@ -57,11 +57,15 @@ A third mode is also included for ease of use, called **run** mode. this mode co
 (.env) python main.py --compile --url <URL> --path <SAVE_PATH>
 ```
 
+After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`. Additionally, a graph will have been generated called `dependency_graph.png` for inspection. Any `UNKNOWNS` in the compiled YAML files can be manually marked; however, if not marked the fuzzer will still run them but just without the extra context.
+
 ### Fuzz mode
 
 ```sh
 (.env) python main.py --fuzz --url <URL> --path <SAVE_PATH>
 ```
+
+While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis.
 
 ### Run mode
 
