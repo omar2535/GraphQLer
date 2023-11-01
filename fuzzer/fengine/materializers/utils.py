@@ -66,7 +66,7 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
         return random_id
     elif scalar_type == "Cursor":
         if input_name == "after" or input_name == "from":
-            return '"YXJyYXljb25uZWN0aW9uOjA="'
+            return "null"
         else:
             return str(1)
     else:
