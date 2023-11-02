@@ -20,7 +20,7 @@ class Parser:
         raise Exception("Should not call parse on base Parser class")
 
     def extract_oftype(self, field: dict) -> dict:
-        """Extract the ofType. Assume that the nested ofType will always be null
+        """Extract the ofType. Assume that at the lowest level, nested ofType will always be null
 
         Args:
             field (dict): Field's "type" to extract from
