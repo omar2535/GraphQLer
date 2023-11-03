@@ -13,6 +13,7 @@ from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
 from utils.logging_utils import Logger
 from .fengine.fengine import FEngine
+from utils.stats import Stats
 
 import constants
 import networkx
@@ -31,6 +32,7 @@ class Fuzzer:
         self.save_path = save_path
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
+        self.stats = Stats()
 
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
@@ -51,9 +53,9 @@ class Fuzzer:
 
         # Stats about the run
         self.dfs_ran_nodes: set[Node] = set()
-        self.successfull_actions: dict[str, int] = self.get_new_initialized_successful_actions()
-        self.num_successes: int = 0
-        self.num_failures: int = 0
+        self.stats.number_of_queries = len(self.queries.keys())
+        self.stats.number_of_mutations = len(self.mutations.keys())
+        self.stats.number_of_objects = len(self.objects.keys())
 
     def run(self):
         """Runs the fuzzer. Performs steps as follows:
@@ -90,14 +92,16 @@ class Fuzzer:
 
         # Step 6: Finish
         self.logger.info("Completed fuzzing")
-        self.print_results()
+        self.stats.print_results()
+        self.stats.save()
 
     def run_no_dfs(self):
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
         nodes_to_run = self.dependency_graph.nodes
         self.run_nodes(nodes_to_run)
         self.logger.info("Completed fuzzing")
-        self.print_results()
+        self.stats.print_results()
+        self.stats.save()
 
     def run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -109,7 +113,7 @@ class Fuzzer:
             Exception: If the GraphQL type of the node is unknown
         """
         for current_node in nodes:
-            self.print_stats()
+            self.stats.print_running_stats()
             was_successful = False
             new_objects_bucket = self.objects_bucket
             if current_node.graphql_type == "Mutation":
@@ -124,10 +128,10 @@ class Fuzzer:
             # Now evaluate the was_successful
             if was_successful:
                 self.objects_bucket = new_objects_bucket
-                self.num_successes += 1
-                self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
+                self.stats.number_of_successes += 1
+                self.stats.add_new_succesful_node(current_node)
             else:
-                self.num_failures += 1
+                self.stats.number_of_failures += 1
 
     def get_starter_nodes(self) -> list[Node]:
         """Gets a list of starter nodes to start the fuzzing with.
@@ -167,7 +171,7 @@ class Fuzzer:
 
         while len(to_visit) != 0:
             # Print stats first
-            self.print_stats()
+            self.stats.print_running_stats()
 
             # Now for the actual DFS
             current_visit_path: list[Node] = to_visit.pop()
@@ -178,20 +182,20 @@ class Fuzzer:
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not was_successful:
                     self.logger.info(f"[{current_node}]Node was not successful")
-                    self.num_failures += 1
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
+                        self.stats.number_of_failures += 1
                         continue  # Stop counting failures, just skip the node for retry
                     else:
                         failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     self.logger.info(f"[{current_node}]Node was successful")
-                    self.num_successes += 1
+                    self.stats.number_of_successes += 1
                     to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
 
                     # Mark as a successfull run
-                    self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] = self.successfull_actions[f"{current_node.graphql_type}|{current_node.name}"] + 1
+                    self.stats.add_new_succesful_node(current_node)
 
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it since it passed
                         del failed_visited[current_node.name]
@@ -269,38 +273,3 @@ class Fuzzer:
             list[Node]: List of nodes that are dependent on the input node
         """
         return [n for n in self.dependency_graph.successors(node)]
-
-    def get_new_initialized_successful_actions(self) -> dict:
-        """Gets a new successful actions with all the queries and mutations and objects set to 0
-
-        Returns:
-            dict: The new successful actions dictionary
-        """
-        successful_actions = {}
-        for node in self.dependency_graph.nodes:
-            successful_actions[f"{node.graphql_type}|{node.name}"] = 0
-        return successful_actions
-
-    def print_stats(self):
-        print(f"(F) ", end="")
-        print(f"Number of success: {self.num_successes}", end="")
-        print("|", end="")
-        print(f"Number of failures: {self.num_failures}", end="")
-        print("\r", end="", flush=True)
-
-    def print_results(self):
-        print("\n----------------------RESULTS-------------------------")
-        pprint.pprint(self.successfull_actions)
-        number_success_of_mutations_and_queries = 0
-        num_mutations_and_queries = len(self.mutations.keys()) + len(self.queries.keys())
-        for action, num_success in self.successfull_actions.items():
-            action_name = action.split("|")[0]
-            if action_name == "Mutation" or action_name == "Query":
-                if num_success > 0:
-                    number_success_of_mutations_and_queries += 1
-        print(f"(RESULTS): Number of queries: {len(self.queries.keys())}")
-        print(f"(RESULTS): Number of mutations: {len(self.mutations.keys())}")
-        print(f"(RESULTS): Number of objects: {len(self.objects.keys())}")
-        print(f"(RESULTS): Number of unique QUERY/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
-        print(f"(RESULTS): Please check {Path(self.save_path) / 'stats.txt'} for more information regarding the run")
-        print("------------------------------------------------------")
