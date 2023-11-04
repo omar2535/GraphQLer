@@ -20,7 +20,7 @@ COMPILED_MUTATIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_mutations.yml"
 COMPILED_QUERIES_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_queries.yml"
 
 """For the resolver"""
-MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower this, but this almost guarantees us to find a matching ID
+MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower this, but this almost guarantees us to find a matching object name - ID
 
 """For the linker"""
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
@@ -44,4 +44,4 @@ STATS_FILE_PATH = "stats.txt"
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket
 USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through the dependency graph
-NO_DATA_COUNT_AS_SUCCESS = False  # This mode is for when we want to count no data in the data object as a failure
+NO_DATA_COUNT_AS_SUCCESS = False  # This mode is for when we want to count no data in the data object as a success or failure
