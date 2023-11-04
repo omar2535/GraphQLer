@@ -66,12 +66,15 @@ class Compiler:
         self.run_resolvers_and_save(introspection_result)
 
     def get_introspection_query_results(self) -> dict:
-        """Run the introspection query, grab results and output to file
+        """Run the introspection query, grab results and output to file. Raises error if introspection query wasn't successful
 
         Returns:
             dict: Dictionary of the resulting JSON from the introspection query
         """
         result, response = send_graphql_request(self.url, introspection_query)
+        if response.status_code != 200:
+            raise SystemExit(f"Error running introspection query: {response.text}")
+
         write_json_to_file(result, self.introspection_result_save_path)
         return result
 
