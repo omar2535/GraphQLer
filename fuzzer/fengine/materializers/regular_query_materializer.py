@@ -4,7 +4,7 @@ Materializes a mutation that is ready to be sent off
 
 from .regular_materializer import RegularMaterializer
 from .utils import prettify_graphql_payload
-from constants import MAX_OUTPUT_SELECTOR_DEPTH
+from constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 import logging
 
 
@@ -30,7 +30,7 @@ class RegularQueryMaterializer(RegularMaterializer):
         """
         self.used_objects = {}  # Reset the used_objects list per run (from parent class)
         query_info = self.queries[query_name]
-        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket)
+        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
         query_outputs = self.materialize_output(query_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
 
         if query_inputs != "":

@@ -17,8 +17,8 @@ from utils.stats import Stats
 
 import constants
 import networkx
-import pprint
 import random
+import time
 
 
 class Fuzzer:
@@ -69,6 +69,7 @@ class Fuzzer:
         # Step 1
         starter_nodes: list[Node] = self.get_starter_nodes()
         self.logger.info(f"Starter nodes: {starter_nodes}")
+        self.stats.start_time = time.time()
 
         # Step 2
         self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
@@ -91,6 +92,7 @@ class Fuzzer:
         self.logger.info("Completed running all nodes that haven't been ran yet")
 
         # Step 6: Finish
+        self.stats.end_time = time.time()
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()

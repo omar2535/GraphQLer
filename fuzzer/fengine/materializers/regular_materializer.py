@@ -127,7 +127,21 @@ class RegularMaterializer:
                 built_str += field_output
         return built_str
 
-    def materialize_inputs(self, operator_info: dict, inputs: dict, objects_bucket: dict) -> str:
+    def materialize_inputs(self, operator_info: dict, inputs: dict, objects_bucket: dict, max_depth: int) -> str:
+        """Goes through the inputs of the payload
+
+        Args:
+            operator_info (dict): All information about the operator (either all QUERYs or all MUTATIONs) that we want to materialize
+            inputs (dict): The inputs of to be parsed
+            objects_bucket (dict): The dynamically available objects that are currently in circulation
+            max_depth (int): The maximum depth to proceed to when unravelling nested input objects
+
+        Returns:
+            str: The input parameters as a string
+        """
+        return self.materialize_input_fields(operator_info, inputs, objects_bucket, max_depth, current_depth=0)
+
+    def materialize_input_fields(self, operator_info: dict, inputs: dict, objects_bucket: dict, max_depth: int, current_depth: int = 0) -> str:
         """Goes through the inputs of the payload
 
         Args:
@@ -140,10 +154,12 @@ class RegularMaterializer:
         """
         built_str = ""
         for input_name, input_field in inputs.items():
-            built_str += f"{input_name}: " + self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, True) + ","
+            built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
         return built_str
 
-    def materialize_input_field(self, operator_info: dict, input_field: dict, objects_bucket: dict, input_name: str, check_deps: bool) -> str:
+    def materialize_input_recursive(
+        self, operator_info: dict, input_field: dict, objects_bucket: dict, input_name: str, check_deps: bool, max_depth: int, current_depth: int
+    ) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name
@@ -158,6 +174,9 @@ class RegularMaterializer:
         Returns:
             str: String of the materialized input field
         """
+        if current_depth >= max_depth:
+            return ""
+
         built_str = ""
         hard_dependencies: dict = operator_info["hardDependsOn"]
         soft_dependencies: dict = operator_info["softDependsOn"]
@@ -172,13 +191,13 @@ class RegularMaterializer:
                 built_str += f'"{randomly_chosen_dependency_val}"'
             elif hard_dependency_name == "UNKNOWN":
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
-                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
+                built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
             else:
                 if constants.USE_DEPENDENCY_GRAPH:  # If we are using the dependency graph, then we should be careful dependencies aren't met
                     raise HardDependencyNotMetException(hard_dependency_name)
                 else:  # Otherwise, in regular non-dependency aware mode, we just materialize the input field
                     self.logger.info("Hard dependency not met -- using random input")
-                    built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
+                    built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
         elif check_deps and input_field["name"] in soft_dependencies:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:
@@ -187,14 +206,14 @@ class RegularMaterializer:
                 self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
                 built_str += f'"{randomly_chosen_dependency_val}"'
             else:
-                built_str += self.materialize_input_field(operator_info, input_field, objects_bucket, input_name, False)
+                built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
         elif input_field["kind"] == "NON_NULL":
-            built_str += self.materialize_input_field(operator_info, input_field["ofType"], objects_bucket, input_name, True)
+            built_str += self.materialize_input_recursive(operator_info, input_field["ofType"], objects_bucket, input_name, True, max_depth, current_depth)
         elif input_field["kind"] == "LIST":
-            built_str += f"[{self.materialize_input_field(operator_info, input_field['ofType'], objects_bucket, input_name, True)}]"
+            built_str += f"[{self.materialize_input_recursive(operator_info, input_field['ofType'], objects_bucket, input_name, True, max_depth, current_depth)}]"
         elif input_field["kind"] == "INPUT_OBJECT":
             input_object = self.input_objects[input_field["type"]]
-            built_str += "{" + self.materialize_inputs(operator_info, input_object["inputFields"], objects_bucket) + "}"
+            built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
         elif input_field["kind"] == "SCALAR":
             built_str += get_random_scalar(input_name, input_field["type"], objects_bucket)
         elif input_field["kind"] == "ENUM":

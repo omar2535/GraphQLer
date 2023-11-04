@@ -6,12 +6,15 @@ from graph import Node
 import constants
 import pprint
 import json
+import time
 
 
 @singleton
 class Stats:
     ### PUT THE STATS YOU WANT HERE
     file_path = "/tmp/stats.txt"  # This gets overriden on startup
+    start_time: float = 0
+    end_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     number_of_queries: int = 0
@@ -73,6 +76,7 @@ class Stats:
             if action_name == "Mutation" or action_name == "Query":
                 if num_success > 0:
                     number_success_of_mutations_and_queries += 1
+        print(f"(RESULTS): Time taken: {self.end_time - self.start_time} seconds")
         print(f"(RESULTS): Number of queries: {self.number_of_queries}")
         print(f"(RESULTS): Number of mutations: {self.number_of_mutations}")
         print(f"(RESULTS): Number of objects: {self.number_of_objects}")
@@ -87,6 +91,7 @@ class Stats:
             f.write("\n===================Successful Nodes===================\n")
             f.write(json.dumps(self.successful_nodes, indent=4))
             f.write("\n===================General stats ===================\n")
+            f.write(f"\nTime taken: {str(self.end_time - self.start_time)} seconds")
             f.write(f"\nNumber of queries: {self.number_of_queries}")
             f.write(f"\nNumber of mutations: {self.number_of_mutations}")
             f.write(f"\nNumber of objects: {self.number_of_objects}")
