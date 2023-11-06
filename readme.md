@@ -57,7 +57,7 @@ A third mode is also included for ease of use, called **run** mode. this mode co
 (.env) python main.py --compile --url <URL> --path <SAVE_PATH>
 ```
 
-After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`. Additionally, a graph will have been generated called `dependency_graph.png` for inspection. Any `UNKNOWNS` in the compiled YAML files can be manually marked; however, if not marked the fuzzer will still run them but just without the extra context.
+After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`. Additionally, a graph will have been generated called `dependency_graph.png` for inspection. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
 
 ### Fuzz mode
 
