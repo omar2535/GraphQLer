@@ -27,4 +27,4 @@ source .env/bin/activate
 (.env) pre-commit install
 ```
 
-and everything should work after that!
+everything should work after that!
