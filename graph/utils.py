@@ -14,7 +14,7 @@ def draw_graph(graph: networkx.DiGraph, save_path: str):
     networkx.draw(graph, pos, with_labels=False, node_size=100, node_color="skyblue", font_size=8, font_color="black", font_weight="bold", edge_color="gray", width=2)
     custom_labels = get_custom_labels(graph)
     networkx.draw_networkx_labels(graph, pos, labels=custom_labels, font_size=8, verticalalignment="bottom", horizontalalignment="right")
-    plt.savefig(save_path, format="png")
+    plt.savefig(save_path, format="png", dpi=1200)
 
 
 def get_custom_labels(graph):

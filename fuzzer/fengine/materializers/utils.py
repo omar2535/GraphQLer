@@ -1,21 +1,26 @@
 from graphql import parse, print_ast
 from datetime import datetime, timedelta
 import random
+import string
 import Levenshtein
 
 
 def get_random_string(input_name: str) -> str:
     # Maybe we can use the input name somehow? (Like if the input name contains "name")
-    return '"Bob"'
+    if 'email' in input_name:
+        return f"\"{''.join(random.choices(string.ascii_lowercase, k=10))}@{''.join(random.choices(string.ascii_lowercase, k=10))}.com\""
+    elif 'name' in input_name:
+        return f"\"{''.join(random.choices(string.ascii_uppercase + string.digits, k=10))}\""
+    else:
+        return f"\"{''.join(random.choices(string.ascii_uppercase + string.digits, k=10))}\""
 
 
 def get_random_int(input_name: str) -> int:
-    return 1
+    return random.randint(0, 100)
 
 
 def get_random_float(input_name: str) -> float:
-    return 3.1415
-
+    return random.uniform(0.0, 1000.0)
 
 def get_random_bool(input_name: str) -> bool:
     return str(bool(random.getrandbits(1))).lower()
