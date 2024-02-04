@@ -22,6 +22,7 @@ def get_random_int(input_name: str) -> int:
 def get_random_float(input_name: str) -> float:
     return random.uniform(0.0, 1000.0)
 
+
 def get_random_bool(input_name: str) -> bool:
     return str(bool(random.getrandbits(1))).lower()
 
