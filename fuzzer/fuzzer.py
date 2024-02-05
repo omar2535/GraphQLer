@@ -13,6 +13,7 @@ from graph import GraphGenerator, Node
 from utils.file_utils import read_yaml_to_dict
 from utils.logging_utils import Logger
 from .fengine.fengine import FEngine
+from .fengine.types import Result
 from utils.stats import Stats
 
 import constants
@@ -179,14 +180,17 @@ class Fuzzer:
             current_visit_path: list[Node] = to_visit.pop()
             current_node: Node = current_visit_path[-1]
             self.logger.info(f"Current node: {current_node}")
+
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, was_successful = self.evaluate_node(current_node, current_visit_path)
+                new_paths_to_evaluate, res = self.evaluate_node(current_node, current_visit_path)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
-                if not was_successful:
+                if not res == Result.GENERAL_SUCCESS:
                     self.logger.info(f"[{current_node}]Node was not successful")
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
                         self.stats.number_of_failures += 1
-                        continue  # Stop counting failures, just skip the node for retry
+                        if res == Result.EXTERNAL_FAILURE:  # Add to failures if it's an API failure
+                            self.stats.add_new_error_node(current_node)
+                        continue  # Stop counting failures, already max retries reached
                     else:
                         failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
@@ -213,7 +217,7 @@ class Fuzzer:
                 self.logger.info("Hit max run times. Ending DFS")
                 break
 
-    def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], bool]:
+    def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], Result]:
         """Evaluates the node, performing the following based on the type of node
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
@@ -236,19 +240,19 @@ class Fuzzer:
             else:
                 return (new_visit_paths, True)
         elif node.graphql_type == "Mutation":
-            new_objects_bucket, was_successful = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
-            if was_successful:
+            new_objects_bucket, res = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
+            if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket
-                return (new_visit_paths, True)
+                return (new_visit_paths, res)
             else:
-                return ([], False)
+                return ([], res)
         elif node.graphql_type == "Query":
-            new_objects_bucket, was_successful = self.fengine.run_regular_query(node.name, self.objects_bucket)
-            if was_successful:
+            new_objects_bucket, res = self.fengine.run_regular_query(node.name, self.objects_bucket)
+            if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket
-                return (new_visit_paths, True)
+                return (new_visit_paths, res)
             else:
-                return ([], False)
+                return ([], res)
 
     def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node

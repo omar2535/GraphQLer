@@ -17,6 +17,7 @@ class Stats:
     end_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
+    error_nodes: dict[str, int] = {}
     number_of_queries: int = 0
     number_of_mutations: int = 0
     number_of_objects: int = 0
@@ -37,6 +38,19 @@ class Stats:
             self.successful_nodes[key_name] += 1
         else:
             self.successful_nodes[key_name] = 1
+        self.save()
+
+    def add_new_error_node(self, node: Node):
+        """Adds a new error node to the error stats
+
+        Args:
+            node (Node): A graphqler node
+        """
+        key_name = f"{node.graphql_type}|{node.name}"
+        if key_name in self.error_nodes:
+            self.error_nodes[key_name] += 1
+        else:
+            self.error_nodes[key_name] = 1
         self.save()
 
     def add_http_status_code(self, payload_name: str, status_code: int):
@@ -68,7 +82,10 @@ class Stats:
 
     def print_results(self):
         print("\n----------------------RESULTS-------------------------")
+        print("Unique success nodes:")
         pprint.pprint(self.successful_nodes)
+        print("Unique error nodes:")
+        pprint.pprint(self.error_nodes)
         number_success_of_mutations_and_queries = 0
         num_mutations_and_queries = self.number_of_mutations + self.number_of_queries
         for action, num_success in self.successful_nodes.items():
