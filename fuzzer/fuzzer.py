@@ -189,7 +189,9 @@ class Fuzzer:
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
                         self.stats.number_of_failures += 1
                         if res == Result.EXTERNAL_FAILURE:  # Add to failures if it's an API failure
-                            self.stats.add_new_error_node(current_node)
+                            self.stats.add_new_external_failed_node(current_node)
+                        else:
+                            self.stats.add_new_internal_failed_node(current_node)
                         continue  # Stop counting failures, already max retries reached
                     else:
                         failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
