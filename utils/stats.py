@@ -94,6 +94,28 @@ class Stats:
         print(f"Number of failures: {self.number_of_failures}", end="")
         print("\r", end="", flush=True)
 
+    def get_number_of_successful_mutations_and_queries(self) -> tuple[int, int]:
+        """Returns the number of successful mutations and queries"""
+        number_success_of_mutations_and_queries = 0
+        num_mutations_and_queries = self.number_of_mutations + self.number_of_queries
+        for action, num_success in self.successful_nodes.items():
+            action_name = action.split("|")[0]
+            if action_name == "Mutation" or action_name == "Query":
+                if num_success > 0:
+                    number_success_of_mutations_and_queries += 1
+        return number_success_of_mutations_and_queries, num_mutations_and_queries
+
+    def get_number_of_failed_external_mutations_and_queries(self) -> tuple[int, int]:
+        """Returns the number of failed EXTERNAL mutations and queries"""
+        number_failed_of_mutations_and_queries = 0
+        num_mutations_and_queries = self.number_of_mutations + self.number_of_queries
+        for action, num_failed in self.external_failed_nodes.items():
+            action_name = action.split("|")[0]
+            if action_name == "Mutation" or action_name == "Query":
+                if num_failed > 0:
+                    number_failed_of_mutations_and_queries += 1
+        return number_failed_of_mutations_and_queries, num_mutations_and_queries
+
     def print_results(self):
         print("\n----------------------RESULTS-------------------------")
         print("Unique success nodes:")
@@ -102,29 +124,33 @@ class Stats:
         pprint.pprint(self.external_failed_nodes)
         print("Unique internal failed nodes")
         pprint.pprint(self.internal_failed_nodes)
-        number_success_of_mutations_and_queries = 0
-        num_mutations_and_queries = self.number_of_mutations + self.number_of_queries
-        for action, num_success in self.successful_nodes.items():
-            action_name = action.split("|")[0]
-            if action_name == "Mutation" or action_name == "Query":
-                if num_success > 0:
-                    number_success_of_mutations_and_queries += 1
+        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
+        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_external_mutations_and_queries()
         print(f"(RESULTS): Time taken: {self.end_time - self.start_time} seconds")
         print(f"(RESULTS): Number of queries: {self.number_of_queries}")
         print(f"(RESULTS): Number of mutations: {self.number_of_mutations}")
         print(f"(RESULTS): Number of objects: {self.number_of_objects}")
         print(f"(RESULTS): Number of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
+        print(f"(RESULTS): Number of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
         print(f"(RESULTS): Please check {self.file_path} for more information regarding the run")
         print("------------------------------------------------------")
 
     def save(self):
+        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
+        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_external_mutations_and_queries()
         with open(self.file_path, "w") as f:
             f.write("\n===================HTTP Status Codes===================\n")
             f.write(json.dumps(self.http_status_codes, indent=4))
             f.write("\n===================Successful Nodes===================\n")
             f.write(json.dumps(self.successful_nodes, indent=4))
+            f.write("\n===================External failed Nodes===================\n")
+            f.write(json.dumps(self.external_failed_nodes, indent=4))
+            f.write("\n===================Internal failed Nodes===================\n")
+            f.write(json.dumps(self.internal_failed_nodes, indent=4))
             f.write("\n===================General stats ===================\n")
             f.write(f"\nTime taken: {str(self.end_time - self.start_time)} seconds")
+            f.write(f"\nNumber of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
+            f.write(f"\nNumber of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
             f.write(f"\nNumber of queries: {self.number_of_queries}")
             f.write(f"\nNumber of mutations: {self.number_of_mutations}")
             f.write(f"\nNumber of objects: {self.number_of_objects}")
