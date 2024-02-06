@@ -5,10 +5,9 @@ Materializes a mutation that is ready to be sent off
 from .regular_materializer import RegularMaterializer
 from .mutation_materializer import MutationMaterializer
 from .utils import prettify_graphql_payload
-from constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 
 
-class RegularMutationMaterializer(MutationMaterializer, RegularMaterializer):
+class DOSMutationMaterializer(MutationMaterializer, RegularMaterializer):
     def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict):
         super().__init__(objects, mutations, input_objects, enums)
         self.objects = objects
@@ -16,7 +15,7 @@ class RegularMutationMaterializer(MutationMaterializer, RegularMaterializer):
         self.input_objects = input_objects
         self.enums = enums
 
-    def get_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def get_payload(self, mutation_name: str, objects_bucket: dict, max_depth=20) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
@@ -30,8 +29,8 @@ class RegularMutationMaterializer(MutationMaterializer, RegularMaterializer):
         """
         self.used_objects = {}  # Reset the used_objects list per run (from parent class)
         mutation_info = self.mutations[mutation_name]
-        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=max_depth)
+        mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=max_depth)
         mutation_payload = f"""
         mutation {{
             {mutation_name} (

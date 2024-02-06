@@ -182,7 +182,8 @@ class Fuzzer:
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.evaluate_node(current_node, current_visit_path)
+                new_paths_to_evaluate, res = self.evaluate_node(current_node, current_visit_path)  # For positive testing (normal run)
+                self.fuzz_node(current_node, current_visit_path)  # For negative testing (fuzzing)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not res == Result.GENERAL_SUCCESS:
                     self.logger.info(f"[{current_node}]Node was not successful")
@@ -255,6 +256,22 @@ class Fuzzer:
                 return (new_visit_paths, res)
             else:
                 return ([], res)
+
+    def fuzz_node(self, node: Node, visit_path: list[Node]):
+        """Fuzzes a node by running the node and storing the results
+
+        Args:
+            node (Node): The node to fuzz
+        """
+        if node.graphql_type == "Mutation":
+            res = self.fengine.run_dos_mutation(node.name, self.objects_bucket)
+            self.stats.update_stats_from_result(node, res)
+        elif node.graphql_type == "Query":
+            # Run the DOS query
+            res = self.fengine.run_dos_query(node.name, self.objects_bucket)
+            self.stats.update_stats_from_result(node, res)
+        else:
+            pass
 
     def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node

@@ -1,7 +1,8 @@
 from pathlib import Path
+from graph import Node
+from fuzzer.fengine.types import Result
 from .singleton import singleton
 from .file_utils import initialize_file
-from graph import Node
 
 import constants
 import pprint
@@ -104,6 +105,19 @@ class Stats:
                 if num_success > 0:
                     number_success_of_mutations_and_queries += 1
         return number_success_of_mutations_and_queries, num_mutations_and_queries
+
+    def update_stats_from_result(self, node, result: Result) -> None:
+        """Parses the result and adds it to the stats
+
+        Args:
+            result (Result): the result
+        """
+        if result == Result.EXTERNAL_FAILURE:
+            self.add_new_external_failed_node(node)
+        elif result == Result.INTERNAL_FAILURE:
+            self.add_new_internal_failed_node(node)
+        elif result == Result.GENERAL_SUCCESS:
+            self.add_new_succesful_node(node)
 
     def get_number_of_failed_external_mutations_and_queries(self) -> tuple[int, int]:
         """Returns the number of failed EXTERNAL mutations and queries"""

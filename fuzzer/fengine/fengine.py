@@ -17,7 +17,7 @@ from utils.singleton import singleton
 from utils.stats import Stats
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import RegularMutationMaterializer, RegularQueryMaterializer
+from .materializers import RegularMutationMaterializer, RegularQueryMaterializer, DOSQueryMaterializer, QueryMaterializer, MutationMaterializer, DOSMutationMaterializer
 from .retrier import Retrier
 from .utils import check_is_data_empty
 from .types import Result
@@ -45,7 +45,63 @@ class FEngine(object):
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
-    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, max_output_depth: int = 1) -> tuple[dict, Result]:
+    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict) -> tuple[dict, Result]:
+        """Runs the mutation, and returns a new objects bucket
+
+        Args:
+            mutation_name (str): Name of the mutation
+            objects_bucket (dict): The current objects bucket
+
+        Returns:
+            tuple[dict, Result]: The new objects bucket, and the result of the mutation
+        """
+        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
+        return self.run_mutation(mutation_name, objects_bucket, materializer)
+
+    def run_regular_query(self, query_name: str, objects_bucket: dict) -> tuple[dict, Result]:
+        """Runs the query, and returns a new objects bucket
+
+        Args:
+            query_name (str): The name of the query
+            objects_bucket (dict): The objects bucket
+
+        Returns:
+            tuple[dict, Result]: The new objects bucket, and the result of the query
+        """
+        materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        return self.run_query(query_name, objects_bucket, materializer)
+
+    def run_dos_query(self, query_name: str, objects_bucket: dict) -> Result:
+        """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
+           should fail!
+
+        Args:
+            query_name (str): The name of the query
+            objects_bucket (dict): The objects bucket
+
+        Returns:
+            Result: Result of the query
+        """
+        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
+        return res
+
+    def run_dos_mutation(self, query_name: str, objects_bucket: dict) -> Result:
+        """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
+           should fail!
+
+        Args:
+            query_name (str): The name of the query
+            objects_bucket (dict): The objects bucket
+
+        Returns:
+            Result: Result of the query
+        """
+        materializer = DOSMutationMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
+        return res
+
+    def run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -58,7 +114,6 @@ class FEngine(object):
         Args:
             mutation_name (str): Name of the mutation
             objects_bucket (dict): The current objects bucket
-            max_output_depth (int): The maximum depth of nested object to go to in the output (default = 1)
 
         Returns:
             tuple[dict, Result]: The new objects bucket, and the result of the mutation
@@ -67,7 +122,6 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
             self.logger.info(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
 
             # Step 2: Send the request & handle response
@@ -139,12 +193,13 @@ class FEngine(object):
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, Result.INTERNAL_FAILURE)
 
-    def run_regular_query(self, query_name: str, objects_bucket: dict) -> tuple[dict, Result]:
+    def run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
             query_name (str): The name of the query
             objects_bucket (dict): The objects bucket
+            materializer (QueryMaterializer): The materializer to use
 
         Returns:
             tuple[dict, Result]: The new objects bucket, and the result of the query
@@ -153,7 +208,6 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
-            materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
             query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket)
 
             # Step 2
