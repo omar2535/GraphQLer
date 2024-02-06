@@ -8,12 +8,13 @@ from .utils import prettify_graphql_payload
 
 
 class DOSQueryMaterializer(QueryMaterializer, RegularMaterializer):
-    def __init__(self, objects: dict, queries: dict, input_objects: dict, enums: dict):
+    def __init__(self, objects: dict, queries: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = False):
         super().__init__(objects, queries, input_objects, enums)
         self.objects = objects
         self.queries = queries
         self.input_objects = input_objects
         self.enums = enums
+        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
     def get_payload(self, query_name: str, objects_bucket: dict, max_depth=20) -> tuple[str, dict]:
         """Materializes the query with parameters filled in

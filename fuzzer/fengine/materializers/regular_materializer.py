@@ -12,7 +12,7 @@ import constants
 
 
 class RegularMaterializer:
-    def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict):
+    def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = True):
         """Default constructor for a regular materializer
 
         Args:
@@ -27,6 +27,7 @@ class RegularMaterializer:
         self.input_objects = input_objects
         self.enums = enums
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
+        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
 
     def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 2) -> str:
@@ -193,7 +194,7 @@ class RegularMaterializer:
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
                 built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
             else:
-                if constants.USE_DEPENDENCY_GRAPH:  # If we are using the dependency graph, then we should be careful dependencies aren't met
+                if self.fail_on_hard_dependency_not_met:  # If we are using the dependency graph, then we should be careful dependencies aren't met
                     raise HardDependencyNotMetException(hard_dependency_name)
                 else:  # Otherwise, in regular non-dependency aware mode, we just materialize the input field
                     self.logger.info("Hard dependency not met -- using random input")

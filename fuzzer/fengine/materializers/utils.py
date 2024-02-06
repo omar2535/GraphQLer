@@ -7,9 +7,9 @@ import Levenshtein
 
 def get_random_string(input_name: str) -> str:
     # Maybe we can use the input name somehow? (Like if the input name contains "name")
-    if 'email' in input_name:
+    if "email" in input_name:
         return f"\"{''.join(random.choices(string.ascii_lowercase, k=10))}@{''.join(random.choices(string.ascii_lowercase, k=10))}.com\""
-    elif 'name' in input_name:
+    elif "name" in input_name:
         return f"\"{''.join(random.choices(string.ascii_uppercase + string.digits, k=10))}\""
     else:
         return f"\"{''.join(random.choices(string.ascii_uppercase + string.digits, k=10))}\""
@@ -28,7 +28,7 @@ def get_random_bool(input_name: str) -> bool:
 
 
 def get_random_id(input_name: str) -> str:
-    return '"1234567890"'
+    return '"' + "".join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '"'
 
 
 def get_random_date(input_name: str) -> str:

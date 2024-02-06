@@ -117,22 +117,29 @@ class Fuzzer:
         """
         for current_node in nodes:
             self.stats.print_running_stats()
-            was_successful = False
             new_objects_bucket = self.objects_bucket
+            self.logger.info(f"Running node: {current_node}")
             if current_node.graphql_type == "Mutation":
-                new_objects_bucket, was_successful = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket)
+                new_objects_bucket, result = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket, False)
             elif current_node.graphql_type == "Query":
-                new_objects_bucket, was_successful = self.fengine.run_regular_query(current_node.name, self.objects_bucket)
+                new_objects_bucket, result = self.fengine.run_regular_query(current_node.name, self.objects_bucket, False)
             elif current_node.graphql_type == "Object":
-                was_successful = True
+                continue
             else:
                 raise Exception(f"Unknown GraphQL type: {current_node.graphql_type}")
 
             # Now evaluate the was_successful
-            if was_successful:
+            if result == Result.GENERAL_SUCCESS:
+                self.logger.info(f"Node was successful: {current_node}")
                 self.objects_bucket = new_objects_bucket
                 self.stats.number_of_successes += 1
                 self.stats.add_new_succesful_node(current_node)
+            elif result == Result.EXTERNAL_FAILURE:
+                self.stats.add_new_external_failed_node(current_node)
+                self.stats.number_of_failures += 1
+            elif result == Result.INTERNAL_FAILURE:
+                self.stats.add_new_internal_failed_node(current_node)
+                self.stats.number_of_failures += 1
             else:
                 self.stats.number_of_failures += 1
 

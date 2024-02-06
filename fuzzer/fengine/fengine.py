@@ -45,30 +45,32 @@ class FEngine(object):
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
-    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict) -> tuple[dict, Result]:
+    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
         """Runs the mutation, and returns a new objects bucket
 
         Args:
             mutation_name (str): Name of the mutation
             objects_bucket (dict): The current objects bucket
+            check_hard_depends_on (bool): Whether to check the hard depends on of the mutation's input - if it's not met, we fail. Defaults to True
 
         Returns:
             tuple[dict, Result]: The new objects bucket, and the result of the mutation
         """
-        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums)
+        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.run_mutation(mutation_name, objects_bucket, materializer)
 
-    def run_regular_query(self, query_name: str, objects_bucket: dict) -> tuple[dict, Result]:
+    def run_regular_query(self, query_name: str, objects_bucket: dict, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
             query_name (str): The name of the query
             objects_bucket (dict): The objects bucket
+            check_hard_depends_on (bool): Whether to check the hard depends on of the query's input - if it's not met, we fail. Defaults to True
 
         Returns:
             tuple[dict, Result]: The new objects bucket, and the result of the query
         """
-        materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.run_query(query_name, objects_bucket, materializer)
 
     def run_dos_query(self, query_name: str, objects_bucket: dict) -> Result:
@@ -82,7 +84,7 @@ class FEngine(object):
         Returns:
             Result: Result of the query
         """
-        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
         objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
         return res
 
@@ -97,7 +99,7 @@ class FEngine(object):
         Returns:
             Result: Result of the query
         """
-        materializer = DOSMutationMaterializer(self.objects, self.queries, self.input_objects, self.enums)
+        materializer = DOSMutationMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
         objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
         return res
 
