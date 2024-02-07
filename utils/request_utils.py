@@ -25,6 +25,9 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
 
     response = requests.post(url=url, json=body, headers=headers)
 
+    if response.status_code != 200:
+        return response.text, response
+
     if next:
         return next(json.loads(response.text))
 
