@@ -88,7 +88,7 @@ class FEngine(object):
         objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
         return res
 
-    def run_dos_mutation(self, query_name: str, objects_bucket: dict) -> Result:
+    def run_dos_mutation(self, mutation_name: str, objects_bucket: dict) -> Result:
         """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
            should fail!
 
@@ -99,8 +99,8 @@ class FEngine(object):
         Returns:
             Result: Result of the query
         """
-        materializer = DOSMutationMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
-        objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
+        materializer = DOSMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
+        objects_bucket, res = self.run_mutation(mutation_name, objects_bucket, materializer)
         return res
 
     def run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Result]:

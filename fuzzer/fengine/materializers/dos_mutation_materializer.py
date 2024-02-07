@@ -32,13 +32,21 @@ class DOSMutationMaterializer(MutationMaterializer, RegularMaterializer):
         mutation_info = self.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=max_depth)
         mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=max_depth)
-        mutation_payload = f"""
-        mutation {{
-            {mutation_name} (
-                {mutation_inputs}
-            )
-            {mutation_output}
-        }}
-        """
+        if mutation_inputs.strip() == "":
+            mutation_payload = f"""
+            mutation {{
+                {mutation_name}
+                {mutation_output}
+            }}
+            """
+        else:
+            mutation_payload = f"""
+            mutation {{
+                {mutation_name} (
+                    {mutation_inputs}
+                )
+                {mutation_output}
+            }}
+            """
         pretty_payload = prettify_graphql_payload(mutation_payload)
         return pretty_payload, self.used_objects

@@ -6,8 +6,6 @@ from .parser import Parser
 class ObjectListParser(Parser):
     def __init__(self):
         self.excluded_types = [
-            "Mutation",
-            "Query",
             "__Schema",
             "__Type",
             "__TypeKind",

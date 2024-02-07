@@ -26,9 +26,25 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     response = requests.post(url=url, json=body, headers=headers)
 
     if response.status_code != 200:
-        return response.text, response
+        return parse_response(response.text), response
 
     if next:
         return next(json.loads(response.text))
 
-    return json.loads(response.text), response
+    return parse_response(response.text), response
+
+
+def parse_response(response_text: str) -> dict:
+    """Parse the response and try to jsonify it
+
+    Args:
+        response_text (str): The response text
+
+    Returns:
+        dict: A dictionary of the response
+    """
+    try:
+        json_text = json.loads(response_text)
+        return json_text
+    except Exception:
+        return {"error": json_text}

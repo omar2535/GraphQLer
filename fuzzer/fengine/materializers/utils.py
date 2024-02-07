@@ -41,6 +41,10 @@ def get_random_time(input_name: str) -> str:
     return f"\"{calculated_date.strftime('%Y-%m-%d')}TT00:00:00+00:00\""
 
 
+def get_random_long(input_name: str) -> str:
+    return str(random.randint(0, 1000000))
+
+
 # Gets a random scalar for the scalar type given
 def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -> str:
     """Gets a random scalar based on the scalar type, the return value will
@@ -84,6 +88,8 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
             return random_id
         elif scalar_type.lower() == "time":
             return get_random_time(input_name)
+        elif scalar_type.lower() == "long":
+            return get_random_long(input_name)
         else:
             raise Exception(f"Custom scalars are not supported at this time: {input_name}:{scalar_type}")
 
