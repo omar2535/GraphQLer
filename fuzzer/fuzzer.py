@@ -271,11 +271,14 @@ class Fuzzer:
         Args:
             node (Node): The node to fuzz
         """
-        for depth in range(random.randint(0, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH))):
+        random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
+        for depth in random_numbers:
             if node.graphql_type == "Mutation":
+                self.logger.info(f"Fuzzing mutation: {node.name} with depth: {depth}")
                 res = self.fengine.run_dos_mutation(node.name, self.objects_bucket, depth)
                 self.stats.update_stats_from_result(node, res)
             elif node.graphql_type == "Query":
+                self.logger.info(f"Fuzzing query: {node.name} with depth: {depth}")
                 res = self.fengine.run_dos_query(node.name, self.objects_bucket, depth)
                 self.stats.update_stats_from_result(node, res)
             else:
