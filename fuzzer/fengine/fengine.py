@@ -236,7 +236,10 @@ class FEngine(object):
             if graphql_response["data"][query_name] is None:
                 # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
+                if constants.NO_DATA_COUNT_AS_SUCCESS:
+                    return (objects_bucket, Result.GENERAL_SUCCESS)
+                else:
+                    return (objects_bucket, Result.EXTERNAL_FAILURE)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
