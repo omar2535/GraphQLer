@@ -265,20 +265,21 @@ class Fuzzer:
                 return ([], res)
 
     def fuzz_node(self, node: Node, visit_path: list[Node]):
-        """Fuzzes a node by running the node and storing the results
+        """Fuzzes a node by running the node and storing the results. Currently runs:
+           - DOS Query / Mutation (from size 0 to MAX_INPUT_DEPTH or HARD_CUTOFF_DEPTH, whichever is smaller)
 
         Args:
             node (Node): The node to fuzz
         """
-        if node.graphql_type == "Mutation":
-            res = self.fengine.run_dos_mutation(node.name, self.objects_bucket)
-            self.stats.update_stats_from_result(node, res)
-        elif node.graphql_type == "Query":
-            # Run the DOS query
-            res = self.fengine.run_dos_query(node.name, self.objects_bucket)
-            self.stats.update_stats_from_result(node, res)
-        else:
-            pass
+        for depth in range(random.randint(0, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH))):
+            if node.graphql_type == "Mutation":
+                res = self.fengine.run_dos_mutation(node.name, self.objects_bucket, depth)
+                self.stats.update_stats_from_result(node, res)
+            elif node.graphql_type == "Query":
+                res = self.fengine.run_dos_query(node.name, self.objects_bucket, depth)
+                self.stats.update_stats_from_result(node, res)
+            else:
+                pass
 
     def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node

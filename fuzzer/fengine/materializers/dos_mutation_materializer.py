@@ -8,15 +8,17 @@ from .utils import prettify_graphql_payload
 
 
 class DOSMutationMaterializer(MutationMaterializer, RegularMaterializer):
-    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = False):
+    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
         super().__init__(objects, mutations, input_objects, enums)
         self.objects = objects
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
-        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
-    def get_payload(self, mutation_name: str, objects_bucket: dict, max_depth=20) -> tuple[str, dict]:
+        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
+        self.max_depth = max_depth
+
+    def get_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
@@ -30,8 +32,8 @@ class DOSMutationMaterializer(MutationMaterializer, RegularMaterializer):
         """
         self.used_objects = {}  # Reset the used_objects list per run (from parent class)
         mutation_info = self.mutations[mutation_name]
-        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=max_depth)
-        mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=max_depth)
+        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=self.max_depth)
+        mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=self.max_depth)
         if mutation_inputs.strip() == "":
             mutation_payload = f"""
             mutation {{

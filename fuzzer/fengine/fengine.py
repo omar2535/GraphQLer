@@ -73,7 +73,7 @@ class FEngine(object):
         materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.run_query(query_name, objects_bucket, materializer)
 
-    def run_dos_query(self, query_name: str, objects_bucket: dict) -> Result:
+    def run_dos_query(self, query_name: str, objects_bucket: dict, max_depth: int = 20) -> Result:
         """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
            should fail!
 
@@ -84,22 +84,23 @@ class FEngine(object):
         Returns:
             Result: Result of the query
         """
-        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
+        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
         objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
         return res
 
-    def run_dos_mutation(self, mutation_name: str, objects_bucket: dict) -> Result:
+    def run_dos_mutation(self, mutation_name: str, objects_bucket: dict, max_depth: int = 20) -> Result:
         """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
            should fail!
 
         Args:
             query_name (str): The name of the query
             objects_bucket (dict): The objects bucket
+            max_depth (int): The maximum depth to go to when materializing the inputs
 
         Returns:
             Result: Result of the query
         """
-        materializer = DOSMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False)
+        materializer = DOSMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
         objects_bucket, res = self.run_mutation(mutation_name, objects_bucket, materializer)
         return res
 
