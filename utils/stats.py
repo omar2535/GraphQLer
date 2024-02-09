@@ -15,7 +15,6 @@ class Stats:
     ### PUT THE STATS YOU WANT HERE
     file_path = "/tmp/stats.txt"  # This gets overriden on startup
     start_time: float = 0
-    end_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     external_failed_nodes: dict[str, int] = {}
@@ -140,7 +139,7 @@ class Stats:
         pprint.pprint(self.internal_failed_nodes)
         number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
         number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_external_mutations_and_queries()
-        print(f"(RESULTS): Time taken: {self.end_time - self.start_time} seconds")
+        print(f"(RESULTS): Time taken: {time.time() - self.start_time} seconds")
         print(f"(RESULTS): Number of queries: {self.number_of_queries}")
         print(f"(RESULTS): Number of mutations: {self.number_of_mutations}")
         print(f"(RESULTS): Number of objects: {self.number_of_objects}")
@@ -162,7 +161,7 @@ class Stats:
             f.write("\n===================Internal failed Nodes===================\n")
             f.write(json.dumps(self.internal_failed_nodes, indent=4))
             f.write("\n===================General stats ===================\n")
-            f.write(f"\nTime taken: {str(self.end_time - self.start_time)} seconds")
+            f.write(f"\nTime taken: {str(time.time() - self.start_time)} seconds")
             f.write(f"\nNumber of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
             f.write(f"\nNumber of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
             f.write(f"\nNumber of queries: {self.number_of_queries}")

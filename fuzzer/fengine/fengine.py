@@ -148,7 +148,7 @@ class FEngine(object):
             if "data" not in graphql_response:
                 self.logger.error(f"[{mutation_name}] No data in response: {graphql_response}")
                 return (objects_bucket, Result.EXTERNAL_FAILURE)
-            if graphql_response["data"][mutation_name] is None:
+            if graphql_response["data"][mutation_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
                 if constants.NO_DATA_COUNT_AS_SUCCESS:
@@ -158,11 +158,6 @@ class FEngine(object):
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
-
-            # If it is an empty data, we return early, mark it as false
-            if check_is_data_empty(graphql_response["data"]):
-                self.logger.info(f"[{mutation_name}] Empty data in response, returning early")
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
 
             # If there is information in the response, we need to process it
             if type(graphql_response["data"][mutation_name]) is dict:
@@ -234,7 +229,7 @@ class FEngine(object):
             if "data" not in graphql_response:
                 self.logger.error(f"[{query_name}] No data in response: {graphql_response}")
                 return (objects_bucket, Result.EXTERNAL_FAILURE)
-            if graphql_response["data"][query_name] is None:
+            if graphql_response["data"][query_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
                 if constants.NO_DATA_COUNT_AS_SUCCESS:
@@ -244,11 +239,6 @@ class FEngine(object):
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
-
-            # If it is an empty data, we return early, mark it as false
-            if check_is_data_empty(graphql_response["data"]):
-                self.logger.info(f"[{query_name}] Empty data in response, returning early")
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
 
             if type(graphql_response["data"][query_name]) is dict:
                 query_output_type = get_output_type(query_name, self.queries)

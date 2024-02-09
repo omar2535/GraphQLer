@@ -16,6 +16,7 @@ from .fengine.fengine import FEngine
 from .fengine.types import Result
 from utils.stats import Stats
 
+import multiprocessing
 import constants
 import networkx
 import random
@@ -59,6 +60,17 @@ class Fuzzer:
         self.stats.number_of_objects = len(self.objects.keys())
 
     def run(self):
+        # Create a separate process
+        p = multiprocessing.Process(target=self.run_steps)
+        p.start()
+        p.join(constants.MAX_TIME)
+
+        if p.is_alive():
+            print(f"(+) Terminating the fuzzer process - reached max time {constants.MAX_TIME}s")
+            p.terminate()
+        p.join()
+
+    def run_steps(self):
         """Runs the fuzzer. Performs steps as follows:
         1. Gets all nodes that can be run without a dependency (query/mutation)
         2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
@@ -93,7 +105,6 @@ class Fuzzer:
         self.logger.info("Completed running all nodes that haven't been ran yet")
 
         # Step 6: Finish
-        self.stats.end_time = time.time()
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()

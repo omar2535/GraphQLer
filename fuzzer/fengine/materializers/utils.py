@@ -20,6 +20,8 @@ def get_random_int(input_name: str) -> int:
 
 
 def get_random_float(input_name: str) -> float:
+    if input_name == "latitude" or input_name == "longitude":
+        return random.uniform(-180.0, 180.0)
     return random.uniform(0.0, 1000.0)
 
 

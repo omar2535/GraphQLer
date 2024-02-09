@@ -45,7 +45,8 @@ STATS_FILE_PATH = "stats.txt"
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket
 USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through the dependency graph
-NO_DATA_COUNT_AS_SUCCESS = True  # This mode is for when we want to count no data in the data object as a success or failure
+NO_DATA_COUNT_AS_SUCCESS = False  # This mode is for when we want to count no data in the data object as a success or failure
 
 """For fuzzing"""
 MAX_FUZZING_ITERATIONS = 5
+MAX_TIME = 3600  # in seconds
