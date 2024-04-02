@@ -74,3 +74,17 @@ Runs both the Compile mode and Fuzz mode
 ```sh
 (.env) python main.py --run --url <URL> --path <SAVE_PATH>
 ```
+
+## Advanced features
+
+There are also varaibles that can be modified in the `constants.py` file. These correspond to specific features implemented in GraphQL, and can be tuned to your liking.
+
+| Variable Name | Variable Description | Variable Type | Default |
+|---------------|---------------------|---------------|---------------|
+| MAX_LEVENSHTEIN_THRESHOLD | The levenshtein distance between objects and object IDs | Integer | 20 |
+| MAX_OBJECT_CYCLES | Max number of times the same object should be materialized in the same query/mutation | Integer | 3 |
+| MAX_OUTUPT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
+| USE_OBJECTS_BUCKET | Whether or not to store object IDs for future use | Boolean | True |
+| USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
+| MAX_FUZZING_ITERATIONS | Maximum number of fuzzing payloads to run on a node | Integer | 5 |
+| MAX_TIME | The maximum time to run | Integer | 3600 |
