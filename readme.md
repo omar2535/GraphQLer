@@ -77,7 +77,7 @@ Runs both the Compile mode and Fuzz mode
 
 ## Advanced features
 
-There are also varaibles that can be modified in the `constants.py` file. These correspond to specific features implemented in GraphQL, and can be tuned to your liking.
+There are also varaibles that can be modified in the `constants.py` file. These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
 
 | Variable Name | Variable Description | Variable Type | Default |
 |---------------|---------------------|---------------|---------------|
