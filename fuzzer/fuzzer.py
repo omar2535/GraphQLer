@@ -242,7 +242,7 @@ class Fuzzer:
         """Evaluates the node, performing the following based on the type of node
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
-           Case 2: If it's an query node, run the query with the required objects, then store in the object bucket
+           Case 2: If it's an query node, run the query with the required objects, then store the results in the object bucket
            Case 3: If it's a mutation node, run the mutation with the required objects
 
         Args:
@@ -281,6 +281,7 @@ class Fuzzer:
 
         Args:
             node (Node): The node to fuzz
+            visit_path (list[Node]): The list of visited paths to arrive at the node
         """
         random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
         for depth in random_numbers:
