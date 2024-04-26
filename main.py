@@ -34,7 +34,7 @@ def run_compile_mode(path: str, url: str):
     print("(C) Finished compiling, starting graph generator")
     graph_generator = GraphGenerator(path)
     graph_generator.get_dependency_graph()
-    graph_generator.draw_dependency_graph()  # Mainly to visualize it, comment out if uneeded
+    graph_generator.draw_dependency_graph()
 
     print("(C) Complete compilation phase")
 
