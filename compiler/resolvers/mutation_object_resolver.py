@@ -53,16 +53,16 @@ class MutationObjectResolver(Resolver):
         Returns:
             str: One of [CREATE,UDPATE,DELETE,UNKNOWN]
         """
-        create_pattern = re.compile(r"^(create|add|insert)", re.IGNORECASE)
-        update_pattern = re.compile(r"^(update|modify|edit)", re.IGNORECASE)
-        delete_pattern = re.compile(r"^(delete|remove|erase)", re.IGNORECASE)
+        create_pattern = re.compile(r"(create|add|insert)", re.IGNORECASE)
+        update_pattern = re.compile(r"(update|modify|edit)", re.IGNORECASE)
+        delete_pattern = re.compile(r"(delete|remove|erase)", re.IGNORECASE)
 
         # Check if the method name matches any pattern
-        if create_pattern.match(mutation_name):
+        if create_pattern.search(mutation_name):
             return "CREATE"
-        elif update_pattern.match(mutation_name):
+        elif update_pattern.search(mutation_name):
             return "UPDATE"
-        elif delete_pattern.match(mutation_name):
+        elif delete_pattern.search(mutation_name):
             return "DELETE"
         else:
             return "UNKNOWN"
