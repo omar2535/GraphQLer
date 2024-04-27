@@ -1,3 +1,10 @@
+# flake8: noqa
+
+import sys
+from os import path
+
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 from main import run_compile_mode, run_fuzz_mode
 
 import constants
@@ -6,17 +13,17 @@ import multiprocessing
 
 # Dictionary specifying the API URL and path
 APIS_TO__TEST = [
-    ("https://countries.trevorblades.com/", "countries-test/"),
-    ("https://api.react-finland.fi/graphql", "react-finland-test/"),
-    ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
-    ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
+    # ("https://countries.trevorblades.com/", "countries-test/"),
+    # ("https://api.react-finland.fi/graphql", "react-finland-test/"),
+    # ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
+    # ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
     ("https://graphql.anilist.co/", "anilist-test"),
-    ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
-    ("https://www.universe.com/graphql", "universe-test"),
-    ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
-    ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
-    ("https://api.spacex.land/graphql/", "spacex-test/"),
-    ("https://api.tcgdex.net/v2/graphql", "tcgdex-test/"),
+    # ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
+    # ("https://www.universe.com/graphql", "universe-test"),
+    # ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
+    # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
+    # ("https://api.spacex.land/graphql/", "spacex-test/"),
+    # ("https://api.tcgdex.net/v2/graphql", "tcgdex-test/"),
 ]
 
 MAX_TIMES = [5, 10, 20, 30, 60]
