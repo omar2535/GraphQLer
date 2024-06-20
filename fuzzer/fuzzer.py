@@ -246,7 +246,7 @@ class Fuzzer:
            Case 3: If it's a mutation node, run the mutation with the required objects
 
         Args:
-            node (Node): Node to be evaluatred
+            node (Node): Node to be evaluated
             avoid_mutation_type (list[str]): Mutation types to avoid when looking for the next nodes to append
 
         Returns:

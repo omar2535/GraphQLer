@@ -75,6 +75,14 @@ class Resolver:
         return input["ofType"] and input["ofType"]["kind"] == "INPUT_OBJECT"
 
     def is_input_an_id(self, input: dict) -> bool:
+        """Checks if the input is an ID field
+
+        Args:
+            input (dict): The input field to check
+
+        Returns:
+            bool: True if the field is an ID, False otherwise
+        """
         if input["ofType"]:
             input = get_base_oftype(input["ofType"])
 

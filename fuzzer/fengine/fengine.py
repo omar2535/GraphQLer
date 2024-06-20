@@ -1,5 +1,5 @@
 """FEngine: Responsible for getting the materialized query, running it against the API, and returning if it succeeds
-            and the new objects that were returned (if any were updated).
+            and storing any new objects that were returned to the objects_bucket (if any were updated).
    Note: The run_regular_mutation and run_regular_query functions are very similar, but they are kept separate for clarity purposes
 """
 
@@ -160,6 +160,7 @@ class FEngine(object):
             self.logger.info(f"Response: {graphql_response}")
 
             # If there is information in the response, we need to process it
+            # TODO: Store more things in the objects bucket (ie. names seen, other things seen, etc.)
             if type(graphql_response["data"][mutation_name]) is dict:
                 mutation_output_type = get_output_type(mutation_name, self.mutations)
                 if "id" in graphql_response["data"][mutation_name]:
