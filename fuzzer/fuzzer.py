@@ -59,26 +59,44 @@ class Fuzzer:
         self.stats.number_of_mutations = len(self.mutations.keys())
         self.stats.number_of_objects = len(self.objects.keys())
 
-    def run(self):
+    def run(self) -> dict:
+        """Runs the fuzzer
+
+        Returns:
+            dict: The objects bucket
+        """
         # Create a separate process
-        p = multiprocessing.Process(target=self.__run_steps)
+        queue = multiprocessing.Queue()
+        p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
         p.join(constants.MAX_TIME)
 
+        # Terminate the thread if it's still alive after the max time
         if p.is_alive():
             print(f"(+) Terminating the fuzzer process - reached max time {constants.MAX_TIME}s")
             p.terminate()
         p.join()
 
-    def run_no_dfs(self):
-        """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
+        # Get results from objects bucket
+        if not queue.empty():
+            self.objects_bucket = queue.get()
+
+        return self.objects_bucket
+
+    def run_no_dfs(self) -> dict:
+        """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
+
+        Returns:
+            dict: The objects bucket
+        """
         nodes_to_run = self.dependency_graph.nodes
         self.__run_nodes(nodes_to_run)
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()
+        return self.objects_bucket
 
-    def __run_steps(self):
+    def __run_steps(self, queue: multiprocessing.Queue):
         """Runs the fuzzer. Performs steps as follows:
         1. Gets all nodes that can be run without a dependency (query/mutation)
         2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
@@ -86,6 +104,9 @@ class Fuzzer:
         4. 3rd Pass: Perform DFS, allow DELETE and UNKNOWN
         5. Get all nodes that still haven't been ran, run them (these are the nodes that may be in islands of the graph - very rare)
         6. Clean up
+
+        Args:
+            queue (multiprocessing.Queue): The queue to send the objects bucket to
         """
         # Step 1
         starter_nodes: list[Node] = self._get_starter_nodes()
@@ -114,8 +135,10 @@ class Fuzzer:
 
         # Step 6: Finish
         self.logger.info("Completed fuzzing")
+        self.logger.info(f"Objects bucket: {self.objects_bucket}")
         self.stats.print_results()
         self.stats.save()
+        queue.put(self.objects_bucket)
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
