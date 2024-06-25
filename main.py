@@ -3,6 +3,7 @@ Graphler - main start
 """
 
 import sys
+import pickle
 import argparse
 import constants
 
@@ -60,10 +61,16 @@ def run_fuzz_mode(path: str, url: str):
 
     if constants.USE_DEPENDENCY_GRAPH:
         print("(F) Running in dependency graph mode")
-        Fuzzer(path, url).run()
+        objects_bucket = Fuzzer(path, url).run()
+        print(objects_bucket)
     else:
         print("(F) Not using dependency graph")
-        Fuzzer(path, url).run_no_dfs()
+        objects_bucket = Fuzzer(path, url).run_no_dfs()
+        print(objects_bucket)
+
+    print("(F) Saving objects bucket")
+    with open(f"{path}/objects_bucket.pkl", "wb") as f:
+        pickle.dump(objects_bucket, f)
 
     print("(F) Complete fuzzing phase")
 
