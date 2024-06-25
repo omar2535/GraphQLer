@@ -61,7 +61,7 @@ class Fuzzer:
 
     def run(self):
         # Create a separate process
-        p = multiprocessing.Process(target=self.run_steps)
+        p = multiprocessing.Process(target=self.__run_steps)
         p.start()
         p.join(constants.MAX_TIME)
 
@@ -70,7 +70,15 @@ class Fuzzer:
             p.terminate()
         p.join()
 
-    def run_steps(self):
+    def run_no_dfs(self):
+        """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
+        nodes_to_run = self.dependency_graph.nodes
+        self.__run_nodes(nodes_to_run)
+        self.logger.info("Completed fuzzing")
+        self.stats.print_results()
+        self.stats.save()
+
+    def __run_steps(self):
         """Runs the fuzzer. Performs steps as follows:
         1. Gets all nodes that can be run without a dependency (query/mutation)
         2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
@@ -80,28 +88,28 @@ class Fuzzer:
         6. Clean up
         """
         # Step 1
-        starter_nodes: list[Node] = self.get_starter_nodes()
+        starter_nodes: list[Node] = self._get_starter_nodes()
         self.logger.info(f"Starter nodes: {starter_nodes}")
         self.stats.start_time = time.time()
 
         # Step 2
-        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
+        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
         self.logger.info("Completed 1st pass using CREATE and QUERY")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
         # Step 3
-        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
+        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
         self.logger.info("Completed 2nd pass using CREATE, QUERY, UPDATE")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
         # Step 4
-        self.perform_dfs(starter_stack=starter_nodes, filter_mutation_type=[])
+        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=[])
         self.logger.info("Completed 3rd pass using all available mutations and queries")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
 
         # Step 5
         nodes_to_run = [node for node in self.dependency_graph.nodes if node not in self.dfs_ran_nodes]
-        self.run_nodes(nodes_to_run)
+        self.__run_nodes(nodes_to_run)
         self.logger.info("Completed running all nodes that haven't been ran yet")
 
         # Step 6: Finish
@@ -109,15 +117,7 @@ class Fuzzer:
         self.stats.print_results()
         self.stats.save()
 
-    def run_no_dfs(self):
-        """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server"""
-        nodes_to_run = self.dependency_graph.nodes
-        self.run_nodes(nodes_to_run)
-        self.logger.info("Completed fuzzing")
-        self.stats.print_results()
-        self.stats.save()
-
-    def run_nodes(self, nodes: list[Node]):
+    def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
 
         Args:
@@ -154,25 +154,7 @@ class Fuzzer:
             else:
                 self.stats.number_of_failures += 1
 
-    def get_starter_nodes(self) -> list[Node]:
-        """Gets a list of starter nodes to start the fuzzing with.
-           First, looks for independent nodes. If no independent nodes are found,
-           then nodes with the fewest dependencies are returned, if there aren't any, then returns random nodes
-
-        Returns:
-            list[Node]: A list of starter nodes
-        """
-        in_degree_centrality = networkx.in_degree_centrality(self.dependency_graph)
-        for num_dependencies in range(0, 100000):  # choose a very large number, most likely never hit it
-            nodes = [node for node, centrality in in_degree_centrality.items() if centrality == num_dependencies]
-            if len(nodes) != 0:
-                return nodes
-
-        # This shouldn't ever be hit, but in case, then we choose random nodes as the starter nodes
-        self.logger.error("No starter nodes found, choosing a random node")
-        return [random.choice(self.dependency_graph.nodes)]
-
-    def perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
+    def __perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
         """Performs DFS with the initial starter stack
 
         Args:
@@ -200,8 +182,8 @@ class Fuzzer:
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.evaluate_node(current_node, current_visit_path)  # For positive testing (normal run)
-                self.fuzz_node(current_node, current_visit_path)  # For negative testing (fuzzing)
+                new_paths_to_evaluate, res = self.__evaluate_node(current_node, current_visit_path)  # For positive testing (normal run)
+                self.__fuzz_node(current_node, current_visit_path)  # For negative testing (fuzzing)
                 # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
                 if not res == Result.GENERAL_SUCCESS:
                     self.logger.info(f"[{current_node}]Node was not successful")
@@ -238,7 +220,7 @@ class Fuzzer:
                 self.logger.info("Hit max run times. Ending DFS")
                 break
 
-    def evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], Result]:
+    def __evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], Result]:
         """Evaluates the node, performing the following based on the type of node
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
@@ -252,8 +234,8 @@ class Fuzzer:
         Returns:
             tuple[list[list[Node]], bool]: A list of the next to_visit paths, and the bool if the node evaluation was successful or not
         """
-        neighboring_nodes = self.get_neighboring_nodes(node)
-        new_visit_paths = self.get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
+        neighboring_nodes = self._get_neighboring_nodes(node)
+        new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
         if node.graphql_type == "Object":
             if node.name not in self.objects_bucket or len(self.objects_bucket[node.name]) == 0:
@@ -275,7 +257,7 @@ class Fuzzer:
             else:
                 return ([], res)
 
-    def fuzz_node(self, node: Node, visit_path: list[Node]):
+    def __fuzz_node(self, node: Node, visit_path: list[Node]):
         """Fuzzes a node by running the node and storing the results. Currently runs:
            - DOS Query / Mutation (from size 0 to MAX_INPUT_DEPTH or HARD_CUTOFF_DEPTH, whichever is smaller)
 
@@ -296,7 +278,7 @@ class Fuzzer:
             else:
                 pass
 
-    def get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
+    def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node
 
         Args:
@@ -311,7 +293,7 @@ class Fuzzer:
             new_visit_paths.append(visit_path + [node])
         return new_visit_paths
 
-    def get_neighboring_nodes(self, node: Node) -> list[Node]:
+    def _get_neighboring_nodes(self, node: Node) -> list[Node]:
         """Get nodes that this node goes out of
 
         Args:
@@ -321,3 +303,21 @@ class Fuzzer:
             list[Node]: List of nodes that are dependent on the input node
         """
         return [n for n in self.dependency_graph.successors(node)]
+
+    def _get_starter_nodes(self) -> list[Node]:
+        """Gets a list of starter nodes to start the fuzzing with.
+           First, looks for independent nodes. If no independent nodes are found,
+           then nodes with the fewest dependencies are returned, if there aren't any, then returns random nodes
+
+        Returns:
+            list[Node]: A list of starter nodes
+        """
+        in_degree_centrality = networkx.in_degree_centrality(self.dependency_graph)
+        for num_dependencies in range(0, 100000):  # choose a very large number, most likely never hit it
+            nodes = [node for node, centrality in in_degree_centrality.items() if centrality == num_dependencies]
+            if len(nodes) != 0:
+                return nodes
+
+        # This shouldn't ever be hit, but in case, then we choose random nodes as the starter nodes
+        self.logger.error("No starter nodes found, choosing a random node")
+        return [random.choice(self.dependency_graph.nodes)]
