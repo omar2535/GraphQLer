@@ -8,7 +8,7 @@ import argparse
 import constants
 
 from compiler import Compiler
-from fuzzer import Fuzzer
+from fuzzer import Fuzzer, IDORFuzzer
 from graph import GraphGenerator
 
 from utils.stats import Stats
@@ -75,6 +75,17 @@ def run_fuzz_mode(path: str, url: str):
     print("(F) Complete fuzzing phase")
 
 
+def run_idor_mode(path: str, url: str):
+    print("(F) Running IDOR fuzzer")
+    try:
+        with open(f"{path}/objects_bucket.pkl", "rb") as f:
+            objects_bucket = pickle.load(f)
+            IDORFuzzer(path, url, objects_bucket).run()
+    except FileNotFoundError:
+        print("(F) Error: objects_bucket.pkl not found")
+        return
+
+
 if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser()
@@ -84,11 +95,12 @@ if __name__ == "__main__":
     parser.add_argument("--path", help="directory location for saved files and files to be used from", required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--url", help="remote host URL", required=True)
+    parser.add_argument("--idor", help="run IDOR fuzzer", action="store_true", required=False)
     args = parser.parse_args()
 
     # Validate arguments
-    if not args.compile and not args.fuzz and not args.run:
-        print("(!) Need at least one of --fuzz or --compile modes")
+    if not args.compile and not args.fuzz and not args.run and not args.idor:
+        print("(!) Need at one of [--fuzz. --compile, --run, --idor] to run the program")
         sys.exit()
 
     # Set auth token
@@ -103,3 +115,5 @@ if __name__ == "__main__":
     elif args.run:
         run_compile_mode(args.path, args.url)
         run_fuzz_mode(args.path, args.url)
+    elif args.idor:
+        run_idor_mode(args.path, args.url)
