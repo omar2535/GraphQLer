@@ -7,6 +7,7 @@ import bdb
 import re
 import traceback
 from pathlib import Path
+from requests import Response
 
 import constants
 from fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
@@ -85,7 +86,7 @@ class FEngine(object):
             Result: Result of the query
         """
         materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-        objects_bucket, res = self.run_query(query_name, objects_bucket, materializer)
+        objects_bucket, graphql_response, res = self.run_query(query_name, objects_bucket, materializer)
         return res
 
     def run_dos_mutation(self, mutation_name: str, objects_bucket: dict, max_depth: int = 20) -> Result:
@@ -101,10 +102,10 @@ class FEngine(object):
             Result: Result of the query
         """
         materializer = DOSMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-        objects_bucket, res = self.run_mutation(mutation_name, objects_bucket, materializer)
+        objects_bucket, graphql_response, res = self.run_mutation(mutation_name, objects_bucket, materializer)
         return res
 
-    def run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Result]:
+    def run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Response, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -119,7 +120,7 @@ class FEngine(object):
             objects_bucket (dict): The current objects bucket
 
         Returns:
-            tuple[dict, Result]: The new objects bucket, and the result of the mutation
+            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the mutation,
         """
         try:
             # Step 1
@@ -138,23 +139,23 @@ class FEngine(object):
 
             # For the GraphQL reponse
             if not graphql_response:
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
+                return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "errors" in graphql_response:
                 self.logger.info(f"[{mutation_name}] Mutation failed: {graphql_response['errors'][0]}")
                 self.logger.info("[{mutation_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.url, mutation_payload_string, graphql_response, 0)
                 if not retry_success:
-                    return (objects_bucket, Result.EXTERNAL_FAILURE)
+                    return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "data" not in graphql_response:
                 self.logger.error(f"[{mutation_name}] No data in response: {graphql_response}")
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
+                return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if graphql_response["data"][mutation_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
                 if constants.NO_DATA_COUNT_AS_SUCCESS:
-                    return (objects_bucket, Result.GENERAL_SUCCESS)
+                    return (objects_bucket, graphql_response, Result.GENERAL_SUCCESS)
                 else:
-                    return (objects_bucket, Result.EXTERNAL_FAILURE)
+                    return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
@@ -181,18 +182,18 @@ class FEngine(object):
             else:
                 pass
 
-            return (objects_bucket, Result.GENERAL_SUCCESS)
+            return (objects_bucket, graphql_response, Result.GENERAL_SUCCESS)
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
-            return (objects_bucket, Result.INTERNAL_FAILURE)
+            return (objects_bucket, graphql_response, Result.INTERNAL_FAILURE)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
             # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
-            return (objects_bucket, Result.INTERNAL_FAILURE)
+            return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Result]:
+    def run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Response, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
@@ -201,7 +202,7 @@ class FEngine(object):
             materializer (QueryMaterializer): The materializer to use
 
         Returns:
-            tuple[dict, Result]: The new objects bucket, and the result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the graphql response, and the result of the query
         """
         try:
             # Step 1
@@ -220,23 +221,23 @@ class FEngine(object):
 
             # For the GraphQL response
             if not graphql_response:
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
+                return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "errors" in graphql_response:
                 self.logger.info(f"[{query_name}] Query failed: {graphql_response['errors'][0]}")
                 self.logger.info("[{query_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.url, query_payload_string, graphql_response, 0)
                 if not retry_success:
-                    return (objects_bucket, Result.EXTERNAL_FAILURE)
+                    return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "data" not in graphql_response:
                 self.logger.error(f"[{query_name}] No data in response: {graphql_response}")
-                return (objects_bucket, Result.EXTERNAL_FAILURE)
+                return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if graphql_response["data"][query_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
                 if constants.NO_DATA_COUNT_AS_SUCCESS:
-                    return (objects_bucket, Result.GENERAL_SUCCESS)
+                    return (objects_bucket, graphql_response, Result.NO_DATA_SUCCESS)
                 else:
-                    return (objects_bucket, Result.EXTERNAL_FAILURE)
+                    return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
@@ -250,9 +251,9 @@ class FEngine(object):
             else:
                 pass
 
-            return (objects_bucket, Result.GENERAL_SUCCESS)
+            return (objects_bucket, graphql_response, Result.HAS_DATA_SUCCESS)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
             self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.format_exc()}")
-            return (objects_bucket, Result.INTERNAL_FAILURE)
+            return (objects_bucket, None, Result.INTERNAL_FAILURE)
