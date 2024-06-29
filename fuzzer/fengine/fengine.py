@@ -173,7 +173,7 @@ class FEngine(object):
                             objects_bucket = put_in_object_bucket(objects_bucket, mutation_output_type, returned_id)
                     elif mutation_type == "UPDATE":
                         pass  # updates don't generally do anything to the objects bucket
-                    elif mutation_type == "DELETE":
+                    elif mutation_type == "DELETE" and constants.ALLOW_DELETION_OF_OBJECTS:
                         if mutation_output_type in used_objects:
                             used_object_value = used_objects[mutation_output_type]
                             remove_from_object_bucket(objects_bucket, mutation_output_type, used_object_value)

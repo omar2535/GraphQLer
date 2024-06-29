@@ -22,7 +22,7 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
 - Dynamic testing: Keep track of resources created during testing
 - Error correction: Try and fix requests so that the GraphQL API accepts them
 - Statistics collection: Shows your results in a nice file
-- Ease of use: All you need is the endpoint and *maybe* the authentication token 😁
+- Ease of use: All you need is the endpoint and *maybe* the authentication token 🙂
 
 ## Getting started
 
@@ -38,6 +38,7 @@ options:
   -h, --help   show this help message and exit
   --compile    runs on compile mode
   --fuzz       runs on fuzzing mode
+  --idor       run on IDOR checking mode
   --run        run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)
   --path PATH  directory location for saved files and files to be used from
   --auth AUTH  authentication token Example: 'Bearer arandompat-abcdefgh'
@@ -65,7 +66,15 @@ After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`
 (.env) python main.py --fuzz --url <URL> --path <SAVE_PATH>
 ```
 
-While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis.
+While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. A copy of the objects bucket can be found in `objects_bucket.pkl` as well.
+
+### IDOR Checking mode
+
+```sh
+(.env) python main.py --idor --url <URL> --path <SAVE_PATH>
+```
+
+The [insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) mode can be run after **compile** mode and **fuzz** mode is complete. It requires the `objects_bucket.pkl` file to already exist as it uses the objects bucket from a previous run to see if information found/created from a previous run is also reference-able in a new run.
 
 ### Run mode
 
@@ -86,5 +95,6 @@ There are also varaibles that can be modified in the `constants.py` file. These 
 | MAX_OUTUPT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
 | USE_OBJECTS_BUCKET | Whether or not to store object IDs for future use | Boolean | True |
 | USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
+| ALLOW_DELETION_OF_OBJECTS | Whether or not to allow deletions from the objects bucket | Boolean | False |
 | MAX_FUZZING_ITERATIONS | Maximum number of fuzzing payloads to run on a node | Integer | 5 |
 | MAX_TIME | The maximum time to run | Integer | 3600 |

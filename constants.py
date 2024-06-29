@@ -49,5 +49,6 @@ USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through 
 NO_DATA_COUNT_AS_SUCCESS = False  # This mode is for when we want to count no data in the data object as a success or failure
 
 """For fuzzing"""
+ALLOW_DELETION_OF_OBJECTS = False  # This mode is for when we want to allow the deletion of objects from the objects bucket when coming across a DELETE mutation success
 MAX_FUZZING_ITERATIONS = 5
 MAX_TIME = 3600  # in seconds

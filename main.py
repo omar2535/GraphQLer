@@ -96,11 +96,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--compile", help="runs on compile mode", action="store_true", required=False)
     parser.add_argument("--fuzz", help="runs on fuzzing mode", action="store_true", required=False)
+    parser.add_argument("--idor", help="run on IDOR checking mode", action="store_true", required=False)
     parser.add_argument("--run", help="run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)", action="store_true", required=False)
     parser.add_argument("--path", help="directory location for saved files and files to be used from", required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--url", help="remote host URL", required=True)
-    parser.add_argument("--idor", help="run IDOR fuzzer", action="store_true", required=False)
     args = parser.parse_args()
 
     # Validate arguments
