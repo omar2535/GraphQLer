@@ -6,6 +6,7 @@ import sys
 import pickle
 import argparse
 import constants
+import pprint
 
 from compiler import Compiler
 from fuzzer import Fuzzer, IDORFuzzer
@@ -78,11 +79,13 @@ def run_fuzz_mode(path: str, url: str):
 def run_idor_mode(path: str, url: str):
     print("(F) Running IDOR fuzzer")
     logger = Logger()
-    logger.initialize_loggers("fuzz", path)
+    logger.initialize_loggers("idor", path)
     try:
         with open(f"{path}/objects_bucket.pkl", "rb") as f:
             objects_bucket = pickle.load(f)
-            IDORFuzzer(path, url, objects_bucket).run()
+            possible_idor_nodes = IDORFuzzer(path, url, objects_bucket).run()
+            print("Possible IDOR nodes:")
+            pprint.pprint(possible_idor_nodes)
     except FileNotFoundError:
         print("(F) Error: objects_bucket.pkl not found")
         return
