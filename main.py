@@ -77,6 +77,8 @@ def run_fuzz_mode(path: str, url: str):
 
 def run_idor_mode(path: str, url: str):
     print("(F) Running IDOR fuzzer")
+    logger = Logger()
+    logger.initialize_loggers("fuzz", path)
     try:
         with open(f"{path}/objects_bucket.pkl", "rb") as f:
             objects_bucket = pickle.load(f)

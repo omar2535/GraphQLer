@@ -1,6 +1,8 @@
 """Insecure direct object reference fuzzer"""
 
 from fuzzer.fuzzer import Fuzzer
+from graph import Node
+from utils.logging_utils import Logger
 
 
 class IDORFuzzer(Fuzzer):
@@ -15,7 +17,33 @@ class IDORFuzzer(Fuzzer):
         super().__init__(path, url)
         self.objects_bucket = objects_bucket
 
-    def run(self):
-        """Runs the fuzzer"""
-        print("(F) Running IDOR fuzzer")
-        print("(F) Finished IDOR fuzzer")
+    def run(self) -> dict:
+        """Runs the fuzzer
+
+        Returns:
+            dict: The objects bucket
+        """
+        self.logger.info("Starting IDOR Fuzzer")
+        nodes_to_check: list[Node] = self.dependency_graph.nodes
+        for node in nodes_to_check:
+            self.check_node(node)
+
+    def check_node(self, node: Node) -> bool:
+        """Checks if a node has a possible IDOR vulnerability, if it does, return True, else False
+
+        Args:
+            node (Node): The node to be fuzzed
+
+        Returns:
+            bool: True if has suspected IDOR vulenrablity, False otherwise
+        """
+        if node.graphql_type == "Query":
+            _objects_bucket, graphql_response, result = self.fengine.run_regular_query(node.name, self.objects_bucket, check_hard_depends_on=False)
+            breakpoint()
+        elif node.graphql_type == "Mutation":
+            _objects_bucket, graphql_response, result = self.fengine.run_regular_mutation(node.name, self.objects_bucket, check_hard_depends_on=False)
+            breakpoint()
+        elif node.graphql_type == "Object":
+            self.logger.info("Not checking object")
+
+        return False

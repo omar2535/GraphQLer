@@ -23,7 +23,7 @@ import random
 import time
 
 
-class Fuzzer:
+class Fuzzer(object):
     def __init__(self, save_path: str, url: str):
         """Initializes the fuzzer, reading information from the compiled files
 
@@ -154,9 +154,9 @@ class Fuzzer:
             new_objects_bucket = self.objects_bucket
             self.logger.info(f"Running node: {current_node}")
             if current_node.graphql_type == "Mutation":
-                new_objects_bucket, result = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket, False)
+                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket, False)
             elif current_node.graphql_type == "Query":
-                new_objects_bucket, result = self.fengine.run_regular_query(current_node.name, self.objects_bucket, False)
+                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_query(current_node.name, self.objects_bucket, False)
             elif current_node.graphql_type == "Object":
                 continue
             else:
@@ -266,14 +266,14 @@ class Fuzzer:
             else:
                 return (new_visit_paths, True)
         elif node.graphql_type == "Mutation":
-            new_objects_bucket, res = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
+            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
             if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket
                 return (new_visit_paths, res)
             else:
                 return ([], res)
         elif node.graphql_type == "Query":
-            new_objects_bucket, res = self.fengine.run_regular_query(node.name, self.objects_bucket)
+            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_query(node.name, self.objects_bucket)
             if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket
                 return (new_visit_paths, res)
