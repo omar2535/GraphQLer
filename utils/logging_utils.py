@@ -24,12 +24,16 @@ class Logger:
         """
         self.fuzzer_log_path = Path(save_path) / constants.FUZZER_LOG_FILE_PATH
         self.compiler_log_path = Path(save_path) / constants.COMPILER_LOG_FILE_PATH
+        self.idor_log_path = Path(save_path) / constants.IDOR_LOG_FILE_PATH
         if mode == "fuzz":
             self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.fuzzer_log_path)
         elif mode == "compile":
             self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.compiler_log_path)
+        elif mode == "idor":
+            self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_file(self.idor_log_path)
         else:
             self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
             self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,6 +42,7 @@ class Logger:
 
         self.fuzzer_logger = self._get_logger("fuzzer", self.fuzzer_log_path)
         self.compiler_logger = self._get_logger("compiler", self.compiler_log_path)
+        self.idor_logger = self._get_logger("idor", self.idor_log_path)
 
     def get_fuzzer_logger(self) -> logging.Logger:
         """Gets the fuzzer logger
@@ -54,6 +59,14 @@ class Logger:
             logging.Logger: The compiler logger
         """
         return self.compiler_logger
+
+    def get_idor_logger(self) -> logging.Logger:
+        """Gets the IDOR logger
+
+        Returns:
+            logging.Logger: The IDOR logger
+        """
+        return self.idor_logger
 
     def _get_logger(self, name: str, file_path: str) -> logging.Logger:
         """Gets a logger with the given name, file path, and level. Creates any required directories

@@ -38,6 +38,7 @@ MAX_INPUT_DEPTH = 20
 """For loggers"""
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
+IDOR_LOG_FILE_PATH = "logs/idor.log"
 
 """For stats"""
 STATS_FILE_PATH = "stats.txt"
