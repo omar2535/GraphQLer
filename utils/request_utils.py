@@ -1,7 +1,12 @@
 from typing import Callable
+import time
 import requests
 import constants
 import json
+
+
+# The last time a request was made so that we can wait between requests
+last_request_time = time.time()
 
 
 def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> tuple[dict, requests.Response]:
@@ -15,6 +20,8 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     Returns:
         tuple[dict, requests.Response]: Dictionary of the graphql response, and the request's response
     """
+    global last_request_time
+
     # Make the headers first
     headers = {"content-type": "application/json"}
     if constants.AUTHORIZATION:
@@ -23,7 +30,14 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     # Make the body
     body = {"query": payload}
 
-    response = requests.post(url=url, json=body, headers=headers)
+    # If the last request was made recently, wait for a bit
+    time_since_last_request = time.time() - last_request_time
+    if time_since_last_request < constants.TIME_BETWEEN_REQUESTS:
+        time.sleep(constants.TIME_BETWEEN_REQUESTS - time_since_last_request)
+
+    # Make the request and set the last request time
+    response = requests.post(url=url, json=body, headers=headers, timeout=constants.REQUEST_TIMEOUT)
+    last_request_time = time.time()
 
     if response.status_code != 200:
         return parse_response(response.text), response

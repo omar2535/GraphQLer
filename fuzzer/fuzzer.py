@@ -277,6 +277,7 @@ class Fuzzer(object):
             node (Node): The node to fuzz
             visit_path (list[Node]): The list of visited paths to arrive at the node
         """
+        # DOS Query / Mutation
         random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
         for depth in random_numbers:
             if node.graphql_type == "Mutation":
