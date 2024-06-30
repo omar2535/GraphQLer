@@ -97,4 +97,5 @@ There are also varaibles that can be modified in the `constants.py` file. These 
 | USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
 | ALLOW_DELETION_OF_OBJECTS | Whether or not to allow deletions from the objects bucket | Boolean | False |
 | MAX_FUZZING_ITERATIONS | Maximum number of fuzzing payloads to run on a node | Integer | 5 |
-| MAX_TIME | The maximum time to run | Integer | 3600 |
+| MAX_TIME | The maximum time to run in seconds | Integer | 3600 |
+| TIME_BETWEEN_REQUESTS | Max time to wait between requests in seconds | Integer | 0.001 |
