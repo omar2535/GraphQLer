@@ -17,8 +17,8 @@ class Stats:
     start_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
-    external_failed_nodes: dict[str, int] = {}
-    internal_failed_nodes: dict[str, int] = {}
+    failed_nodes: dict[str, int] = {}
+    results: dict[str, dict[str, int]] = {}
     number_of_queries: int = 0
     number_of_mutations: int = 0
     number_of_objects: int = 0
@@ -28,43 +28,32 @@ class Stats:
     def __init__(self):
         self.http_status_codes = {}
 
-    def add_new_succesful_node(self, node: Node):
+    def add_successful_node(self, node: Node):
         """Adds a new successful node to the succesful stats
 
         Args:
             node (Node): A graphqler node
         """
         key_name = f"{node.graphql_type}|{node.name}"
+        self.number_of_successes += 1
         if key_name in self.successful_nodes:
             self.successful_nodes[key_name] += 1
         else:
             self.successful_nodes[key_name] = 1
         self.save()
 
-    def add_new_external_failed_node(self, node: Node):
-        """Adds a new external failed node to the external failed stats
+    def add_failed_node(self, node: Node):
+        """Adds a new failed node to the internal failed stats
 
         Args:
             node (Node): A graphqler node
         """
         key_name = f"{node.graphql_type}|{node.name}"
-        if key_name in self.external_failed_nodes:
-            self.external_failed_nodes[key_name] += 1
+        self.number_of_failures += 1
+        if key_name in self.failed_nodes:
+            self.failed_nodes[key_name] += 1
         else:
-            self.external_failed_nodes[key_name] = 1
-        self.save()
-
-    def add_new_internal_failed_node(self, node: Node):
-        """Adds a new internal failed node to the internal failed stats
-
-        Args:
-            node (Node): A graphqler node
-        """
-        key_name = f"{node.graphql_type}|{node.name}"
-        if key_name in self.internal_failed_nodes:
-            self.internal_failed_nodes[key_name] += 1
-        else:
-            self.internal_failed_nodes[key_name] = 1
+            self.failed_nodes[key_name] = 1
         self.save()
 
     def add_http_status_code(self, payload_name: str, status_code: int):
@@ -94,6 +83,29 @@ class Stats:
         print(f"Number of failures: {self.number_of_failures}", end="")
         print("\r", end="", flush=True)
 
+    def update_stats_from_result(self, node, result: Result) -> None:
+        """Parses the result and adds it to the stats
+
+        Args:
+            result (Result): the result
+        """
+        result_status = result.get_success()
+        result_type = result.get_type()
+
+        # Update success / fail stats first
+        if result_status:
+            self.add_successful_node(node)
+        else:
+            self.add_failed_node(node)
+
+        # Update results
+        if result_type in self.results and node.name in self.results[result_type]:
+            self.results[result_type][node.name] += 1
+        elif result_type in self.results and node.name not in self.results[result_type]:
+            self.results[result_type][node.name] = 1
+        else:
+            self.results[result_type] = {node.name: 1}
+
     def get_number_of_successful_mutations_and_queries(self) -> tuple[int, int]:
         """Returns the number of successful mutations and queries"""
         number_success_of_mutations_and_queries = 0
@@ -105,24 +117,11 @@ class Stats:
                     number_success_of_mutations_and_queries += 1
         return number_success_of_mutations_and_queries, num_mutations_and_queries
 
-    def update_stats_from_result(self, node, result: Result) -> None:
-        """Parses the result and adds it to the stats
-
-        Args:
-            result (Result): the result
-        """
-        if result == Result.EXTERNAL_FAILURE:
-            self.add_new_external_failed_node(node)
-        elif result == Result.INTERNAL_FAILURE:
-            self.add_new_internal_failed_node(node)
-        elif result == Result.GENERAL_SUCCESS:
-            self.add_new_succesful_node(node)
-
-    def get_number_of_failed_external_mutations_and_queries(self) -> tuple[int, int]:
+    def get_number_of_failed_mutations_and_queries(self) -> tuple[int, int]:
         """Returns the number of failed EXTERNAL mutations and queries"""
         number_failed_of_mutations_and_queries = 0
         num_mutations_and_queries = self.number_of_mutations + self.number_of_queries
-        for action, num_failed in self.external_failed_nodes.items():
+        for action, num_failed in self.failed_nodes.items():
             action_name = action.split("|")[0]
             if action_name == "Mutation" or action_name == "Query":
                 if num_failed > 0:
@@ -133,12 +132,10 @@ class Stats:
         print("\n----------------------RESULTS-------------------------")
         print("Unique success nodes:")
         pprint.pprint(self.successful_nodes)
-        print("Unique external failed nodes:")
-        pprint.pprint(self.external_failed_nodes)
-        print("Unique internal failed nodes")
-        pprint.pprint(self.internal_failed_nodes)
+        print("Unique failed nodes:")
+        pprint.pprint(self.failed_nodes)
         number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
-        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_external_mutations_and_queries()
+        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_mutations_and_queries()
         print(f"(RESULTS): Time taken: {time.time() - self.start_time} seconds")
         print(f"(RESULTS): Number of queries: {self.number_of_queries}")
         print(f"(RESULTS): Number of mutations: {self.number_of_mutations}")
@@ -150,16 +147,16 @@ class Stats:
 
     def save(self):
         number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
-        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_external_mutations_and_queries()
+        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_mutations_and_queries()
         with open(self.file_path, "w") as f:
             f.write("\n===================HTTP Status Codes===================\n")
             f.write(json.dumps(self.http_status_codes, indent=4))
             f.write("\n===================Successful Nodes===================\n")
             f.write(json.dumps(self.successful_nodes, indent=4))
-            f.write("\n===================External failed Nodes===================\n")
-            f.write(json.dumps(self.external_failed_nodes, indent=4))
-            f.write("\n===================Internal failed Nodes===================\n")
-            f.write(json.dumps(self.internal_failed_nodes, indent=4))
+            f.write("\n===================Failed Nodes===================\n")
+            f.write(json.dumps(self.failed_nodes, indent=4))
+            f.write("\n===================Results===================\n")
+            f.write(json.dumps(self.results, indent=4))
             f.write("\n===================General stats ===================\n")
             f.write(f"\nTime taken: {str(time.time() - self.start_time)} seconds")
             f.write(f"\nNumber of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")

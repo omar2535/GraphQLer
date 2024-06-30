@@ -152,10 +152,7 @@ class FEngine(object):
             if graphql_response["data"][mutation_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
-                if constants.NO_DATA_COUNT_AS_SUCCESS:
-                    return (objects_bucket, graphql_response, Result.GENERAL_SUCCESS)
-                else:
-                    return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
+                return (objects_bucket, graphql_response, Result.NO_DATA_SUCCESS)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
@@ -185,7 +182,7 @@ class FEngine(object):
             return (objects_bucket, graphql_response, Result.GENERAL_SUCCESS)
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
-            return (objects_bucket, graphql_response, Result.INTERNAL_FAILURE)
+            return (objects_bucket, None, Result.INTERNAL_FAILURE)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:

@@ -162,20 +162,13 @@ class Fuzzer(object):
             else:
                 raise Exception(f"Unknown GraphQL type: {current_node.graphql_type}")
 
-            # Now evaluate the was_successful
-            if result == Result.GENERAL_SUCCESS:
+            # Upddate the stats
+            self.stats.update_stats_from_result(current_node, result)
+
+            # If it was a success, then update the objects bucket
+            if result.get_success():
                 self.logger.info(f"Node was successful: {current_node}")
                 self.objects_bucket = new_objects_bucket
-                self.stats.number_of_successes += 1
-                self.stats.add_new_succesful_node(current_node)
-            elif result == Result.EXTERNAL_FAILURE:
-                self.stats.add_new_external_failed_node(current_node)
-                self.stats.number_of_failures += 1
-            elif result == Result.INTERNAL_FAILURE:
-                self.stats.add_new_internal_failed_node(current_node)
-                self.stats.number_of_failures += 1
-            else:
-                self.stats.number_of_failures += 1
 
     def __perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
         """Performs DFS with the initial starter stack
@@ -185,18 +178,17 @@ class Fuzzer(object):
             filter_mutation_type (list[str]): A list of mutation types to filter out when performing DFS (IE. [UPDATE,UNKNOWN,DELETE])
         """
 
-        """DFS visit specific"""
+        # DFS visit specific
         visited: list[Node] = []
         failed_visited: dict = {}
         to_visit: list[list[Node]] = [[n] for n in starter_stack]
 
-        """Initialize some counters for cases when we need to break out of DFS"""
+        # Initialize some counters for cases when we need to break out of DFS
         max_run_times = (len(self.dependency_graph.nodes) + len(self.dependency_graph.edges)) * 10
         run_times = 0
         max_requeue_for_same_node = 3
 
         while len(to_visit) != 0:
-            # Print stats first
             self.stats.print_running_stats()
 
             # Now for the actual DFS
@@ -207,27 +199,22 @@ class Fuzzer(object):
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
                 new_paths_to_evaluate, res = self.__evaluate_node(current_node, current_visit_path)  # For positive testing (normal run)
                 self.__fuzz_node(current_node, current_visit_path)  # For negative testing (fuzzing)
-                # Basically, if it's not successful, then we check if it's exceeded the max retries. If it is, then we dont re-queue the node
-                if not res == Result.GENERAL_SUCCESS:
+                self.stats.update_stats_from_result(current_node, res)  # Update the stats
+
+                # If it's not successful:
+                # then we check if it's exceeded the max retries
+                # If it is, then we dont re-queue the node
+                if not res.get_success():
                     self.logger.info(f"[{current_node}]Node was not successful")
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
-                        self.stats.number_of_failures += 1
-                        if res == Result.EXTERNAL_FAILURE:  # Add to failures if it's an API failure
-                            self.stats.add_new_external_failed_node(current_node)
-                        else:
-                            self.stats.add_new_internal_failed_node(current_node)
                         continue  # Stop counting failures, already max retries reached
                     else:
                         failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
                         to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
                 else:
                     self.logger.info(f"[{current_node}]Node was successful")
-                    self.stats.number_of_successes += 1
                     to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
                     visited.append(current_node)  # We've visited this node, so add it to the visited list
-
-                    # Mark as a successfull run
-                    self.stats.add_new_succesful_node(current_node)
 
                     if current_node.name in failed_visited:  # If it was in the failed visited, remove it since it passed
                         del failed_visited[current_node.name]
@@ -237,7 +224,9 @@ class Fuzzer(object):
                 self.logger.debug(f"Visited: {visited}")
                 self.logger.debug(f"Failed visited: {failed_visited}")
                 self.logger.debug(f"Objects bucket: {self.objects_bucket}")
-            # Break out condition
+
+            # Break out condition from the loop
+            # - Max run times reached
             run_times += 1
             if run_times >= max_run_times:
                 self.logger.info("Hit max run times. Ending DFS")
@@ -255,16 +244,16 @@ class Fuzzer(object):
             avoid_mutation_type (list[str]): Mutation types to avoid when looking for the next nodes to append
 
         Returns:
-            tuple[list[list[Node]], bool]: A list of the next to_visit paths, and the bool if the node evaluation was successful or not
+            tuple[list[list[Node]], Result]: A list of the next to_visit paths, and the result of the node evaluation
         """
         neighboring_nodes = self._get_neighboring_nodes(node)
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
         if node.graphql_type == "Object":
             if node.name not in self.objects_bucket or len(self.objects_bucket[node.name]) == 0:
-                return ([], False)
+                return ([], Result.INTERNAL_FAILURE)
             else:
-                return (new_visit_paths, True)
+                return (new_visit_paths, Result.GENERAL_SUCCESS)
         elif node.graphql_type == "Mutation":
             new_objects_bucket, _graphql_response, res = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
             if res == Result.GENERAL_SUCCESS:
@@ -298,8 +287,6 @@ class Fuzzer(object):
                 self.logger.info(f"Fuzzing query: {node.name} with depth: {depth}")
                 res = self.fengine.run_dos_query(node.name, self.objects_bucket, depth)
                 self.stats.update_stats_from_result(node, res)
-            else:
-                pass
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node
