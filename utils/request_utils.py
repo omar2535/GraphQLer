@@ -1,4 +1,5 @@
 from typing import Callable
+import pprint
 import time
 import requests
 import constants
@@ -57,6 +58,7 @@ def parse_response(response_text: str) -> dict:
     Returns:
         dict: A dictionary of the response
     """
+    json_text = ""
     try:
         json_text = json.loads(response_text)
         return json_text
