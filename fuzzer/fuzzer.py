@@ -197,9 +197,9 @@ class Fuzzer(object):
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.__evaluate_node(current_node, current_visit_path)  # For positive testing (normal run)
-                self.__fuzz_node(current_node, current_visit_path)  # For negative testing (fuzzing)
-                self.stats.update_stats_from_result(current_node, res)  # Update the stats
+                new_paths_to_evaluate, res = self.__evaluate_node(current_node, current_visit_path)     # For positive testing (normal run)
+                self.__fuzz_node(current_node, current_visit_path)                                      # For negative testing (fuzzing)
+                self.stats.update_stats_from_result(current_node, res)                                  # Update the stats
 
                 # If it's not successful:
                 # then we check if it's exceeded the max retries
