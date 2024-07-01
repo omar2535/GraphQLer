@@ -46,5 +46,3 @@ source .env/bin/activate
 ```sh
 (.env) pre-commit install
 ```
-
-everything should work after that!
