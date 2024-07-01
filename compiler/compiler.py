@@ -7,11 +7,13 @@
 from pathlib import Path
 from utils.request_utils import send_graphql_request
 from utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
+from utils.logging_utils import Logger
 from compiler.introspection_query import introspection_query
 from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
 from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
 
 import constants
+import clairvoyance
 
 
 class Compiler:
@@ -41,6 +43,7 @@ class Compiler:
         self.mutation_list_parser = MutationListParser()
         self.input_object_list_parser = InputObjectListParser()
         self.enum_list_parser = EnumListParser()
+        self.logger = Logger().get_compiler_logger()
 
         # Create empty files for these files
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
@@ -61,6 +64,8 @@ class Compiler:
         3. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
         introspection_result = self.get_introspection_query_results()
+        if introspection_result is None:
+            raise SystemExit("Introspection query failed")
 
         self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_save(introspection_result)
@@ -72,11 +77,16 @@ class Compiler:
             dict: Dictionary of the resulting JSON from the introspection query
         """
         result, response = send_graphql_request(self.url, introspection_query)
-        if response.status_code != 200:
-            raise SystemExit(f"Error running introspection query: {response.text}")
-
-        write_json_to_file(result, self.introspection_result_save_path)
-        return result
+        if "GraphQL introspection is not allowed" in response.text:
+            self.logger.warning("GraphQL Introspection is not allowed")
+            return None
+        elif response.status_code != 200:
+            error_message = f"Introspection query failed with status code {response.status_code}"
+            self.logger.error(error_message)
+            raise SystemExit(error_message)
+        else:
+            write_json_to_file(result, self.introspection_result_save_path)
+            return result
 
     def run_parsers_and_save(self, introspection_result: dict):
         """Runs all the parsers and saves them to a YAML file

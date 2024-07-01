@@ -63,4 +63,4 @@ def parse_response(response_text: str) -> dict:
         json_text = json.loads(response_text)
         return json_text
     except Exception:
-        return {"error": json_text}
+        return {"errors": json_text}
