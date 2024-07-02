@@ -1,10 +1,10 @@
 from pathlib import Path
-from graph import Node
-from fuzzer.fengine.types import Result
+from graphqler.graph import Node
+from graphqler.fuzzer.fengine.types import Result
 from .singleton import singleton
 from .file_utils import initialize_file
 
-import constants
+from graphqler import constants
 import pprint
 import json
 import time

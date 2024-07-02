@@ -1,5 +1,5 @@
 from Levenshtein import distance
-from constants import MAX_LEVENSHTEIN_THRESHOLD
+from graphqler.constants import MAX_LEVENSHTEIN_THRESHOLD
 
 
 def find_closest_string_leveshtein(strings: list[str], target: str, threshold: float) -> str:

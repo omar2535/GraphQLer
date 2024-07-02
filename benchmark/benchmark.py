@@ -3,11 +3,9 @@
 import sys
 from os import path
 
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from graphqler.__main__ import run_compile_mode, run_fuzz_mode
 
-from main import run_compile_mode, run_fuzz_mode
-
-import constants
+from graphqler import constants
 import multiprocessing
 
 

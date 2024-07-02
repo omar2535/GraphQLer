@@ -1,8 +1,8 @@
 import logging
-import constants
+from graphqler import constants
 from pathlib import Path
-from utils.singleton import singleton
-from utils.file_utils import initialize_file
+from graphqler.utils.singleton import singleton
+from graphqler.utils.file_utils import initialize_file
 
 
 @singleton

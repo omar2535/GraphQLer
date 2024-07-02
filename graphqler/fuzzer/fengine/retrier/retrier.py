@@ -6,8 +6,8 @@ rather, it's responsible for modifying the query / mutation to make it work. Sce
   In this scenario, we will need to remove the payer key from the mutation / query output fields
 """
 
-from fuzzer.fengine.retrier.utils import find_block_end, remove_lines_within_range
-from utils.request_utils import send_graphql_request
+from graphqler.fuzzer.fengine.retrier.utils import find_block_end, remove_lines_within_range
+from graphqler.utils.request_utils import send_graphql_request
 
 import logging
 

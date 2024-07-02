@@ -5,16 +5,15 @@ Graphler - main start
 import sys
 import pickle
 import argparse
-import constants
 import pprint
 
-from compiler import Compiler
-from fuzzer import Fuzzer, IDORFuzzer
-from graph import GraphGenerator
-
-from utils.stats import Stats
-from utils.argument_parser import set_auth_token_constant
-from utils.logging_utils import Logger
+from graphqler.compiler import Compiler
+from graphqler.fuzzer import Fuzzer, IDORFuzzer
+from graphqler.graph import GraphGenerator
+from graphqler.utils.stats import Stats
+from graphqler.utils.argument_parser import set_auth_token_constant
+from graphqler.utils.logging_utils import Logger
+from graphqler import constants
 
 
 def run_compile_mode(path: str, url: str):

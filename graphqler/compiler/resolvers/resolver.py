@@ -1,5 +1,5 @@
 from .utils import find_closest_string
-from utils.parser_utils import get_base_oftype
+from graphqler.utils.parser_utils import get_base_oftype
 
 
 class Resolver:

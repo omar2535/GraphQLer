@@ -9,15 +9,15 @@
 """
 
 from pathlib import Path
-from graph import GraphGenerator, Node
-from utils.file_utils import read_yaml_to_dict
-from utils.logging_utils import Logger
+from graphqler.graph import GraphGenerator, Node
+from graphqler.utils.file_utils import read_yaml_to_dict
+from graphqler.utils.logging_utils import Logger
+from graphqler.utils.stats import Stats
 from .fengine.fengine import FEngine
 from .fengine.types import Result
-from utils.stats import Stats
 
 import multiprocessing
-import constants
+from graphqler import constants
 import networkx
 import random
 import time

@@ -2,7 +2,7 @@ import os
 import json
 import yaml
 from pathlib import Path
-from utils.file_utils import initialize_file, write_json_to_file, write_dict_to_yaml, read_yaml_to_dict
+from graphqler.utils.file_utils import initialize_file, write_json_to_file, write_dict_to_yaml, read_yaml_to_dict
 
 
 def test_initialize_file():

@@ -16,13 +16,13 @@ exclude = '''
 '''
 
 [tool.poetry]
-name = "graphqler"
-version = "1.0"
+name = "GraphQLer"
+version = "2.0.1"
 description = "A dependency-aware GraphQL API fuzzing tool"
 authors = ["Omar2535 <omar2535@alumni.ubc.ca>"]
 license = "MIT"
 readme = "README.md"
-package-mode = false
+package-mode = true
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"

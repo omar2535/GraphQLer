@@ -1,4 +1,4 @@
-from utils.parser_utils import get_base_oftype, get_output_type
+from graphqler.utils.parser_utils import get_base_oftype, get_output_type
 
 
 def test_get_base_oftype():

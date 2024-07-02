@@ -1,8 +1,9 @@
 from typing import Callable
+from graphqler import constants
+
 import pprint
 import time
 import requests
-import constants
 import json
 
 

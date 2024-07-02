@@ -5,14 +5,14 @@
 """
 
 from pathlib import Path
-from utils.request_utils import send_graphql_request
-from utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
-from utils.logging_utils import Logger
-from compiler.introspection_query import introspection_query
-from compiler.parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
-from compiler.resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
+from graphqler.utils.request_utils import send_graphql_request
+from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
+from graphqler.utils.logging_utils import Logger
+from .introspection_query import introspection_query
+from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
+from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
+from graphqler import constants
 
-import constants
 import clairvoyance
 
 

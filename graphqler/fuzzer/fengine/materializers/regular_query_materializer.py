@@ -5,7 +5,7 @@ Materializes a query that is ready to be sent off
 from .regular_materializer import RegularMaterializer
 from .query_materializer import QueryMaterializer
 from .utils import prettify_graphql_payload
-from constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
+from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 import logging
 
 

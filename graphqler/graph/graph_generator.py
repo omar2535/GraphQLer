@@ -9,11 +9,12 @@ The linker does the following:
 """
 
 from pathlib import Path
-from utils.file_utils import read_yaml_to_dict
+from graphqler.utils.file_utils import read_yaml_to_dict
+from graphqler import constants
 from .node import Node
 from .utils import draw_graph
 
-import constants
+import graphqler.constants
 import networkx
 
 
