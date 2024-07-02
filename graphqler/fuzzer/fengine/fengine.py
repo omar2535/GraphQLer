@@ -9,13 +9,13 @@ import traceback
 from pathlib import Path
 from requests import Response
 
-import constants
-from fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
-from utils.logging_utils import Logger
-from utils.parser_utils import get_output_type
-from utils.request_utils import send_graphql_request
-from utils.singleton import singleton
-from utils.stats import Stats
+from graphqler import constants
+from graphqler.fuzzer.utils import put_in_object_bucket, remove_from_object_bucket
+from graphqler.utils.logging_utils import Logger
+from graphqler.utils.parser_utils import get_output_type
+from graphqler.utils.request_utils import send_graphql_request
+from graphqler.utils.singleton import singleton
+from graphqler.utils.stats import Stats
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import RegularMutationMaterializer, RegularQueryMaterializer, DOSQueryMaterializer, QueryMaterializer, MutationMaterializer, DOSMutationMaterializer

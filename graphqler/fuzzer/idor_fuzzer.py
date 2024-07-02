@@ -1,9 +1,9 @@
 """Insecure direct object reference fuzzer"""
 
-from fuzzer.fuzzer import Fuzzer
-from graph import Node
-from utils.logging_utils import Logger
-from fuzzer.fengine.types.result import Result
+from graphqler.fuzzer.fuzzer import Fuzzer
+from graphqler.graph import Node
+from graphqler.utils.logging_utils import Logger
+from graphqler.fuzzer.fengine.types.result import Result
 
 
 class IDORFuzzer(Fuzzer):

@@ -1,5 +1,5 @@
-from constants import USE_OBJECTS_BUCKET
-from graph import Node
+from graphqler.constants import USE_OBJECTS_BUCKET
+from graphqler.graph import Node
 import networkx
 
 

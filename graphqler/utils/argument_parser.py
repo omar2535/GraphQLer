@@ -1,4 +1,4 @@
-import constants
+from graphqler import constants
 
 
 def set_auth_token_constant(auth_argument: str) -> None:

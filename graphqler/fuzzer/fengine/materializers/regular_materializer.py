@@ -3,12 +3,12 @@ Base class for a regular materializer
 """
 
 from .utils import get_random_scalar, get_random_enum_value
-from utils.parser_utils import get_base_oftype
-from utils.logging_utils import Logger
+from graphqler.utils.parser_utils import get_base_oftype
+from graphqler.utils.logging_utils import Logger
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 import random
 import logging
-import constants
+from graphqler import constants
 
 
 class RegularMaterializer:

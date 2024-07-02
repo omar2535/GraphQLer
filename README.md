@@ -31,8 +31,8 @@ To begin using GraphQLer, check out the [installation guide](./docs/installation
 ## Usage
 
 ```sh
-❯ python3 main.py --help
-usage: main.py [-h] [--compile] [--fuzz] [--run] --path PATH [--auth AUTH] --url URL
+❯ python -m graphqler --help
+usage: __main__.py [-h] [--compile] [--fuzz] [--idor] [--run] --path PATH [--auth AUTH] --url URL
 
 options:
   -h, --help   show this help message and exit
@@ -55,7 +55,7 @@ A third mode is also included for ease of use, called **run** mode. this mode co
 ### Compile mode
 
 ```sh
-(.env) python main.py --compile --url <URL> --path <SAVE_PATH>
+(.env) python -m graphqler --compile --url <URL> --path <SAVE_PATH>
 ```
 
 After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`. Additionally, a graph will have been generated called `dependency_graph.png` for inspection. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
@@ -63,7 +63,7 @@ After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`
 ### Fuzz mode
 
 ```sh
-(.env) python main.py --fuzz --url <URL> --path <SAVE_PATH>
+(.env) python -m graphqler --fuzz --url <URL> --path <SAVE_PATH>
 ```
 
 While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. A copy of the objects bucket can be found in `objects_bucket.pkl` as well.
@@ -71,7 +71,7 @@ While fuzzing, statistics related to the GraphQL API and any ongoing request cou
 ### IDOR Checking mode
 
 ```sh
-(.env) python main.py --idor --url <URL> --path <SAVE_PATH>
+(.env) python -m graphqler --idor --url <URL> --path <SAVE_PATH>
 ```
 
 The [insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) mode can be run after **compile** mode and **fuzz** mode is complete. It requires the `objects_bucket.pkl` file to already exist as it uses the objects bucket from a previous run to see if information found/created from a previous run is also reference-able in a new run.
@@ -81,7 +81,7 @@ The [insecure direct object reference (IDOR)](https://portswigger.net/web-securi
 Runs both the Compile mode and Fuzz mode
 
 ```sh
-(.env) python main.py --run --url <URL> --path <SAVE_PATH>
+(.env) python -m graphqler --run --url <URL> --path <SAVE_PATH>
 ```
 
 ## Advanced features

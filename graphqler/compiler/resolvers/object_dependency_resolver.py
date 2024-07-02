@@ -6,7 +6,7 @@
    based on either output type or semantic understanding
 """
 
-from constants import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
+from graphqler.constants import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
 
 
 class ObjectDependencyResolver:

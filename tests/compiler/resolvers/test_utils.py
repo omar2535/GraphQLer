@@ -1,4 +1,4 @@
-from compiler.resolvers.utils import find_closest_string
+from graphqler.compiler.resolvers.utils import find_closest_string
 
 
 def test_find_closest_string():

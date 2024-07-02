@@ -1,4 +1,4 @@
-from fuzzer.fengine.retrier.utils import find_block_end, remove_lines_within_range
+from graphqler.fuzzer.fengine.retrier.utils import find_block_end, remove_lines_within_range
 
 test_payload = """
 mutation {
