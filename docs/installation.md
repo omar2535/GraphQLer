@@ -5,7 +5,23 @@
 - **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 - Make sure to have **python 3.12**
 
-## Using Poetry (Recommended)
+## User setup guide
+
+You can install GraphQLer via pip:
+
+```sh
+pip install GraphQLer
+```
+
+and use it like so:
+
+```sh
+python -m graphqler --help
+```
+
+## Developer setup guide
+
+### Using Poetry (Recommended)
 
 Install poetry [here](https://python-poetry.org/docs/)
 
@@ -23,7 +39,7 @@ poetry shell
 poetry install
 ```
 
-## Using PIP
+### Using requirements.txt
 
 **Setting up the environment:**
 
