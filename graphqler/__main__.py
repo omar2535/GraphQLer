@@ -13,6 +13,7 @@ from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.argument_parser import set_auth_token_constant
 from graphqler.utils.logging_utils import Logger
+from graphqler.utils.config_handler import parse_config, set_constants_with_config
 from graphqler import constants
 
 
@@ -93,31 +94,29 @@ def run_idor_mode(path: str, url: str):
 if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--compile", help="runs on compile mode", action="store_true", required=False)
-    parser.add_argument("--fuzz", help="runs on fuzzing mode", action="store_true", required=False)
-    parser.add_argument("--idor", help="run on IDOR checking mode", action="store_true", required=False)
-    parser.add_argument("--run", help="run both the compiler and fuzzer (equivalent of running --compile then running --fuzz)", action="store_true", required=False)
-    parser.add_argument("--path", help="directory location for saved files and files to be used from", required=True)
-    parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--url", help="remote host URL", required=True)
+    parser.add_argument("--path", help="directory location for files to be saved-to/used-from", required=True)
+    parser.add_argument("--config", help="configuration file for the program", required=False)
+    parser.add_argument("--mode", help="mode to run the program in", choices=['compile', 'fuzz', 'idor', 'run'], required=True)
+    parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     args = parser.parse_args()
-
-    # Validate arguments
-    if not args.compile and not args.fuzz and not args.run and not args.idor:
-        print("(!) Need at one of [--fuzz. --compile, --run, --idor] to run the program")
-        sys.exit()
 
     # Set auth token
     if args.auth:
         set_auth_token_constant(args.auth)
 
+    # Parse config if provided
+    if args.config:
+        config = parse_config(args.config)
+        set_constants_with_config(config)
+
     # Run either compilation or fuzzing mode
-    if args.compile:
+    if args.mode == 'compile':
         run_compile_mode(args.path, args.url)
-    elif args.fuzz:
+    elif args.mode == 'fuzz':
         run_fuzz_mode(args.path, args.url)
-    elif args.run:
+    elif args.mode == 'run':
         run_compile_mode(args.path, args.url)
         run_fuzz_mode(args.path, args.url)
-    elif args.idor:
+    elif args.mode == 'idor':
         run_idor_mode(args.path, args.url)
