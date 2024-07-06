@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-<a href="https://pypi.org/project/GraphQLer/"><img src="https://img.shields.io/badge/pypi-GraphQLer-blue"/></a>
+<a href="https://pypi.org/project/GraphQLer/"><img src="https://img.shields.io/pypi/v/GraphQLer?style=flat-square&logo=pypi"/></a>
 <a href="https://www.python.org/downloads/" target="_blank"><img src="https://img.shields.io/badge/python-3.12-blue" alt="python3.12"/></a>
 <a href="https://codeclimate.com/github/omar2535/GraphQLer/maintainability" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability" alt="Maintainability" /></a>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg" alt="lint" /></a>
@@ -39,7 +39,7 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run} [--auth AUTH]
+usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run} [--auth AUTH] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -49,6 +49,7 @@ options:
   --mode {compile,fuzz,idor,run}
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
+  --version             display version
 ```
 
 Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.

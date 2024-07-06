@@ -3,7 +3,7 @@
 **Pre-requisites:**
 
 - **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- Make sure to have **python 3.12**
+- Have **python 3.12**
 
 ## User setup guide
 
@@ -20,6 +20,11 @@ python -m graphqler --help
 ```
 
 ## Developer setup guide
+
+Firstly, it is recommended to do everythiong in a pyenv and virtual environment. Links are provided below, but not necessary:
+
+- [pyenv](https://github.com/pyenv/pyenv) - Manages your python version for you
+- [venv](https://docs.python.org/3/library/venv.html) - Manages dependencies in a virtual environment
 
 ### Using Poetry (Recommended)
 
