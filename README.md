@@ -92,7 +92,7 @@ python -m graphqler --mode run --url <URL> --path <SAVE_PATH>
 
 ## Advanced features
 
-There are also varaibles that can be modified with the `--config` flag as a TOML file. These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
+There are also varaibles that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
 
 | Variable Name | Variable Description | Variable Type | Default |
 |---------------|---------------------|---------------|---------------|
