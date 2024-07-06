@@ -6,6 +6,7 @@ import sys
 import pickle
 import argparse
 import pprint
+import importlib.metadata
 
 from graphqler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer, IDORFuzzer
@@ -92,6 +93,12 @@ def run_idor_mode(path: str, url: str):
 
 
 if __name__ == "__main__":
+    # If version, display version and exit
+    if '--version' in sys.argv:
+        version = importlib.metadata.version("GraphQLer")
+        print(version)
+        sys.exit(0)
+
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="remote host URL", required=True)
@@ -99,6 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=['compile', 'fuzz', 'idor', 'run'], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
+    parser.add_argument("--version", help="display version", action="store_true")
     args = parser.parse_args()
 
     # Set auth token
