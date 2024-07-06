@@ -27,10 +27,18 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
 
 ## Getting started
 
-Quick installation can be done using pip:
+Quick installation can be done either with [pip](https://pypi.org/project/GraphQLer/):
 
 ```sh
 pip install GraphQLer
+python -m graphqler --help
+```
+
+or [docker](https://hub.docker.com/repository/docker/omar2535/graphqler/general):
+
+```sh
+docker pull omar2535/graphqler:latest
+docker run --rm omar2535/graphqler --help
 ```
 
 For a more in-depth guide, check out the [installation guide](./docs/installation.md).

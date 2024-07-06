@@ -7,7 +7,9 @@
 
 ## User setup guide
 
-You can install GraphQLer via pip:
+### Pip
+
+You can install GraphQLer via pip. The Pypi listing: [Pypi](https://pypi.org/project/GraphQLer/)
 
 ```sh
 pip install GraphQLer
@@ -17,6 +19,20 @@ and use it like so:
 
 ```sh
 python -m graphqler --help
+```
+
+### Docker
+
+The dockerhub repository: [Dockerhub](https://hub.docker.com/repository/docker/omar2535/graphqler/general)
+
+```sh
+docker pull omar2535/graphqler:latest
+```
+
+and you can run it like so:
+
+```sh
+docker run --rm omar2535/graphqler --help
 ```
 
 ## Developer setup guide
