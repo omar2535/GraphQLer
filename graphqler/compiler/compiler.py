@@ -5,15 +5,17 @@
 """
 
 from pathlib import Path
-from graphqler.utils.request_utils import send_graphql_request
+from graphqler.utils.request_utils import send_graphql_request, get_headers
 from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
 from graphqler import constants
+from clairvoyance.cli import blind_introspection
 
-import clairvoyance
+import asyncio
+import json
 
 
 class Compiler:
@@ -59,13 +61,19 @@ class Compiler:
 
     def run(self):
         """The only function required to be run from the caller, will perform:
-        1. Introspection query running
-        2. Run the parsers, storing files into objects / query / mutations
-        3. Creating dependencies between objects and attaching methods (query/mutations) to objects
+        1. Introspection query
+        2. Trying clairvoyance if introspection query fails
+        3. Run the parsers, storing files into objects / query / mutations
+        4. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
         introspection_result = self.get_introspection_query_results()
+
         if introspection_result is None:
-            raise SystemExit("Introspection query failed")
+            print("(C) Introspection query failed, trying clairvoyance")
+            introspection_result = self.get_clairvoyance_results()
+
+        if introspection_result is None:
+            raise SystemExit("(E) Couldn't get schema of the API. Exiting")
 
         self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_save(introspection_result)
@@ -77,7 +85,7 @@ class Compiler:
             dict: Dictionary of the resulting JSON from the introspection query
         """
         result, response = send_graphql_request(self.url, introspection_query)
-        if "GraphQL introspection is not allowed" in response.text:
+        if "introspection is not allowed" in response.text.lower():
             self.logger.warning("GraphQL Introspection is not allowed")
             return None
         elif response.status_code != 200:
@@ -87,6 +95,26 @@ class Compiler:
         else:
             write_json_to_file(result, self.introspection_result_save_path)
             return result
+
+    def get_clairvoyance_results(self) -> dict:
+        """Runs clairvoyance to get an introspection query output
+
+        Returns:
+            dict: The introspection result using clairvoyance
+        """
+        schema_str = asyncio.run(
+            blind_introspection(
+                url=self.url,
+                logger=self.logger,
+                wordlist=[],
+                headers=get_headers(),
+                input_document=None,
+                input_schema_path=None,
+                output_path=self.introspection_result_save_path
+            )
+        )
+        schema = json.loads(schema_str)
+        return schema
 
     def run_parsers_and_save(self, introspection_result: dict):
         """Runs all the parsers and saves them to a YAML file

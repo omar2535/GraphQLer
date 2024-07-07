@@ -11,6 +11,18 @@ import json
 last_request_time = time.time()
 
 
+def get_headers() -> dict:
+    """Get the headers for the request
+
+    Returns:
+        dict: The headers for the request
+    """
+    headers = {"content-type": "application/json"}
+    if constants.AUTHORIZATION:
+        headers["Authorization"] = f"{constants.AUTHORIZATION}"
+    return headers
+
+
 def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> tuple[dict, requests.Response]:
     """Send GraphQL request to the specified endpoint
 
@@ -24,11 +36,6 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     """
     global last_request_time
 
-    # Make the headers first
-    headers = {"content-type": "application/json"}
-    if constants.AUTHORIZATION:
-        headers["Authorization"] = f"{constants.AUTHORIZATION}"
-
     # Make the body
     body = {"query": payload}
 
@@ -38,7 +45,7 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
         time.sleep(constants.TIME_BETWEEN_REQUESTS - time_since_last_request)
 
     # Make the request and set the last request time
-    response = requests.post(url=url, json=body, headers=headers, timeout=constants.REQUEST_TIMEOUT)
+    response = requests.post(url=url, json=body, headers=get_headers(), timeout=constants.REQUEST_TIMEOUT)
     last_request_time = time.time()
 
     if response.status_code != 200:
