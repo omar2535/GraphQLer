@@ -4,7 +4,8 @@
 </p>
 
 <p align="center">
-<a href="https://pypi.org/project/GraphQLer/"><img src="https://img.shields.io/pypi/v/GraphQLer?style=flat-square&logo=pypi"/></a>
+<a href="https://hub.docker.com/repository/docker/omar2535/graphqler"><img src="https://img.shields.io/docker/image-size/omar2535/graphqler/latest?style=flat&logo=docker"></a>
+<a href="https://pypi.org/project/GraphQLer/"><img src="https://img.shields.io/pypi/v/GraphQLer?style=flat&logo=pypi"/></a>
 <a href="https://www.python.org/downloads/" target="_blank"><img src="https://img.shields.io/badge/python-3.12-blue" alt="python3.12"/></a>
 <a href="https://codeclimate.com/github/omar2535/GraphQLer/maintainability" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability" alt="Maintainability" /></a>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg" alt="lint" /></a>
