@@ -102,11 +102,16 @@ class Compiler:
         Returns:
             dict: The introspection result using clairvoyance
         """
+        wordlist = []
+        if constants.WORDLIST_PATH != "":
+            with open(constants.WORDLIST_PATH, 'r') as file:
+                wordlist = file.read().splitlines()
+
         schema_str = asyncio.run(
             blind_introspection(
                 url=self.url,
                 logger=self.logger,
-                wordlist=[],
+                wordlist=wordlist,
                 headers=get_headers(),
                 input_document=None,
                 input_schema_path=None,
