@@ -18,7 +18,8 @@ from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import RegularPayloadMaterializer, DOSPayloadMaterializer, QueryMaterializer, MutationMaterializer
+from .materializers import Materializer
+from .materializers import RegularPayloadMaterializer, DOSPayloadMaterializer
 from .retrier import Retrier
 from .utils import check_is_data_empty
 from .types import Result
@@ -91,7 +92,7 @@ class FEngine(object):
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def __run_payload(self, name: str, objects_bucket: dict, materializer: QueryMaterializer | MutationMaterializer, graphql_type: str) -> tuple[dict, Response, Result]:
+    def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, Response, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -111,7 +112,7 @@ class FEngine(object):
             self.logger.warning(f"Unknown GraphQL type: {graphql_type} for {name}")
             return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def __run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Response, Result]:
+    def __run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -196,7 +197,7 @@ class FEngine(object):
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def __run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Response, Result]:
+    def __run_query(self, query_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:

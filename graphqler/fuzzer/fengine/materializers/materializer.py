@@ -1,4 +1,4 @@
-"""RegularMaterializer:
+"""Materializer:
 Base class for a regular materializer
 """
 
@@ -11,7 +11,7 @@ import logging
 from graphqler import constants
 
 
-class RegularMaterializer:
+class Materializer:
     def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = True):
         """Default constructor for a regular materializer
 
@@ -29,6 +29,19 @@ class RegularMaterializer:
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
+
+    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str = '') -> tuple[str, dict]:
+        """Materializes the payload with parameters filled in
+
+        Args:
+            query_name (str): name of the graphql query or mutation
+            objects_bucket (dict): objects bucket
+            graphql_type (str, optional): one of Query or Mutation. Defaults to ''.
+
+        Returns:
+            tuple[str, dict]: The string of the payload, and the used objects list
+        """
+        pass
 
     def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 2) -> str:
         """Materializes the output. If returns empty string,

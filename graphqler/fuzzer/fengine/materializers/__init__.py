@@ -1,7 +1,5 @@
 # Base materializers
-from .query_materializer import QueryMaterializer
-from .mutation_materializer import MutationMaterializer
-from .regular_materializer import RegularMaterializer
+from .materializer import Materializer
 
 # Regular materializers
 from .regular_payload_materializer import RegularPayloadMaterializer

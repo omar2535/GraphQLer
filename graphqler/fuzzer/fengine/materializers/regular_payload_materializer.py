@@ -2,14 +2,12 @@
 Materializes a mutation that is ready to be sent off
 """
 
-from .regular_materializer import RegularMaterializer
-from .mutation_materializer import MutationMaterializer
-from .query_materializer import QueryMaterializer
+from .materializer import Materializer
 from .utils import prettify_graphql_payload
 from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 
 
-class RegularPayloadMaterializer(QueryMaterializer, MutationMaterializer, RegularMaterializer):
+class RegularPayloadMaterializer(Materializer):
     def __init__(self,
                  objects: dict,
                  queries: dict,

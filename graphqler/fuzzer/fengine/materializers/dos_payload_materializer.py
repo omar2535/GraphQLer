@@ -2,13 +2,11 @@
 Materializes a mutation that is ready to be sent off
 """
 
-from .regular_materializer import RegularMaterializer
-from .query_materializer import QueryMaterializer
-from .mutation_materializer import MutationMaterializer
+from .materializer import Materializer
 from .utils import prettify_graphql_payload
 
 
-class DOSPayloadMaterializer(MutationMaterializer, QueryMaterializer, RegularMaterializer):
+class DOSPayloadMaterializer(Materializer):
     def __init__(self, objects: dict, queries: dict, mutations: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
         super().__init__(objects, mutations, input_objects, enums)
         self.objects = objects
