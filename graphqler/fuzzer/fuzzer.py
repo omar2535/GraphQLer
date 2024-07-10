@@ -153,10 +153,13 @@ class Fuzzer(object):
             self.stats.print_running_stats()
             new_objects_bucket = self.objects_bucket
             self.logger.info(f"Running node: {current_node}")
-            if current_node.graphql_type == "Mutation":
-                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_mutation(current_node.name, self.objects_bucket, False)
-            elif current_node.graphql_type == "Query":
-                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_query(current_node.name, self.objects_bucket, False)
+            if current_node.graphql_type == "Query" or current_node.graphql_type == "Mutation":
+                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_payload(
+                    current_node.name,
+                    self.objects_bucket,
+                    current_node.graphql_type,
+                    check_hard_depends_on=False
+                )
             elif current_node.graphql_type == "Object":
                 continue
             else:
@@ -236,12 +239,11 @@ class Fuzzer(object):
         """Evaluates the node, performing the following based on the type of node
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
-           Case 2: If it's an query node, run the query with the required objects, then store the results in the object bucket
-           Case 3: If it's a mutation node, run the mutation with the required objects
+           Case 2: If it's an query node or mutation node, run the payload with the required objects, then store the results in the object bucket
 
         Args:
             node (Node): Node to be evaluated
-            avoid_mutation_type (list[str]): Mutation types to avoid when looking for the next nodes to append
+            visit_path (list[Node]): The list of visited paths to arrive at the node
 
         Returns:
             tuple[list[list[Node]], Result]: A list of the next to_visit paths, and the result of the node evaluation
@@ -254,15 +256,13 @@ class Fuzzer(object):
                 return ([], Result.INTERNAL_FAILURE)
             else:
                 return (new_visit_paths, Result.GENERAL_SUCCESS)
-        elif node.graphql_type == "Mutation":
-            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_mutation(node.name, self.objects_bucket)
-            if res == Result.GENERAL_SUCCESS:
-                self.objects_bucket = new_objects_bucket
-                return (new_visit_paths, res)
-            else:
-                return ([], res)
-        elif node.graphql_type == "Query":
-            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_query(node.name, self.objects_bucket)
+        else:
+            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_payload(
+                node.name,
+                self.objects_bucket,
+                node.graphql_type,
+                check_hard_depends_on=True
+            )
             if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket
                 return (new_visit_paths, res)
@@ -280,13 +280,9 @@ class Fuzzer(object):
         # DOS Query / Mutation
         random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
         for depth in random_numbers:
-            if node.graphql_type == "Mutation":
-                self.logger.info(f"Fuzzing mutation: {node.name} with depth: {depth}")
-                res = self.fengine.run_dos_mutation(node.name, self.objects_bucket, depth)
-                self.stats.update_stats_from_result(node, res)
-            elif node.graphql_type == "Query":
-                self.logger.info(f"Fuzzing query: {node.name} with depth: {depth}")
-                res = self.fengine.run_dos_query(node.name, self.objects_bucket, depth)
+            if node.graphql_type in ["Query", "Mutation"]:
+                self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {depth}")
+                new_objects_bucket, _graphql_response, res = self.fengine.run_dos_payload(node.name, self.objects_bucket, node.graphql_type, depth)
                 self.stats.update_stats_from_result(node, res)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:

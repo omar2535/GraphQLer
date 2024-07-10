@@ -4,32 +4,66 @@ Materializes a mutation that is ready to be sent off
 
 from .regular_materializer import RegularMaterializer
 from .mutation_materializer import MutationMaterializer
+from .query_materializer import QueryMaterializer
 from .utils import prettify_graphql_payload
 from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 
 
-class RegularMutationMaterializer(MutationMaterializer, RegularMaterializer):
-    def __init__(self, objects: dict, mutations: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = True):
+class RegularPayloadMaterializer(QueryMaterializer, MutationMaterializer, RegularMaterializer):
+    def __init__(self,
+                 objects: dict,
+                 queries: dict,
+                 mutations: dict,
+                 input_objects: dict,
+                 enums: dict,
+                 fail_on_hard_dependency_not_met: bool = True):
         super().__init__(objects, mutations, input_objects, enums)
         self.objects = objects
+        self.queries = queries
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
-    def get_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
 
         Args:
-            mutation_name (str): The mutation name
+            name (str): The name of either the mutation or query
             objects_bucket (dict): The bucket of objects that have already been created
+            graphql_type (str): The type of the graphql operation (Query or Mutation)
 
         Returns:
-            tuple[str, dict]: The string of the mutation, and the used objects list
+            tuple[str, dict]: The string of the payload, and the used objects list
         """
         self.used_objects = {}  # Reset the used_objects list per run (from parent class)
+        if graphql_type == "Query":
+            return self._get_query_payload(name, objects_bucket)
+        elif graphql_type == "Mutation":
+            return self._get_mutation_payload(name, objects_bucket)
+        else:
+            raise ValueError("Invalid graphql_type provided")
+
+    def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
+        query_info = self.queries[query_name]
+        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
+        query_outputs = self.materialize_output(query_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+
+        if query_inputs != "":
+            query_inputs = f"({query_inputs})"
+
+        payload = f"""
+        query {{
+            {query_name} {query_inputs}
+            {query_outputs}
+        }}
+        """
+        pretty_payload = prettify_graphql_payload(payload)
+        return pretty_payload, self.used_objects
+
+    def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
         mutation_info = self.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
         mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)

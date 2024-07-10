@@ -18,7 +18,7 @@ from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import RegularMutationMaterializer, RegularQueryMaterializer, DOSQueryMaterializer, QueryMaterializer, MutationMaterializer, DOSMutationMaterializer
+from .materializers import RegularPayloadMaterializer, DOSPayloadMaterializer, QueryMaterializer, MutationMaterializer
 from .retrier import Retrier
 from .utils import check_is_data_empty
 from .types import Result
@@ -46,66 +46,72 @@ class FEngine(object):
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
-    def run_regular_mutation(self, mutation_name: str, objects_bucket: dict, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
-        """Runs the mutation, and returns a new objects bucket
+    def run_regular_payload(self, name: str, objects_bucket: dict, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Response, Result]:
+        """Runs the regular payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
-            mutation_name (str): Name of the mutation
-            objects_bucket (dict): The current objects bucket
-            check_hard_depends_on (bool): Whether to check the hard depends on of the mutation's input - if it's not met, we fail. Defaults to True
-
-        Returns:
-            tuple[dict, Result]: The new objects bucket, and the result of the mutation
-        """
-        materializer = RegularMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=check_hard_depends_on)
-        return self.run_mutation(mutation_name, objects_bucket, materializer)
-
-    def run_regular_query(self, query_name: str, objects_bucket: dict, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
-        """Runs the query, and returns a new objects bucket
-
-        Args:
-            query_name (str): The name of the query
+            name (str): The name of the query or mutation
             objects_bucket (dict): The objects bucket
+            graphql_type (str): The GraphQL type (either query or mutation)
             check_hard_depends_on (bool): Whether to check the hard depends on of the query's input - if it's not met, we fail. Defaults to True
 
         Returns:
-            tuple[dict, Result]: The new objects bucket, and the result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
         """
-        materializer = RegularQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=check_hard_depends_on)
-        return self.run_query(query_name, objects_bucket, materializer)
+        materializer = RegularPayloadMaterializer(
+            self.objects,
+            self.queries,
+            self.mutations,
+            self.input_objects,
+            self.enums,
+            fail_on_hard_dependency_not_met=check_hard_depends_on
+        )
+        return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def run_dos_query(self, query_name: str, objects_bucket: dict, max_depth: int = 20) -> Result:
-        """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
-           should fail!
+    def run_dos_payload(self, name: str, objects_bucket: dict, graphql_type: str, max_depth: int = 20) -> tuple[dict, Response, Result]:
+        """Runs the DOS payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
-            query_name (str): The name of the query
+            name (str): The name of the node
             objects_bucket (dict): The objects bucket
+            graphql_type (str): The GraphQL type (either query or mutation)
+            max_depth (int, optional): The maximum recursion depth. Defaults to 20.
 
         Returns:
-            Result: Result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
         """
-        materializer = DOSQueryMaterializer(self.objects, self.queries, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-        objects_bucket, graphql_response, res = self.run_query(query_name, objects_bucket, materializer)
-        return res
+        materializer = DOSPayloadMaterializer(
+            self.objects,
+            self.queries,
+            self.mutations,
+            self.input_objects,
+            self.enums,
+            fail_on_hard_dependency_not_met=False,
+            max_depth=max_depth
+        )
+        return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def run_dos_mutation(self, mutation_name: str, objects_bucket: dict, max_depth: int = 20) -> Result:
-        """Runs the query, returns the result of the query. Note that we don't care about the new objects bucket because the query
-           should fail!
+    def __run_payload(self, name: str, objects_bucket: dict, materializer: QueryMaterializer | MutationMaterializer, graphql_type: str) -> tuple[dict, Response, Result]:
+        """Runs the payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
-            query_name (str): The name of the query
+            name (str): The name of the query or mutation
             objects_bucket (dict): The objects bucket
-            max_depth (int): The maximum depth to go to when materializing the inputs
+            materializer (QueryMaterializer | MutationMaterializer): The materializer to use
+            graphql_type (str): The GraphQL type (either query or mutation)
 
         Returns:
-            Result: Result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
         """
-        materializer = DOSMutationMaterializer(self.objects, self.mutations, self.input_objects, self.enums, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-        objects_bucket, graphql_response, res = self.run_mutation(mutation_name, objects_bucket, materializer)
-        return res
+        if graphql_type == "Query":
+            return self.__run_query(name, objects_bucket, materializer)
+        elif graphql_type == "Mutation":
+            return self.__run_mutation(name, objects_bucket, materializer)
+        else:
+            self.logger.warning(f"Unknown GraphQL type: {graphql_type} for {name}")
+            return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Response, Result]:
+    def __run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: MutationMaterializer) -> tuple[dict, Response, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -126,7 +132,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
             self.logger.info(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket)
+            mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, 'Mutation')
 
             # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
@@ -190,7 +196,7 @@ class FEngine(object):
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Response, Result]:
+    def __run_query(self, query_name: str, objects_bucket: dict, materializer: QueryMaterializer) -> tuple[dict, Response, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
@@ -205,7 +211,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
-            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket)
+            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, 'Query')
 
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
