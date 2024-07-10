@@ -11,5 +11,5 @@ class MutationMaterializer:
         self.input_objects = input_objects
         self.enums = enums
 
-    def get_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def get_payload(self, mutation_name: str, objects_bucket: dict, graphql_type: str = 'Mutation') -> tuple[str, dict]:
         pass

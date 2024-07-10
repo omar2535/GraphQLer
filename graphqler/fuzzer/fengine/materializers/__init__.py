@@ -4,9 +4,7 @@ from .mutation_materializer import MutationMaterializer
 from .regular_materializer import RegularMaterializer
 
 # Regular materializers
-from .regular_mutation_materializer import RegularMutationMaterializer
-from .regular_query_materializer import RegularQueryMaterializer
+from .regular_payload_materializer import RegularPayloadMaterializer
 
 # Fuzzing materializers
-from .dos_query_materializer import DOSQueryMaterializer
-from .dos_mutation_materializer import DOSMutationMaterializer
+from .dos_payload_materializer import DOSPayloadMaterializer

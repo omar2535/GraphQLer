@@ -11,5 +11,5 @@ class QueryMaterializer:
         self.input_objects = input_objects
         self.enums = enums
 
-    def get_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def get_payload(self, query_name: str, objects_bucket: dict, graphql_type: str = 'Query') -> tuple[str, dict]:
         pass

@@ -49,13 +49,8 @@ class IDORFuzzer(Fuzzer):
         Returns:
             bool: True if has suspected IDOR vulenrablity, False otherwise
         """
-        if node.graphql_type == "Query":
-            _objects_bucket, graphql_response, result = self.fengine.run_regular_query(node.name, self.objects_bucket, check_hard_depends_on=False)
+        if node.graphql_type == "Query" or node.graphql_type == "Mutation":
+            _objects_bucket, graphql_response, result = self.fengine.run_regular_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
             if result == Result.HAS_DATA_SUCCESS:
                 return True
-        elif node.graphql_type == "Mutation":
-            _objects_bucket, graphql_response, result = self.fengine.run_regular_mutation(node.name, self.objects_bucket, check_hard_depends_on=False)
-            if result == Result.HAS_DATA_SUCCESS:
-                return True
-
         return False
