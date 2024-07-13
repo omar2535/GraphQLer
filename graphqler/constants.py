@@ -60,7 +60,7 @@ MAX_FUZZING_ITERATIONS = 5
 MAX_TIME = 3600  # in seconds
 
 """For each request"""
-REQUEST_TIMEOUT = 5 # in seconds
+REQUEST_TIMEOUT = 120 # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 
 """For custom headers"""
