@@ -48,7 +48,7 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run} [--auth AUTH] [--version]
+usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run} [--auth AUTH] [--proxy PROXY] [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -58,6 +58,7 @@ options:
   --mode {compile,fuzz,idor,run}
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
+  --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
   --version             display version
 ```
 
