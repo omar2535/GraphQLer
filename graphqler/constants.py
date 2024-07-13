@@ -1,5 +1,8 @@
 # Configuration
 
+"""For proxy"""
+PROXY = None  # Don't use this, this will be overriten by argparse
+
 """For any authentication tokens"""
 AUTHORIZATION = None  # Don't use this, this will be overriten by argparse
 
@@ -59,3 +62,6 @@ MAX_TIME = 3600  # in seconds
 """For each request"""
 REQUEST_TIMEOUT = 5 # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds
+
+"""For custom headers"""
+CUSTOM_HEADERS = {}

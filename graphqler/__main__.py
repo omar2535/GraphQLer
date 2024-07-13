@@ -106,10 +106,15 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=['compile', 'fuzz', 'idor', 'run'], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
+    parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--version", help="display version", action="store_true")
     args = parser.parse_args()
 
-    # Set auth token
+    # Set proxy if provided
+    if args.proxy:
+        constants.PROXY = args.proxy
+
+    # Set auth token if provided
     if args.auth:
         set_auth_token_constant(args.auth)
 

@@ -9,6 +9,7 @@ import json
 
 # The last time a request was made so that we can wait between requests
 last_request_time = time.time()
+session = None
 
 
 def get_headers() -> dict:
@@ -17,10 +18,28 @@ def get_headers() -> dict:
     Returns:
         dict: The headers for the request
     """
-    headers = {"content-type": "application/json"}
+    headers = {"Content-Type": "application/json"}
     if constants.AUTHORIZATION:
         headers["Authorization"] = f"{constants.AUTHORIZATION}"
+
+    if constants.CUSTOM_HEADERS:
+        headers.update(constants.CUSTOM_HEADERS)
     return headers
+
+
+def get_proxies() -> dict:
+    """Get the proxies for the request
+
+    Returns:
+        dict: The proxies for the request
+    """
+    if constants.PROXY:
+        return {
+            "http": constants.PROXY,
+            "https": constants.PROXY
+        }
+    else:
+        return {}
 
 
 def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> tuple[dict, requests.Response]:
@@ -45,7 +64,12 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
         time.sleep(constants.TIME_BETWEEN_REQUESTS - time_since_last_request)
 
     # Make the request and set the last request time
-    response = requests.post(url=url, json=body, headers=get_headers(), timeout=constants.REQUEST_TIMEOUT)
+    session = get_or_create_session()
+    response = session.post(
+        url=url,
+        json=body,
+        timeout=constants.REQUEST_TIMEOUT,
+    )
     last_request_time = time.time()
 
     if response.status_code != 200:
@@ -72,3 +96,35 @@ def parse_response(response_text: str) -> dict:
         return json_text
     except Exception:
         return {"errors": json_text}
+
+
+def get_or_create_session() -> requests.Session:
+    """Gets an existing session or creates a new one
+
+    Returns:
+        requests.Session: The session
+    """
+    global session
+
+    if session and type(session) is requests.Session:
+        return session
+    else:
+        session = create_new_session()
+        return session
+
+
+def create_new_session() -> requests.Session:
+    """Create a new session
+
+    Returns:
+        requests.Session: The session
+    """
+    session = requests.Session()
+    session.headers.update(get_headers())
+
+    # Set proxy if available
+    if constants.PROXY:
+        session.proxies.update(get_proxies())
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+        session.verify = False
+    return session
