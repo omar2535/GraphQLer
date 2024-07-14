@@ -3,7 +3,6 @@ Base class for a regular materializer
 """
 
 from .utils import get_random_scalar, get_random_enum_value
-from graphqler.utils.parser_utils import get_base_oftype
 from graphqler.utils.logging_utils import Logger
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 import random
@@ -43,7 +42,7 @@ class Materializer:
         """
         pass
 
-    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 2) -> str:
+    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 3) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
 
@@ -53,7 +52,7 @@ class Materializer:
             include_name (bool): The included name
             max_depth (int, optional): Maximum depth for recursive expansion of objects. Defaults to 2.
                                        If nothing is returned for this max depth, then we try to get at least something
-                                        by bypassing the max depth until the hard cutoff.
+                                       by bypassing the max depth until the hard cutoff.
 
         Returns:
             str: The otput selectors
@@ -97,12 +96,12 @@ class Materializer:
                 built_str += materialized_object_fields
                 built_str += "},"
         elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":
-            base_oftype = get_base_oftype(output["ofType"])
-            if base_oftype["kind"] == "SCALAR":
+            oftype = output["ofType"]
+            if oftype["kind"] == "SCALAR":
                 built_str += f"{output['name']}, "
             else:
                 # Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
-                materialized_output = self.materialize_output_recursive(base_oftype, used_objects, False, max_depth, current_depth)
+                materialized_output = self.materialize_output_recursive(oftype, used_objects, False, max_depth, current_depth)
                 if materialized_output != "":
                     if include_name:
                         built_str += f"{output['name']}" + materialized_output + ", "

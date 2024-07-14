@@ -17,6 +17,7 @@ from .fengine.fengine import FEngine
 from .fengine.types import Result
 
 import multiprocessing
+import threading
 from graphqler import constants
 import networkx
 import random
@@ -67,7 +68,10 @@ class Fuzzer(object):
         """
         # Create a separate process
         queue = multiprocessing.Queue()
-        p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
+        if constants.DEBUG:
+            p = threading.Thread(target=self.__run_steps, args=(queue,))
+        else:
+            p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
         p.join(constants.MAX_TIME)
 

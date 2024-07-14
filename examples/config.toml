@@ -1,5 +1,8 @@
 # Configuration
 
+# For debugging purposes
+DEBUG = false
+
 # For the compiler / parser
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
 

@@ -1,5 +1,8 @@
 # Configuration
 
+"""Debugging purposes"""
+DEBUG = False
+
 """For proxy"""
 PROXY = None  # Don't use this, this will be overriten by argparse
 
