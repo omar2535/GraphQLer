@@ -42,15 +42,26 @@ class Fuzzer(object):
         self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
         self.extracted_enums_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
         self.extracted_input_objects_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
+        self.extracted_unions_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
 
         self.queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.objects = read_yaml_to_dict(self.compiled_objects_save_path)
         self.mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
         self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path)
         self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
+        self.unions = read_yaml_to_dict(self.extracted_unions_save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
-        self.fengine = FEngine(self.queries, self.objects, self.mutations, self.input_objects, self.enums, self.url, self.save_path)
+        self.fengine = FEngine(
+            self.queries,
+            self.objects,
+            self.mutations,
+            self.input_objects,
+            self.enums,
+            self.unions,
+            self.url,
+            self.save_path
+        )
 
         self.objects_bucket = {}
 

@@ -116,3 +116,5 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | MAX_FUZZING_ITERATIONS | Maximum number of fuzzing payloads to run on a node | Integer | 5 |
 | MAX_TIME | The maximum time to run in seconds | Integer | 3600 |
 | TIME_BETWEEN_REQUESTS | Max time to wait between requests in seconds | Integer | 0.001 |
+| DEBUG | Debug mode | Boolean | False |
+| Custom Headers| Custom headers to be sent along with each request | Object | `Accept = "application/json"` |

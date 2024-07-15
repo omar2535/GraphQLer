@@ -17,7 +17,7 @@ exclude = '''
 
 [tool.poetry]
 name = "GraphQLer"
-version = "2.1.3"
+version = "2.1.5"
 description = "A dependency-aware GraphQL API fuzzing tool"
 authors = ["Omar2535 <omar2535@alumni.ubc.ca>"]
 license = "MIT"

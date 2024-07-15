@@ -27,7 +27,15 @@ from .types import Result
 
 @singleton
 class FEngine(object):
-    def __init__(self, queries: dict, objects: dict, mutations: dict, input_objects: dict, enums: dict, url: str, save_path: str):
+    def __init__(self,
+                 queries: dict,
+                 objects: dict,
+                 mutations: dict,
+                 input_objects: dict,
+                 enums: dict,
+                 unions: dict,
+                 url: str,
+                 save_path: str):
         """The intiialization of the FEnginer
 
         Args:
@@ -36,6 +44,7 @@ class FEngine(object):
             mutations (dict): The possible mutations
             input_objects (dict): The possible input_objects
             enums (dict): The possible enums
+            unions (dict): The possible union types
             url (str): The string of the URL
             save_path (str): The path the user is currently working with
         """
@@ -44,6 +53,7 @@ class FEngine(object):
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
+        self.unions = unions
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
@@ -65,6 +75,7 @@ class FEngine(object):
             self.mutations,
             self.input_objects,
             self.enums,
+            self.unions,
             fail_on_hard_dependency_not_met=check_hard_depends_on
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
@@ -87,6 +98,7 @@ class FEngine(object):
             self.mutations,
             self.input_objects,
             self.enums,
+            self.unions,
             fail_on_hard_dependency_not_met=False,
             max_depth=max_depth
         )

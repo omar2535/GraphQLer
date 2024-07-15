@@ -166,3 +166,26 @@ def prettify_graphql_payload(payload: str) -> str:
     parsed_query = parse(payload)
     formatted_query = print_ast(parsed_query).strip()
     return formatted_query
+
+
+def clean_output_selectors(output_selectors: str) -> str:
+    """Cleans the output selectors by doing the following:L
+       - Removing any extra commas
+       - Removing Removing keys that don't have an object (ie. {stuff {}, otherstuff} -> {otherstuff})
+
+    Args:
+        output_selectors (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    # Removing any extra commas
+    while ',,' in output_selectors:
+        output_selectors = output_selectors.replace(",,", ",")
+
+    # Removing keys that don't have an object
+    while "{}" in output_selectors:
+        output_selectors = output_selectors.replace("{},", "")
+        output_selectors = output_selectors.replace(",{}", "")
+
+    return output_selectors

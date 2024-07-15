@@ -27,11 +27,17 @@ class UnionListParser(Parser):
             union_valies (List[dict]): List of possible values of the UNION object
 
         Returns:
-            List[dict]: List of possible balues of the UNION object but filtered for only relavent fields
+            List[dict]: List of possible balues of the UNION object but filtered for only relavent fields.
+                        We also add the type field to the object if the kind if an object
         """
         list_of_union_values = []
         for union_value in union_values:
-            filtered_union_value = {"kind": union_value["kind"], "name": union_value["name"], "ofType": union_value["ofType"]}
+            filtered_union_value = {
+                "kind": union_value["kind"],
+                "name": union_value["name"],
+                "ofType": union_value["ofType"],
+                "type": union_value["name"] if union_value["kind"] == "OBJECT" else None,
+            }
             list_of_union_values.append(filtered_union_value)
         return list_of_union_values
 

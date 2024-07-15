@@ -7,14 +7,22 @@ from .utils import prettify_graphql_payload
 
 
 class DOSPayloadMaterializer(Materializer):
-    def __init__(self, objects: dict, queries: dict, mutations: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
-        super().__init__(objects, mutations, input_objects, enums)
+    def __init__(self,
+                 objects: dict,
+                 queries: dict,
+                 mutations: dict,
+                 input_objects: dict,
+                 enums: dict,
+                 unions: dict,
+                 fail_on_hard_dependency_not_met: bool = False,
+                 max_depth: int = 20):
+        super().__init__(objects, mutations, input_objects, enums, unions)
         self.objects = objects
         self.queries = queries
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
-
+        self.unions = unions
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.max_depth = max_depth
 

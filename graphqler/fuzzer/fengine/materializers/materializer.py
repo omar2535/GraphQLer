@@ -2,16 +2,23 @@
 Base class for a regular materializer
 """
 
-from .utils import get_random_scalar, get_random_enum_value
+from graphqler import constants
+from .utils import get_random_scalar, get_random_enum_value, clean_output_selectors
 from graphqler.utils.logging_utils import Logger
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
+
 import random
 import logging
-from graphqler import constants
 
 
 class Materializer:
-    def __init__(self, objects: dict, operator_info: dict, input_objects: dict, enums: dict, fail_on_hard_dependency_not_met: bool = True):
+    def __init__(self,
+                 objects: dict,
+                 operator_info: dict,
+                 input_objects: dict,
+                 enums: dict,
+                 unions: dict,
+                 fail_on_hard_dependency_not_met: bool = True):
         """Default constructor for a regular materializer
 
         Args:
@@ -19,6 +26,7 @@ class Materializer:
             operator_info (dict): All information about the operator (either all QUERYs or all MUTATIONs) that we want to materialize
             input_objects (dict): The input objects that exist in the Graphql schema
             enums (dict): The enums that exist in the Graphql schema
+            unions (dict): The unions that exist in the Graphql schema
             logger (logging.Logger): The logger
         """
         self.objects = objects
@@ -42,7 +50,7 @@ class Materializer:
         """
         pass
 
-    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 3) -> str:
+    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 5) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
 
@@ -64,7 +72,8 @@ class Materializer:
             if max_depth > constants.HARD_CUTOFF_DEPTH:
                 break
             max_depth += 1
-        return output_selectors
+        cleaned_output_selectors = clean_output_selectors(output_selectors)
+        return cleaned_output_selectors
 
     def materialize_output_recursive(self, output: dict, used_objects: list[str], include_name: bool, max_depth: int, current_depth: int = 0) -> str:
         """Materializes the output recursively. Some interesting cases:
@@ -82,34 +91,42 @@ class Materializer:
         Returns:
             str: The built output payload
         """
+        built_str = ""
         # Case: if we are already at max depth, just return none
         if current_depth >= max_depth:
-            return ""
+            return built_str
 
-        built_str = ""
+        # When we are including names (IE. fields of an object), we need to include the name
+        if include_name:
+            built_str += output["name"]
+
         if output["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects, max_depth, current_depth)
             if materialized_object_fields != "":
-                if include_name:
-                    built_str += output["name"]
                 built_str += " {"
                 built_str += materialized_object_fields
                 built_str += "},"
-        elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":
+        elif output["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
+            union_types = self.unions[output["type"]]["possibleTypes"]
+            built_str += " {"
+            for union_type in union_types:
+                materialized_fragment = self.materialize_output_recursive(union_type, used_objects, False, max_depth, current_depth)
+                if materialized_fragment != "":
+                    built_str += f"... on {union_type['name']} " + materialized_fragment
+            built_str += "},"
+        elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
             oftype = output["ofType"]
-            if oftype["kind"] == "SCALAR":
-                built_str += f"{output['name']}, "
-            else:
-                # Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
-                materialized_output = self.materialize_output_recursive(oftype, used_objects, False, max_depth, current_depth)
-                if materialized_output != "":
-                    if include_name:
-                        built_str += f"{output['name']}" + materialized_output + ", "
-                    else:
-                        built_str += materialized_output
+            materialized_output = self.materialize_output_recursive(oftype, used_objects, False, max_depth, current_depth)
+            if materialized_output != "":
+                built_str += materialized_output + ", "
         else:
-            if include_name:
-                built_str += f"{output['name']}, "
+            built_str += ","
+
+        # A bit of post processing on the built payload
+        if include_name and built_str[-1] != ",":
+            built_str += ","
+        elif not include_name and built_str.strip() == "{}":
+            built_str = ""
         return built_str
 
     def materialize_output_object_fields(self, object_name: str, used_objects: list[str], max_depth: int, current_depth: int) -> str:
