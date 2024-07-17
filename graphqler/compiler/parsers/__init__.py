@@ -8,4 +8,5 @@ from .mutation_list_parser import MutationListParser
 from .input_object_list_parser import InputObjectListParser
 from .enum_list_parser import EnumListParser
 from .union_list_parser import UnionListParser
+from .interface_list_parser import InterfaceListParser
 from .parser import Parser

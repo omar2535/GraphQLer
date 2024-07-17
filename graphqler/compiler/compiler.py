@@ -9,7 +9,7 @@ from graphqler.utils.request_utils import send_graphql_request, get_headers
 from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
-from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, Parser
+from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
 from graphqler import constants
 from clairvoyance.cli import blind_introspection
@@ -35,6 +35,7 @@ class Compiler:
         self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
         self.enum_list_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
         self.union_list_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
+        self.interface_list_save_path = Path(save_path) / constants.INTERFACE_LIST_FILE_NAME
 
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
@@ -48,6 +49,7 @@ class Compiler:
         self.input_object_list_parser = InputObjectListParser()
         self.enum_list_parser = EnumListParser()
         self.union_list_parser = UnionListParser()
+        self.interface_list_parser = InterfaceListParser()
 
         # Initialize the logger
         self.logger = Logger().get_compiler_logger()
@@ -61,6 +63,7 @@ class Compiler:
         initialize_file(self.query_parameter_save_path)
         initialize_file(self.enum_list_save_path)
         initialize_file(self.union_list_save_path)
+        initialize_file(self.interface_list_save_path)
         initialize_file(self.compiled_objects_save_path)
         initialize_file(self.compiled_mutations_save_path)
         initialize_file(self.compiled_queries_save_path)
@@ -139,6 +142,7 @@ class Compiler:
         self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.enum_list_parser, self.enum_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.union_list_parser, self.union_list_save_path, introspection_result)
+        self.run_parser_and_save_list(self.interface_list_parser, self.interface_list_save_path, introspection_result)
 
     def run_parser_and_save_list(self, parser_instance: Parser, save_path: str, introspection_result: dict):
         """Runs the given parser instance on the introspection result and saves to the save_path

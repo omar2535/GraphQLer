@@ -3,19 +3,6 @@
 # For debugging purposes
 DEBUG = false
 
-# For the compiler / parser
-INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
-
-QUERY_PARAMETER_FILE_NAME = "extracted/query_parameter_list.yml"
-MUTATION_PARAMETER_FILE_NAME = "extracted/mutation_parameter_list.yml"
-OBJECT_LIST_FILE_NAME = "extracted/object_list.yml"
-INPUT_OBJECT_LIST_FILE_NAME = "extracted/input_object_list.yml"
-ENUM_LIST_FILE_NAME = "extracted/enum_list.yml"
-
-COMPILED_OBJECTS_FILE_NAME = "compiled/compiled_objects.yml"
-COMPILED_MUTATIONS_FILE_NAME = "compiled/compiled_mutations.yml"
-COMPILED_QUERIES_FILE_NAME = "compiled/compiled_queries.yml"
-
 # For clairvoyance
 WORDLIST_PATH = "static/wordlist.txt"
 
@@ -34,14 +21,6 @@ MAX_OBJECT_CYCLES = 3
 MAX_OUTPUT_SELECTOR_DEPTH = 3
 HARD_CUTOFF_DEPTH = 20
 MAX_INPUT_DEPTH = 20
-
-# For loggers
-FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
-COMPILER_LOG_FILE_PATH = "logs/compiler.log"
-IDOR_LOG_FILE_PATH = "logs/idor.log"
-
-# For stats
-STATS_FILE_PATH = "stats.txt"
 
 # For using GraphQLer in different modes
 USE_OBJECTS_BUCKET = true  # This mode is for when we want to use the objects bucket
