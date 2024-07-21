@@ -14,9 +14,10 @@ class DOSPayloadMaterializer(Materializer):
                  input_objects: dict,
                  enums: dict,
                  unions: dict,
+                 interfaces: dict,
                  fail_on_hard_dependency_not_met: bool = False,
                  max_depth: int = 20):
-        super().__init__(objects, mutations, input_objects, enums, unions)
+        super().__init__(objects, mutations, input_objects, enums, unions, interfaces)
         self.objects = objects
         self.queries = queries
         self.mutations = mutations

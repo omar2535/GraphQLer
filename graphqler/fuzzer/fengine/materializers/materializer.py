@@ -18,6 +18,7 @@ class Materializer:
                  input_objects: dict,
                  enums: dict,
                  unions: dict,
+                 interfaces: dict,
                  fail_on_hard_dependency_not_met: bool = True):
         """Default constructor for a regular materializer
 
@@ -27,12 +28,15 @@ class Materializer:
             input_objects (dict): The input objects that exist in the Graphql schema
             enums (dict): The enums that exist in the Graphql schema
             unions (dict): The unions that exist in the Graphql schema
+            interfaces (dict): The interfaces that exist in the Graphql schema
             logger (logging.Logger): The logger
         """
         self.objects = objects
         self.operator_info = operator_info
         self.input_objects = input_objects
         self.enums = enums
+        self.unions = unions
+        self.interfaces = interfaces
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
@@ -75,7 +79,12 @@ class Materializer:
         cleaned_output_selectors = clean_output_selectors(output_selectors)
         return cleaned_output_selectors
 
-    def materialize_output_recursive(self, output: dict, used_objects: list[str], include_name: bool, max_depth: int, current_depth: int = 0) -> str:
+    def materialize_output_recursive(self,
+                                     output: dict,
+                                     used_objects: list[str],
+                                     include_name: bool,
+                                     max_depth: int,
+                                     current_depth: int = 0) -> str:
         """Materializes the output recursively. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
@@ -93,13 +102,18 @@ class Materializer:
         """
         built_str = ""
         # Case: if we are already at max depth, just return none
+        # TODO: Once max depth is reached, only materialize scalars and NON-NULL constraints
+        #       - This can be achieved by not selecting for NON-NULL and LIST types
+        #       - This will prevent the infinite recursion problem
+        #       - This will also prevent the problem of having too many objects in the payload
         if current_depth >= max_depth:
             return built_str
 
-        # When we are including names (IE. fields of an object), we need to include the name
+        # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
             built_str += output["name"]
 
+        # Main materialiation logic
         if output["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects, max_depth, current_depth)
             if materialized_object_fields != "":
@@ -113,6 +127,14 @@ class Materializer:
                 materialized_fragment = self.materialize_output_recursive(union_type, used_objects, False, max_depth, current_depth)
                 if materialized_fragment != "":
                     built_str += f"... on {union_type['name']} " + materialized_fragment
+            built_str += "},"
+        elif output["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
+            interface_types = self.interfaces[output["type"]]["possibleTypes"]
+            built_str += " {"
+            for interface_type in interface_types:
+                materialized_fragment = self.materialize_output_recursive(interface_type, used_objects, False, max_depth, current_depth)
+                if materialized_fragment != "":
+                    built_str += f"... on {interface_type['name']} " + materialized_fragment
             built_str += "},"
         elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
             oftype = output["ofType"]

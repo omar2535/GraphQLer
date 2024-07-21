@@ -43,6 +43,7 @@ class Fuzzer(object):
         self.extracted_enums_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
         self.extracted_input_objects_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
         self.extracted_unions_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
+        self.extracted_interfaces_save_path = Path(save_path) / constants.INTERFACE_LIST_FILE_NAME
 
         self.queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.objects = read_yaml_to_dict(self.compiled_objects_save_path)
@@ -50,6 +51,7 @@ class Fuzzer(object):
         self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path)
         self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
         self.unions = read_yaml_to_dict(self.extracted_unions_save_path)
+        self.interfaces = read_yaml_to_dict(self.extracted_interfaces_save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
         self.fengine = FEngine(
@@ -59,6 +61,7 @@ class Fuzzer(object):
             self.input_objects,
             self.enums,
             self.unions,
+            self.interfaces,
             self.url,
             self.save_path
         )

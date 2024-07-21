@@ -34,6 +34,7 @@ class FEngine(object):
                  input_objects: dict,
                  enums: dict,
                  unions: dict,
+                 interfaces: dict,
                  url: str,
                  save_path: str):
         """The intiialization of the FEnginer
@@ -44,7 +45,8 @@ class FEngine(object):
             mutations (dict): The possible mutations
             input_objects (dict): The possible input_objects
             enums (dict): The possible enums
-            unions (dict): The possible union types
+            unions (dict): The possible unions
+            interfaces (dict): The possible interfaces
             url (str): The string of the URL
             save_path (str): The path the user is currently working with
         """
@@ -54,6 +56,7 @@ class FEngine(object):
         self.input_objects = input_objects
         self.enums = enums
         self.unions = unions
+        self.interfaces = interfaces
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
@@ -76,6 +79,7 @@ class FEngine(object):
             self.input_objects,
             self.enums,
             self.unions,
+            self.interfaces,
             fail_on_hard_dependency_not_met=check_hard_depends_on
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
@@ -99,6 +103,7 @@ class FEngine(object):
             self.input_objects,
             self.enums,
             self.unions,
+            self.interfaces,
             fail_on_hard_dependency_not_met=False,
             max_depth=max_depth
         )

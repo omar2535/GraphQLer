@@ -15,14 +15,16 @@ class RegularPayloadMaterializer(Materializer):
                  input_objects: dict,
                  enums: dict,
                  unions: dict,
+                 interfaces: dict,
                  fail_on_hard_dependency_not_met: bool = True):
-        super().__init__(objects, mutations, input_objects, enums, unions)
+        super().__init__(objects, mutations, input_objects, enums, unions, interfaces)
         self.objects = objects
         self.queries = queries
         self.mutations = mutations
         self.input_objects = input_objects
         self.enums = enums
         self.unions = unions
+        self.interfaces = interfaces
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
