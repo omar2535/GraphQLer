@@ -30,25 +30,16 @@ class Retrier:
             tuple[dict, bool]: The response, and whether the retry succeeded or not
         """
         error = gql_response["errors"][0]
-        if "Cannot return null for non-nullable field" in error["message"]:
+        if ("Cannot return null for non-nullable field" in error["message"]
+                or "Field must have selections" in error["message"]):
+            if "locations" not in error:
+                return (gql_response, False)
             locations = error["locations"]
             for location in locations:
                 payload = self.get_new_payload_for_retry_non_null(payload, location)
             self.logger.info(f"Retrying with new payload:\n {payload}")
             gql_response, request_response = send_graphql_request(url, payload)
-            if "errors" in gql_response:
-                if retry_count < self.max_retries:
-                    return self.retry(url, payload, gql_response, retry_count + 1)
-                else:
-                    return (gql_response, False)
-            else:
-                return (gql_response, True)
-        elif "Field must have selections" in error["message"]:
-            locations = error["locations"]
-            for location in locations:
-                payload = self.get_new_payload_for_retry_non_null(payload, location)
-            self.logger.info(f"Retrying with new payload:\n {payload}")
-            gql_response, request_response = send_graphql_request(url, payload)
+            self.logger.info(f"Response: {gql_response}")
             if "errors" in gql_response:
                 if retry_count < self.max_retries:
                     return self.retry(url, payload, gql_response, retry_count + 1)

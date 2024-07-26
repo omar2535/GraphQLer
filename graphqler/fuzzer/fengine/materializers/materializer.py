@@ -106,6 +106,12 @@ class Materializer:
         if include_name:
             built_str += output["name"]
 
+        # If there are arguments for this, materialize the arguments
+        if 'args' in output and len(output["args"]) != 0:
+            args = self.materialize_input_fields(self.operator_info, output["args"], used_objects, max_depth, current_depth)
+            if args != "":
+                built_str += f"({args})"
+
         # Main materialiation logic
         if output["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects, max_depth, current_depth)

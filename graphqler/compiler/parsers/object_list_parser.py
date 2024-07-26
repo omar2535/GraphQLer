@@ -21,6 +21,7 @@ class ObjectListParser(Parser):
             "name": field["name"],
             "kind": field["type"]["kind"],
             "type": field["type"]["name"] if "name" in field["type"] else None,
+            "args": [self.extract_args(arg) for arg in field['args']],
             "ofType": self.extract_oftype(field["type"]),
         }
         return field_info
