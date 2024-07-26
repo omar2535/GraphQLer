@@ -213,7 +213,7 @@ class Materializer:
         built_str = ""
 
         # Return early if there are no inputs
-        if inputs is None or len(inputs) == 0:
+        if inputs is None or len(inputs) == 0 or type(inputs) is not dict:
             return built_str
 
         # Go through each input field and materialize it
