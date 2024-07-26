@@ -101,13 +101,6 @@ class Materializer:
             str: The built output payload
         """
         built_str = ""
-        # Case: if we are already at max depth, just return none
-        # TODO: Once max depth is reached, only materialize scalars and NON-NULL constraints
-        #       - This can be achieved by not selecting for NON-NULL and LIST types
-        #       - This will prevent the infinite recursion problem
-        #       - This will also prevent the problem of having too many objects in the payload
-        if current_depth >= max_depth:
-            return built_str
 
         # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
@@ -164,16 +157,23 @@ class Materializer:
             str: The built output string
         """
         built_str = ""
+        object_info = self.objects[object_name]
+        fields_to_materialize = object_info["fields"]
+
+        # If we've reached the max depth, don't go any further
+        if current_depth >= max_depth:
+            return built_str
+
         # If we've seen this object more than the max object cycles, don't use it again
+        # But only do this check while we aren't only materializing non-null fields
         if used_objects.count(object_name) >= constants.MAX_OBJECT_CYCLES:
             return built_str
 
         # Mark that we've used this object
         used_objects.append(object_name)
 
-        # Go through each of the object's fields, materialize
-        object_info = self.objects[object_name]
-        for field in object_info["fields"]:
+        # Loop through the fields to materialize each field
+        for field in fields_to_materialize:
             field_output = self.materialize_output_recursive(field, used_objects, True, max_depth, current_depth + 1)
             if field_output != "" and field_output != "{}":
                 built_str += field_output

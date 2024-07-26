@@ -166,7 +166,7 @@ class FEngine(object):
                 return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "errors" in graphql_response:
                 self.logger.info(f"[{mutation_name}] Mutation failed: {graphql_response['errors'][0]}")
-                self.logger.info("[{mutation_name}] Retrying ---")
+                self.logger.info(f"[{mutation_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.url, mutation_payload_string, graphql_response, 0)
                 if not retry_success:
                     return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
@@ -245,7 +245,7 @@ class FEngine(object):
                 return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
             if "errors" in graphql_response:
                 self.logger.info(f"[{query_name}] Query failed: {graphql_response['errors'][0]}")
-                self.logger.info("[{query_name}] Retrying ---")
+                self.logger.info(f"[{query_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.url, query_payload_string, graphql_response, 0)
                 if not retry_success:
                     return (objects_bucket, graphql_response, Result.EXTERNAL_FAILURE)
