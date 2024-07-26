@@ -211,6 +211,12 @@ class Materializer:
             str: The input parameters as a string
         """
         built_str = ""
+
+        # Return early if there are no inputs
+        if inputs is None or len(inputs) == 0:
+            return built_str
+
+        # Go through each input field and materialize it
         for input_name, input_field in inputs.items():
             built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
         return built_str

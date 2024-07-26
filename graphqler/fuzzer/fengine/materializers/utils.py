@@ -47,6 +47,30 @@ def get_random_long(input_name: str) -> str:
     return str(random.randint(0, 1000000))
 
 
+def get_random_datetime(input_name: str) -> str:
+    # Current datetime
+    now = datetime.utcnow()
+
+    # Range: 3 days before to 3 days after the current datetime
+    start_date = now - timedelta(days=3)
+    end_date = now + timedelta(days=3)
+
+    # Calculate the total number of seconds in the range
+    time_delta = end_date - start_date
+    total_seconds = int(time_delta.total_seconds())
+
+    # Generate a random number of seconds within the range
+    random_seconds = random.randint(0, total_seconds)
+
+    # Add the random seconds to the start date to get a random datetime
+    random_date = start_date + timedelta(seconds=random_seconds)
+
+    # Format the datetime in ISO 8601 format with a 'Z' suffix for UTC
+    graphql_datetime = random_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return f"\"{graphql_datetime}\""
+
+
 # Gets a random scalar for the scalar type given
 def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -> str:
     """Gets a random scalar based on the scalar type, the return value will
@@ -92,8 +116,10 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
             return get_random_time(input_name)
         elif scalar_type.lower() == "long":
             return get_random_long(input_name)
+        elif scalar_type.lower() == "datetime":
+            return get_random_datetime(input_name)
         else:
-            raise Exception(f"Custom scalars are not supported at this time: {input_name}:{scalar_type}")
+            raise Exception(f"This custom scalar is supported at this time: {input_name}:{scalar_type}")
 
 
 def get_random_enum_value(enum_values: list[dict]) -> str:
