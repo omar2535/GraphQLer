@@ -102,6 +102,10 @@ class Materializer:
         """
         built_str = ""
 
+        # If we reached max_depth, don't materialize anything except for NON_NULL / scalars
+        if current_depth >= max_depth:
+            return ""
+
         # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
             built_str += output["name"]
@@ -143,11 +147,17 @@ class Materializer:
         else:
             built_str += ","
 
+        # If it's a non-scalar but we didn't materialize any fields, then we should return an empty string
+        # Very important for NON_NULL / LIST / OBJECT types
+        if include_name and built_str == output["name"] and output["kind"] != "SCALAR":
+            return ""
+
         # A bit of post processing on the built payload
         if include_name and built_str[-1] != ",":
             built_str += ","
         elif not include_name and built_str.strip() == "{}":
             built_str = ""
+
         return built_str
 
     def materialize_output_object_fields(self, object_name: str, used_objects: list[str], max_depth: int, current_depth: int) -> str:
@@ -166,9 +176,9 @@ class Materializer:
         object_info = self.objects[object_name]
         fields_to_materialize = object_info["fields"]
 
-        # If we've reached the max depth, don't go any further
-        if current_depth >= max_depth:
-            return built_str
+        # # If we've reached the max depth, don't go any further
+        # if current_depth >= max_depth:
+        #     return built_str
 
         # If we've seen this object more than the max object cycles, don't use it again
         # But only do this check while we aren't only materializing non-null fields
