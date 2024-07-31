@@ -54,13 +54,19 @@ class Materializer:
         """
         pass
 
-    def materialize_output(self, output_info: dict, used_objects: list[str], include_name: bool, max_depth: int = 5) -> str:
+    def materialize_output(self,
+                           output_info: dict,
+                           used_objects: list[str],
+                           objects_bucket: dict,
+                           include_name: bool,
+                           max_depth: int = 5) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
 
         Args:
             output_info (dict): The output information
             used_objects (list[str]): The used objects
+            objects_bucket (dict): List of objects that have been created or found
             include_name (bool): The included name
             max_depth (int, optional): Maximum depth for recursive expansion of objects. Defaults to 2.
                                        If nothing is returned for this max depth, then we try to get at least something
@@ -72,7 +78,14 @@ class Materializer:
         output_selectors = ""
         max_depth = max_depth
         while output_selectors == "":
-            output_selectors = self.materialize_output_recursive(output_info, used_objects, include_name, max_depth, 0)
+            output_selectors = self.materialize_output_recursive(
+                field=output_info,
+                used_objects=used_objects,
+                objects_bucket=objects_bucket,
+                include_name=include_name,
+                max_depth=max_depth,
+                current_depth=0
+            )
             if max_depth > constants.HARD_CUTOFF_DEPTH:
                 break
             max_depth += 1
@@ -80,8 +93,9 @@ class Materializer:
         return cleaned_output_selectors
 
     def materialize_output_recursive(self,
-                                     output: dict,
+                                     field: dict,
                                      used_objects: list[str],
+                                     objects_bucket: dict,
                                      include_name: bool,
                                      max_depth: int,
                                      current_depth: int = 0) -> str:
@@ -91,8 +105,9 @@ class Materializer:
            Note: This function should be called on a base output type
 
         Args:
-            output (dict): The output
+            field (dict): The field to be output
             used_objects (list[str]): A list of used objects
+            objects_bucket (dict): List of objects that have been created or found
             include_name (bool): Whether to include the name of the field or not
             max_depth (int): The maximum depth to expand outputs for nested objects
             current_depth (int): The current depth of the output
@@ -108,40 +123,40 @@ class Materializer:
 
         # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
-            built_str += output["name"]
+            built_str += field["name"]
 
         # If there are arguments for this, materialize the arguments
-        if 'args' in output and len(output["args"]) != 0:
-            args = self.materialize_input_fields(self.operator_info, output["args"], used_objects, max_depth, current_depth)
-            if args != "":
-                built_str += f"({args})"
+        if 'inputs' in field and len(field["inputs"]) != 0:
+            inputs = self.materialize_input_fields(self.operator_info, field["inputs"], {}, max_depth, current_depth)
+            if inputs != "":
+                built_str += f"({inputs})"
 
         # Main materialiation logic
-        if output["kind"] == "OBJECT":
-            materialized_object_fields = self.materialize_output_object_fields(output["type"], used_objects, max_depth, current_depth)
+        if field["kind"] == "OBJECT":
+            materialized_object_fields = self.materialize_output_object_fields(field["type"], used_objects, objects_bucket, max_depth, current_depth)
             if materialized_object_fields != "":
                 built_str += " {"
                 built_str += materialized_object_fields
                 built_str += "},"
-        elif output["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
-            union_types = self.unions[output["type"]]["possibleTypes"]
+        elif field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
+            union_types = self.unions[field["type"]]["possibleTypes"]
             built_str += " {"
             for union_type in union_types:
-                materialized_fragment = self.materialize_output_recursive(union_type, used_objects, False, max_depth, current_depth)
+                materialized_fragment = self.materialize_output_recursive(union_type, used_objects, objects_bucket, False, max_depth, current_depth)
                 if materialized_fragment != "":
                     built_str += f"... on {union_type['name']} " + materialized_fragment
             built_str += "},"
-        elif output["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
-            interface_types = self.interfaces[output["type"]]["possibleTypes"]
+        elif field["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
+            interface_types = self.interfaces[field["type"]]["possibleTypes"]
             built_str += " {"
             for interface_type in interface_types:
-                materialized_fragment = self.materialize_output_recursive(interface_type, used_objects, False, max_depth, current_depth)
+                materialized_fragment = self.materialize_output_recursive(interface_type, used_objects, objects_bucket, False, max_depth, current_depth)
                 if materialized_fragment != "":
                     built_str += f"... on {interface_type['name']} " + materialized_fragment
             built_str += "},"
-        elif output["kind"] == "NON_NULL" or output["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
-            oftype = output["ofType"]
-            materialized_output = self.materialize_output_recursive(oftype, used_objects, False, max_depth, current_depth)
+        elif field["kind"] == "NON_NULL" or field["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
+            oftype = field["ofType"]
+            materialized_output = self.materialize_output_recursive(oftype, used_objects, objects_bucket, False, max_depth, current_depth)
             if materialized_output != "":
                 built_str += materialized_output + ", "
         else:
@@ -149,7 +164,7 @@ class Materializer:
 
         # If it's a non-scalar but we didn't materialize any fields, then we should return an empty string
         # Very important for NON_NULL / LIST / OBJECT types
-        if include_name and built_str == output["name"] and output["kind"] != "SCALAR":
+        if include_name and built_str == field["name"] and field["kind"] != "SCALAR":
             return ""
 
         # A bit of post processing on the built payload
@@ -160,12 +175,18 @@ class Materializer:
 
         return built_str
 
-    def materialize_output_object_fields(self, object_name: str, used_objects: list[str], max_depth: int, current_depth: int) -> str:
+    def materialize_output_object_fields(self,
+                                         object_name: str,
+                                         used_objects: list[str],
+                                         objects_bucket: dict,
+                                         max_depth: int,
+                                         current_depth: int) -> str:
         """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
             object_information (dict): The object's information
             used_objects (list[str]): A list of used objects
+            objects_bucket (dict): List of objects that have been created or found
             max_depth (int): The maximum depth to expand outputs for nested objects
             current_depth (int): The current depth of the output
 
@@ -175,10 +196,6 @@ class Materializer:
         built_str = ""
         object_info = self.objects[object_name]
         fields_to_materialize = object_info["fields"]
-
-        # # If we've reached the max depth, don't go any further
-        # if current_depth >= max_depth:
-        #     return built_str
 
         # If we've seen this object more than the max object cycles, don't use it again
         # But only do this check while we aren't only materializing non-null fields
@@ -190,7 +207,7 @@ class Materializer:
 
         # Loop through the fields to materialize each field
         for field in fields_to_materialize:
-            field_output = self.materialize_output_recursive(field, used_objects, True, max_depth, current_depth + 1)
+            field_output = self.materialize_output_recursive(field, used_objects, objects_bucket, True, max_depth, current_depth + 1)
             if field_output != "" and field_output != "{}":
                 built_str += field_output
         return built_str
@@ -252,8 +269,8 @@ class Materializer:
             return ""
 
         built_str = ""
-        hard_dependencies: dict = operator_info["hardDependsOn"]
-        soft_dependencies: dict = operator_info["softDependsOn"]
+        hard_dependencies: dict = operator_info.get("hardDependsOn", {})
+        soft_dependencies: dict = operator_info.get("softDependsOn", {})
 
         # Must first resolve any dependencies we have access to(since if we go down and resolve ofTypes we lose its name)
         if check_deps and input_field["name"] in hard_dependencies:

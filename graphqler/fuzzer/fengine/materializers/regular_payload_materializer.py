@@ -51,7 +51,7 @@ class RegularPayloadMaterializer(Materializer):
     def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
         query_info = self.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        query_outputs = self.materialize_output(query_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        query_outputs = self.materialize_output(query_info["output"], [], objects_bucket, False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
 
         if query_inputs != "":
             query_inputs = f"({query_inputs})"
@@ -68,7 +68,7 @@ class RegularPayloadMaterializer(Materializer):
     def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
         mutation_info = self.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        mutation_output = self.materialize_output(mutation_info["output"], [], False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        mutation_output = self.materialize_output(mutation_info["output"], [], objects_bucket, False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
 
         if mutation_inputs.strip() == "":
             mutation_payload = f"""

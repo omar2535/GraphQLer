@@ -7,19 +7,6 @@ class MutationListParser(Parser):
     def __init__(self):
         pass
 
-    def __extract_arg_info(self, field):
-        input_args = {}
-        for arg in field:
-            arg_info = {
-                "name": arg["name"],
-                "type": arg["type"]["name"] if "name" in arg["type"] else None,
-                "kind": arg["type"]["kind"] if "kind" in arg["type"] else None,
-                "ofType": self.extract_oftype(arg["type"]),
-                "defaultValue": arg["defaultValue"],
-            }
-            input_args[arg["name"]] = arg_info
-        return input_args
-
     def parse(self, introspection_data: dict) -> dict:
         """Parses the introspection data for only objects
 
@@ -42,7 +29,7 @@ class MutationListParser(Parser):
         mutation_info_dict = {}
         for mutation in mutations:
             mutation_name = mutation["name"]
-            mutation_args = self.__extract_arg_info(mutation["args"])
+            mutation_args = self.extract_arg_info(mutation["args"])
             is_deprecated = mutation["isDeprecated"]
 
             return_type = {"kind": mutation["type"]["kind"], "name": mutation["type"]["name"], "ofType": self.extract_oftype(mutation["type"]), "type": mutation["type"]["name"]}

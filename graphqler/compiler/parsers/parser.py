@@ -33,19 +33,23 @@ class Parser:
             nested_ofType = self.extract_oftype(field["ofType"])
             return {"kind": ofType["kind"], "name": ofType["name"], "ofType": nested_ofType, "type": ofType["name"]}
 
-    def extract_args(self, arg: dict) -> dict:
-        """Extract the arguments from the field
+    def extract_arg_info(self, args: list[dict]) -> dict:
+        """Extracts the arg information from a field
 
         Args:
-            field (dict): Field to extract arguments from
+            field (dict): An array of arguments
 
         Returns:
-            dict: Arguments dictionary
+            dict: A dictionary of the arguments
         """
-        arg_info = {
-            "name": arg["name"],
-            "kind": arg["type"]["kind"],
-            "type": arg["type"]["name"] if "name" in arg["type"] else None,
-            "ofType": self.extract_oftype(arg["type"]),
-        }
-        return arg_info
+        input_args = {}
+        for arg in args:
+            arg_info = {
+                "name": arg["name"],
+                "type": arg["type"]["name"] if "name" in arg["type"] else None,
+                "kind": arg["type"]["kind"] if "kind" in arg["type"] else None,
+                "ofType": self.extract_oftype(arg["type"]),
+                "defaultValue": arg["defaultValue"],
+            }
+            input_args[arg["name"]] = arg_info
+        return input_args
