@@ -50,17 +50,18 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run} [--auth AUTH] [--proxy PROXY] [--version]
+usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--version]
 
 options:
   -h, --help            show this help message and exit
   --url URL             remote host URL
   --path PATH           directory location for files to be saved-to/used-from
   --config CONFIG       configuration file for the program
-  --mode {compile,fuzz,idor,run}
+  --mode {compile,fuzz,idor,run,single}
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
+  --node NODE           node to run
   --version             display version
 ```
 
@@ -101,6 +102,14 @@ Runs both the Compile mode and Fuzz mode
 
 ```sh
 python -m graphqler --mode run --url <URL> --path <SAVE_PATH>
+```
+
+### Single mode
+
+Runs a single node (make sure it exists in the list of queries or mutations)
+
+```sh
+python -m graphqler --url <URL> --path <SAVE_PATH> --config <CUSTOM_CONFIG>> --proxy <CUSTOM_PROXY> --mode single --node <NODE_NAME>
 ```
 
 ## Advanced features
