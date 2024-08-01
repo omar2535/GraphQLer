@@ -19,13 +19,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.11
+    
+    - name: Set up poetry
+      run: |
+        pip install poetry
+        poetry install
 
     - name: Install Python dependencies
       run: |
         sudo apt install -y $(grep -o ^[^#][[:alnum:]-]* "packages.list")
         python3 -m pip install --upgrade pip
-        pip3 install -r requirements.txt
 
     - name: Test with pytest
       run: |
-        pytest --exitfirst --verbose --failed-first --cov=. --cov-report html
+        poetry run pytest --exitfirst --verbose --failed-first --cov=. --cov-report html
