@@ -101,6 +101,26 @@ class Fuzzer(object):
 
         return self.objects_bucket
 
+    def run_single(self, node_name: str) -> dict:
+        """Runs a single node
+
+        Args:
+            node_name (str): The name of the node
+
+        Returns:
+            dict: The objects bucket
+        """
+        node = [n for n in self.dependency_graph.nodes if n.name == node_name]
+        if len(node) == 0:
+            self.logger.error(f"Node {node_name} not found")
+            return self.objects_bucket
+
+        self.__run_nodes(node)
+        self.logger.info("Completed fuzzing")
+        self.stats.print_results()
+        self.stats.save()
+        return self.objects_bucket
+
     def run_no_dfs(self) -> dict:
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
 
