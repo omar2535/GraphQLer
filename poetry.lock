@@ -699,7 +699,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.26.0rc1,<2.0", markers = "python_version >= \"3.12\""}
+numpy = [
+    {version = ">=1.16,<2.0", markers = "python_version <= \"3.11\""},
+    {version = ">=1.26.0rc1,<2.0", markers = "python_version >= \"3.12\""},
+]
 
 [package.extras]
 bokeh = ["bokeh", "selenium"]
@@ -2991,5 +2994,5 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.12,<3.13"
-content-hash = "e1982a65a01bcb16b31ff1b821018d795c321b08d6c6f5a2ca9b85880440bc66"
+python-versions = ">=3.11,<3.13"
+content-hash = "75eff2d10652272c36147d4ef0fa463bc4002d0a6abb679da6d8b9dd42ae528f"
