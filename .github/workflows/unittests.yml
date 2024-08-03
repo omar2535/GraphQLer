@@ -1,9 +1,9 @@
-name: Tests
+name: UnitTests
 on: [push, pull_request]
 
 jobs:
   build:
-    name: Run Python Tests
+    name: Run GraphQLer Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -15,10 +15,10 @@ jobs:
       with:
         timezone: UTC
 
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v2
       with:
-        python-version: 3.11
+        python-version: 3.12
     
     - name: Set up poetry
       run: |
@@ -31,4 +31,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        poetry run pytest --exitfirst --verbose --failed-first --cov=. --cov-report html
+        poetry run pytest tests/unit/ --exitfirst --verbose --failed-first --cov=. --cov-report html
