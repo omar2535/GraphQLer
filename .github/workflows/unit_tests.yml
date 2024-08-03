@@ -1,4 +1,4 @@
-name: UnitTests
+name: Unit Tests
 on: [push, pull_request]
 
 jobs:
@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
     - uses: actions/checkout@v2
 
     - name: Setup timezone
