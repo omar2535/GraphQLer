@@ -5,6 +5,7 @@ Base class for a regular materializer
 from graphqler import constants
 from .utils import get_random_scalar, get_random_enum_value, clean_output_selectors
 from graphqler.utils.logging_utils import Logger
+from graphqler.utils.parser_utils import get_base_oftype
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 
 import random
@@ -164,8 +165,13 @@ class Materializer:
 
         # If it's a non-scalar but we didn't materialize any fields, then we should return an empty string
         # Very important for NON_NULL / LIST / OBJECT types
-        if include_name and built_str == field["name"] and field["kind"] != "SCALAR":
-            return ""
+        chars_to_remove = ",{}. "
+        translation_table = str.maketrans('', '', chars_to_remove)
+        if get_base_oftype(field)['kind'] == "OBJECT" and include_name:
+            if built_str == field["name"]:
+                return ""
+            elif built_str.translate(translation_table) == field["name"]:
+                return ""
 
         # A bit of post processing on the built payload
         if include_name and built_str[-1] != ",":
@@ -212,7 +218,11 @@ class Materializer:
                 built_str += field_output
         return built_str
 
-    def materialize_inputs(self, operator_info: dict, inputs: dict, objects_bucket: dict, max_depth: int) -> str:
+    def materialize_inputs(self,
+                           operator_info: dict,
+                           inputs: dict,
+                           objects_bucket: dict,
+                           max_depth: int) -> str:
         """Goes through the inputs of the payload
 
         Args:
@@ -226,7 +236,12 @@ class Materializer:
         """
         return self.materialize_input_fields(operator_info, inputs, objects_bucket, max_depth, current_depth=0)
 
-    def materialize_input_fields(self, operator_info: dict, inputs: dict, objects_bucket: dict, max_depth: int, current_depth: int = 0) -> str:
+    def materialize_input_fields(self,
+                                 operator_info: dict,
+                                 inputs: dict,
+                                 objects_bucket: dict,
+                                 max_depth: int,
+                                 current_depth: int = 0) -> str:
         """Goes through the inputs of the payload
 
         Args:
@@ -248,9 +263,14 @@ class Materializer:
             built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
         return built_str
 
-    def materialize_input_recursive(
-        self, operator_info: dict, input_field: dict, objects_bucket: dict, input_name: str, check_deps: bool, max_depth: int, current_depth: int
-    ) -> str:
+    def materialize_input_recursive(self,
+                                    operator_info: dict,
+                                    input_field: dict,
+                                    objects_bucket: dict,
+                                    input_name: str,
+                                    check_deps: bool,
+                                    max_depth: int,
+                                    current_depth: int) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name
