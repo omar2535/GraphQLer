@@ -115,6 +115,7 @@ class Fuzzer(object):
             self.logger.error(f"Node {node_name} not found")
             return self.objects_bucket
 
+        self.stats.start_time = time.time()
         self.__run_nodes(node)
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
