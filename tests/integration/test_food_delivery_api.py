@@ -2,6 +2,7 @@ import unittest
 
 from graphqler import __main__
 from graphqler import constants
+from tests.integration.utils.stats import get_percent_query_mutation_success
 
 import os
 
@@ -31,3 +32,10 @@ class TestFoodDeliveryAPI(unittest.TestCase):
         stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
+
+    def test_run_fuzz_mode_has_success_over_seventy_percent(self):
+        __main__.run_fuzz_mode(self.PATH, self.URL)
+        stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
+        percentage = get_percent_query_mutation_success(stats_path)
+        print(percentage)
+        self.assertTrue(percentage >= 70)
