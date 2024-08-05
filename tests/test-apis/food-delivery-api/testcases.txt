@@ -1,0 +1,167 @@
+Queries:
+
+Sample Query to Retrieve All Restaurants:
+query {
+  restaurants {
+    id
+    name
+    description
+    menu {
+      id
+      name
+      description
+      price
+    }
+    reviews {
+      id
+      rating
+      comment
+      user {
+        id
+        username
+      }
+    }
+  }
+}
+
+Sample Query to Retrieve a Single Restaurant by ID:
+query {
+  restaurant(id: "1") {
+    id
+    name
+    description
+    menu {
+      id
+      name
+      description
+      price
+    }
+    reviews {
+      id
+      rating
+      comment
+      user {
+        id
+        username
+      }
+    }
+  }
+}
+
+Sample Query to Retrieve Menu Items for a Restaurant by Restaurant ID:
+query {
+  menuItems(restaurantId: "1") {
+    id
+    name
+    description
+    price
+  }
+}
+
+Sample Query to Retrieve a User by ID:
+query {
+  user(id: "301") {
+    id
+    username
+    email
+    orders {
+      id
+      totalAmount
+      status
+    }
+  }
+}
+
+Sample Query to Retrieve an Order by ID:
+query {
+  order(id: "401") {
+    id
+    user {
+      id
+      username
+    }
+    restaurant {
+      id
+      name
+    }
+    items {
+      menuItem {
+        id
+        name
+        price
+      }
+      quantity
+    }
+    totalAmount
+    status
+  }
+}
+Mutations:
+
+Sample Mutation to Create a New Order:
+mutation {
+  createOrder(
+    userId: "301",
+    restaurantId: "1",
+    items: [
+      { menuItemId: "101", quantity: 2 },
+      { menuItemId: "102", quantity: 1 }
+    ]
+  ) {
+    id
+    totalAmount
+    status
+    items {
+      menuItem {
+        id
+        name
+        price
+      }
+      quantity
+    }
+  }
+}
+
+Sample Mutation to Cancel an Order:
+mutation {
+  cancelOrder(id: "401") {
+    id
+    status
+  }
+}
+
+Sample Mutation to Create a Review:
+mutation {
+  createReview(
+    userId: "301",
+    restaurantId: "1",
+    rating: 5,
+    comment: "I loved the food and the service! Highly recommended."
+  ) {
+    id
+    rating
+    comment
+    user {
+      id
+      username
+    }
+  }
+}
+
+Sample Mutation to Create a User:
+mutation {
+  createUser(input: { username: "new_user", email: "new_user@example.com" }) {
+    id
+    username
+    email
+  }
+}
+
+Sample Mutation to Create a Restaurant:
+mutation {
+  createRestaurant(input: { name: "New Restaurant", description: "A description of the new restaurant" }) {
+    id
+    name
+    description
+  }
+}

@@ -1,0 +1,166 @@
+scalar Date
+
+type Restaurant {
+  id: ID!
+  name: String!
+  description: String
+  menu: [Dish!]!
+  address: String!
+  rating: Float
+  orders: [Order!]!
+  cuisineTypes: [CuisineType!]!
+  reviews: [Review!]!
+}
+
+type Dish {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+  restaurant: Restaurant!
+  reviews: [Review!]!
+}
+
+type Order {
+  id: ID!
+  customer: Customer!
+  restaurant: Restaurant!
+  dishes: [Dish!]!
+  total: Float!
+  status: OrderStatus!
+  createdAt: String!
+  updatedAt: String
+  deliveryDateTime: Date
+  deliveryAddress: Address
+  payment: Payment
+  deliveryDriver: DeliveryDriver
+  reviews: [Review!]!
+}
+
+type Customer {
+  id: ID!
+  name: String!
+  email: String!
+  orders: [Order!]!
+  addresses: [Address!]!
+  reviews: [Review!]!
+}
+
+type DeliveryDriver {
+  id: ID!
+  name: String!
+  email: String!
+  orders: [Order!]!
+  currentLocation: String
+}
+
+type Address {
+  id: ID!
+  street: String!
+  city: String!
+  state: String!
+  postalCode: String!
+  customer: Customer!
+}
+
+type Review {
+  id: ID!
+  rating: Float!
+  comment: String
+  customer: Customer!
+  dish: Dish
+  restaurant: Restaurant
+  createdAt: String!
+}
+
+type CuisineType {
+  id: ID!
+  name: String!
+  restaurants: [Restaurant!]!
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  DELIVERING
+  DELIVERED
+  CANCELED
+}
+
+type Payment {
+  id: ID!
+  orderId: ID!
+  amount: Float!
+  paymentMethod: String!
+  status: PaymentStatus!
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+type Promotion {
+  id: ID!
+  code: String!
+  discountPercentage: Float!
+  validFrom: Date!
+  validTo: Date!
+}
+
+type Notification {
+  id: ID!
+  message: String!
+  recipient: User!
+  createdAt: String!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  orders: [Order!]!
+  notifications: [Notification!]!
+}
+
+type Query {
+  restaurants: [Restaurant!]!
+  restaurant(id: ID!): Restaurant
+  dishes: [Dish!]!
+  dish(id: ID!): Dish
+  orders: [Order!]!
+  order(id: ID!): Order
+  customers: [Customer!]!
+  customer(id: ID!): Customer
+  deliveryDrivers: [DeliveryDriver!]!
+  deliveryDriver(id: ID!): DeliveryDriver
+  reviews: [Review!]!
+  review(id: ID!): Review
+  cuisineTypes: [CuisineType!]!
+  cuisineType(id: ID!): CuisineType
+  orderHistory(customerId: ID!): [Order!]!
+  orderDetails(orderId: ID!): Order
+}
+
+type Mutation {
+  createRestaurant(name: String!, description: String, address: String!, cuisineTypeIds: [ID!]!): Restaurant
+  createDish(name: String!, description: String, price: Float!, restaurantId: ID!): Dish
+  createOrder(customerId: ID!, restaurantId: ID!, dishIds: [ID!]!, deliveryAddressId: ID!, deliveryDateTime: Date): Order
+  updateOrderStatus(id: ID!, status: OrderStatus!): Order
+  cancelOrder(id: ID!): ID
+  createCustomer(name: String!, email: String!): Customer
+  createDeliveryDriver(name: String!, email: String!): DeliveryDriver
+  createAddress(customerId: ID!, street: String!, city: String!, state: String!, postalCode: String!): Address
+  createReview(customerId: ID!, dishId: ID, restaurantId: ID, rating: Float!, comment: String): Review
+  makePayment(orderId: ID!, paymentMethod: String!, amount: Float!): Payment
+  scheduleDelivery(orderId: ID!, deliveryDateTime: Date!): Order
+  applyPromotion(orderId: ID!, promoCode: String!): Order
+  createCuisineType(name: String!): CuisineType
+  createNotification(userId: ID!, message: String!): Notification
+}
+
+type Subscription {
+  orderStatusChanged: Order
+  newNotification(userId: ID!): Notification
+}
