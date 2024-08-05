@@ -1,33 +1,52 @@
-name: Integration Tests
+name: Integration tests
+
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: Run GraphQLer Integration Tests
+  setup-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
     - name: Setup timezone
       uses: zcong1993/setup-timezone@master
       with:
         timezone: UTC
 
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v2
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
       with:
-        python-version: 3.12
-    
+        node-version: '16'
+
+    - name: Install Node.js dependencies
+      working-directory: tests/test-apis/food-delivery-api
+      run: npm install
+
+    - name: Initialize database
+      working-directory: tests/test-apis/food-delivery-api
+      run: node dbinitializer.js
+
+    - name: Start Node.js server
+      working-directory: tests/test-apis/food-delivery-api
+      run: node server.js &
+      env:
+        PORT: 4000  # Set the port if needed
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
     - name: Set up poetry
       run: |
         pip install poetry
         poetry install
 
     - name: Install Python dependencies
-      run: |
-        sudo apt install -y $(grep -o ^[^#][[:alnum:]-]* "packages.list")
+      run: poetry install
 
-    - name: Test with pytest
+    - name: Run integration test
       run: |
         poetry run pytest tests/integration/ --exitfirst --verbose --failed-first --cov=. --cov-report html
