@@ -9,7 +9,7 @@
 <a href="https://www.python.org/downloads/" target="_blank"><img src="https://img.shields.io/badge/python-3.12-blue" alt="python3.12"/></a>
 <a href="https://codeclimate.com/github/omar2535/GraphQLer/maintainability" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/maintainability" alt="Maintainability" /></a>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg" alt="lint" /></a>
-<a href="https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/tests.yml/badge.svg?branch=main" alt="tests_status" /></a>
+<a href="https://github.com/omar2535/GraphQLer/actions/workflows/integration_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/integration_tests.yml/badge.svg?branch=main" alt="test_status" /></a>
 <a href="https://sonarcloud.io/summary/new_code?id=omar2535_GraphQLer" target="_blank"><img src="https://sonarcloud.io/api/project_badges/measure?project=omar2535_GraphQLer&metric=security_rating" alt="security" /></a>
 <!-- <a href="https://codeclimate.com/github/omar2535/GraphQLer/test_coverage" target="_blank"><img src="https://api.codeclimate.com/v1/badges/a34db44e691904955ded/test_coverage" alt="coverage" /></a> -->
 </p>
