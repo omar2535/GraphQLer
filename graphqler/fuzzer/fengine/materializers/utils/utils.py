@@ -180,20 +180,6 @@ def get_closest_key_to_bucket(input_name: str, objects_bucket: dict) -> str:
     return random.choice(list(objects_bucket.keys()))
 
 
-def prettify_graphql_payload(payload: str) -> str:
-    """Uses graphql-core to prettify the payload
-
-    Args:
-        payload (str): The QUERY or MUTATION as a string
-
-    Returns:
-        str: A string of the formatted graphql payload
-    """
-    parsed_query = parse(payload)
-    formatted_query = print_ast(parsed_query).strip()
-    return formatted_query
-
-
 def clean_output_selectors(output_selectors: str) -> str:
     """Cleans the output selectors by doing the following:L
        - Removing any extra commas

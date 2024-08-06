@@ -3,7 +3,8 @@ Base class for a regular materializer
 """
 
 from graphqler import constants
-from .utils import get_random_scalar, get_random_enum_value, clean_output_selectors
+from .utils.utils import get_random_scalar, get_random_enum_value, clean_output_selectors
+from .utils.materialization_utils import is_valid_object_materialization
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
@@ -118,10 +119,6 @@ class Materializer:
         """
         built_str = ""
 
-        # If we reached max_depth, don't materialize anything except for NON_NULL / scalars
-        if current_depth >= max_depth:
-            return ""
-
         # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
             built_str += field["name"]
@@ -167,10 +164,12 @@ class Materializer:
         # Very important for NON_NULL / LIST / OBJECT types
         chars_to_remove = ",{}. "
         translation_table = str.maketrans('', '', chars_to_remove)
-        if get_base_oftype(field)['kind'] == "OBJECT" and include_name:
+        if get_base_oftype(field)['kind'] != "SCALAR" and include_name:
             if built_str == field["name"]:
                 return ""
             elif built_str.translate(translation_table) == field["name"]:
+                return ""
+            elif not is_valid_object_materialization(built_str):
                 return ""
 
         # A bit of post processing on the built payload
@@ -207,6 +206,10 @@ class Materializer:
         # But only do this check while we aren't only materializing non-null fields
         if used_objects.count(object_name) >= constants.MAX_OBJECT_CYCLES:
             return built_str
+
+        # If we're at max depth, materialize only scalar fields
+        if current_depth >= max_depth:
+            fields_to_materialize = [field for field in fields_to_materialize if get_base_oftype(field) == "SCALAR"]
 
         # Mark that we've used this object
         used_objects.append(object_name)
@@ -285,8 +288,6 @@ class Materializer:
         Returns:
             str: String of the materialized input field
         """
-        if current_depth >= max_depth:
-            return ""
 
         built_str = ""
         hard_dependencies: dict = operator_info.get("hardDependsOn", {})
@@ -331,4 +332,5 @@ class Materializer:
             built_str += get_random_enum_value(self.enums[input_field["type"]]["enumValues"])
         else:
             built_str += ""
+
         return built_str

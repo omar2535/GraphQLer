@@ -3,7 +3,7 @@ Materializes a mutation that is ready to be sent off
 """
 
 from .materializer import Materializer
-from .utils import prettify_graphql_payload
+from .utils.materialization_utils import prettify_graphql_payload
 
 
 class DOSPayloadMaterializer(Materializer):
