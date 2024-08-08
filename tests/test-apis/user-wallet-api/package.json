@@ -3,46 +3,49 @@
     "version": "0.1.2",
     "description": "GraphQL Server setup with an example Star Wars schema",
     "scripts": {
-      "start": "nodemon ./server.js --exec babel-node",
-      "lint": "eslint ."
+        "start": "nodemon ./server.js --exec babel-node",
+        "lint": "eslint ."
     },
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/apollographql/starwars-server.git"
+        "type": "git",
+        "url": "git+https://github.com/apollographql/starwars-server.git"
     },
     "keywords": [
-      "Node.js",
-      "Javascript",
-      "GraphQL",
-      "Express",
-      "Apollo",
-      "Meteor"
+        "Node.js",
+        "Javascript",
+        "GraphQL",
+        "Express",
+        "Apollo",
+        "Meteor"
     ],
     "author": "Jonas Helfer <jonas@helfer.email>",
     "license": "MIT",
     "bugs": {
-      "url": "https://github.com/apollographql/starwars-server/issues"
+        "url": "https://github.com/apollographql/starwars-server/issues"
     },
     "homepage": "https://github.com/apollographql/starwars-server#readme",
     "dependencies": {
-      "apollo-server-express": "^3.13.0",
-      "body-parser": "^1.20.2",
-      "cors": "^2.8.5",
-      "express": "^4.19.2",
-      "graphql": "^16.9.0",
-      "graphql-subscriptions": "=2.0.0",
-      "graphql-tools": "^9.0.1",
-      "lodash": "^4.17.21",
-      "mysql": "^2.18.1",
-      "uuid": "^10.0.0"
+        "@graphql-tools/schema": "^10.0.4",
+        "@graphql-tools/utils": "^10.3.4",
+        "apollo-server-express": "^3.13.0",
+        "body-parser": "^1.20.2",
+        "cors": "^2.8.5",
+        "express": "^4.19.2",
+        "graphql": "^16.9.0",
+        "graphql-subscriptions": "=2.0.0",
+        "graphql-tools": "^9.0.1",
+        "graphql-ws": "^5.16.0",
+        "lodash": "^4.17.21",
+        "mysql": "^2.18.1",
+        "uuid": "^10.0.0",
+        "ws": "^8.18.0"
     },
     "devDependencies": {
-      "@babel/cli": "^7.24.8",
-      "@babel/core": "^7.25.2",
-      "@babel/node": "^7.25.0",
-      "@babel/preset-env": "^7.25.3",
-      "nodemon": "^3.1.4"
+        "@babel/cli": "^7.24.8",
+        "@babel/core": "^7.25.2",
+        "@babel/node": "^7.25.0",
+        "@babel/preset-env": "^7.25.3",
+        "nodemon": "^3.1.4"
     },
     "type": "module"
-  }
-  
+}
