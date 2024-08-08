@@ -6,17 +6,17 @@ from tests.integration.utils.run_api import run_node_project, wait_for_server
 import os
 
 
-class TestFoodDeliveryAPI(unittest.TestCase):
-    PORT = 4000
+class TestUserWalletApi(unittest.TestCase):
+    PORT = 4001
     URL = f"http://localhost:{PORT}/graphql"
-    PATH = "ci-test-food-delivery-api/"
-    API_PATH = "tests/test-apis/food-delivery-api"
+    PATH = "ci-test-user-wallet-api/"
+    API_PATH = "tests/test-apis/user-wallet-api"
     process = None
     process_pid = None
 
     @classmethod
     def setUpClass(cls):
-        cls.process = run_node_project(cls.API_PATH, ['node dbinitializer.js'], str(cls.PORT))
+        cls.process = run_node_project(cls.API_PATH, [], str(cls.PORT))
         cls.process_pid = cls.process.pid
         wait_for_server(cls.URL, timeout=30)
 
@@ -28,12 +28,14 @@ class TestFoodDeliveryAPI(unittest.TestCase):
         os.system(f"rm -rf {cls.PATH}")
 
     def test_run_compile_mode_generates_valid_introspection_file(self):
+        print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         introspection_path = os.path.join(self.PATH, constants.INTROSPECTION_RESULT_FILE_NAME)
         self.assertTrue(os.path.exists(introspection_path))
         self.assertGreater(os.path.getsize(introspection_path), 0)
 
     def test_run_fuzz_mode_generates_valid_stats_file(self):
+        print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
         stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
@@ -41,15 +43,17 @@ class TestFoodDeliveryAPI(unittest.TestCase):
         self.assertGreater(os.path.getsize(stats_path), 0)
 
     def test_run_single_mode_generates_valid_stats_file(self):
+        print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_single_mode(self.PATH, self.URL, "Query")
+        __main__.run_single_mode(self.PATH, self.URL, "getCurrentRate")
         stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
-    def test_run_fuzz_mode_has_success_over_seventy_percent(self):
+    def test_run_fuzz_mode_has_success_over_ninety_percent(self):
+        print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
         stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
         percentage = get_percent_query_mutation_success(stats_path)
-        self.assertTrue(percentage >= 70)
+        self.assertTrue(percentage >= 90)

@@ -1,0 +1,48 @@
+{
+    "name": "starwars-server",
+    "version": "0.1.2",
+    "description": "GraphQL Server setup with an example Star Wars schema",
+    "scripts": {
+      "start": "nodemon ./server.js --exec babel-node",
+      "lint": "eslint ."
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/apollographql/starwars-server.git"
+    },
+    "keywords": [
+      "Node.js",
+      "Javascript",
+      "GraphQL",
+      "Express",
+      "Apollo",
+      "Meteor"
+    ],
+    "author": "Jonas Helfer <jonas@helfer.email>",
+    "license": "MIT",
+    "bugs": {
+      "url": "https://github.com/apollographql/starwars-server/issues"
+    },
+    "homepage": "https://github.com/apollographql/starwars-server#readme",
+    "dependencies": {
+      "apollo-server-express": "^2.15.1",
+      "body-parser": "^1.19.0",
+      "cors": "^2.8.5",
+      "express": "^4.18.2",
+      "graphql": "^15.3.0",
+      "graphql-subscriptions": "=1.0.0",
+      "graphql-tools": "^4.0.8",
+      "lodash": "^4.17.19",
+      "mysql": "^2.18.1",
+      "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+      "@babel/cli": "^7.10.4",
+      "@babel/core": "^7.10.4",
+      "@babel/node": "^7.10.4",
+      "@babel/preset-env": "^7.10.4",
+      "nodemon": "^2.0.4"
+    },
+    "type": "module"
+  }
+  
