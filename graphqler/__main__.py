@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", help="mode to run the program in", choices=['compile', 'fuzz', 'idor', 'run', 'single'], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
-    parser.add_argument("--node", help="node to run", required=False)
+    parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--version", help="display version", action="store_true")
     args = parser.parse_args()
 

@@ -62,7 +62,7 @@ options:
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
-  --node NODE           node to run
+  --node NODE           node to run (only used in single mode)
   --version             display version
 ```
 
