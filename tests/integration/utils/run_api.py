@@ -52,4 +52,3 @@ def wait_for_server(url, timeout=30):
             pass
         time.sleep(1)
     return False
-
