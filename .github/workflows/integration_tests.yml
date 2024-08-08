@@ -20,20 +20,6 @@ jobs:
       with:
         node-version: '16'
 
-    - name: Install Node.js dependencies
-      working-directory: tests/test-apis/food-delivery-api
-      run: npm install
-
-    - name: Initialize database
-      working-directory: tests/test-apis/food-delivery-api
-      run: node dbinitializer.js
-
-    - name: Start Node.js server
-      working-directory: tests/test-apis/food-delivery-api
-      run: node server.js &
-      env:
-        PORT: 4000  # Set the port if needed
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -47,6 +33,10 @@ jobs:
     - name: Install Python dependencies
       run: poetry install
 
-    - name: Run integration test
+    - name: Run integration test for food delivery API
       run: |
-        poetry run pytest tests/integration/ --exitfirst --verbose --failed-first --cov=. --cov-report html
+        poetry run pytest tests/integration/test_food_delivery_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
+    
+    - name: Run integration test for user wallet API
+      run: |
+        poetry run pytest tests/integration/test_user_wallet_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html

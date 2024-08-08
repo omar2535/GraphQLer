@@ -1,0 +1,142 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query{
+    getUser(userID: ID!): User
+    getTransaction(transactionID: ID!): Transaction
+    getLocation(locationID: ID!): Location
+    getCurrency(currencyID: ID!): Currency
+    getWallet(walletID: ID!): Wallet
+    getUsers: [User]
+    getWallets: [Wallet]
+    getTransactions: [Transaction]
+    getLocations: [Location]
+    getCurrencies: [Currency]
+    # if no foreign currency symbol is specified, use USD as default
+    getCurrentRate(mainCurrencySymbol: String!, foreignCurrencySymbol: String): Float
+}
+
+type Mutation {
+    createUser(
+        firstName: String!
+        lastName: String
+        description: String 
+    ): User
+
+    createTransaction(
+        amount: Float!
+        payerID: ID!
+        walletID: ID!
+        currencyID: ID!
+    ): Transaction
+
+    createLocation(
+        lat: Float 
+        lng: Float 
+        name: String
+    ): Location
+
+    createCurrency(
+        abbreviation: String!
+        symbol: String!
+        country: String
+    ): Currency
+
+    createWallet(
+        name: String!
+        currencyID: ID!
+        userID: ID!
+    ): Wallet
+
+    deleteUser(
+        userID: ID!
+    ): User
+    deleteTransaction(
+        transactionID: ID!
+    ): Transaction
+    deleteLocation(
+        locationID: ID!
+    ): Location
+    deleteCurrency(
+        currencyID: ID!
+    ): Currency
+    deleteWallet(
+        walletID: ID!
+    ): Wallet
+
+    updateUser(
+        userID: ID!
+        firstName: String
+        lastName: String
+        description: String
+    ):User
+    updateTransaction(
+        transactionID: ID!
+        amount: Float
+        payer: ID
+        description: String
+    ): Transaction
+    updateLocation(
+        locationID: ID!
+        lat: Float
+        lng: Float
+        name: String
+    ): Location
+    updateCurrency(
+        currencyID: ID!
+        abbreviation: String
+        symbol: String
+        country: String
+    ): Currency
+    updateWallet(
+        walletID: ID!
+        name: String
+    ): Wallet
+}
+
+
+type User {
+    id: ID!
+    firstName: String!
+    lastName: String
+    description: String
+    wallets: [Wallet]
+    friends: [User]
+}
+
+type Wallet {
+    id: ID!
+    name: String!
+    currency: Currency!
+    transactions: [Transaction]
+    user: User!
+    balance: Float
+}
+
+type Transaction {
+    id: ID! 
+    amount: Float!
+    rate: Float!
+    payer: User!
+    wallet: Wallet!
+    description: String
+    location: Location
+    timestamp: String
+}
+
+type Currency {
+    id: ID!
+    abbreviation: String!
+    symbol: String!
+    rate: Float!
+    country: String!
+}
+
+type Location {
+    id: ID!
+    lat: Float
+    lng: Float
+    name: String!
+}
