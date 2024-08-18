@@ -1,11 +1,11 @@
-# Installation guide
+# 🙂 Installation guide
 
 **Pre-requisites:**
 
 - **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 - Have **python 3.12**
 
-## User setup guide
+## 😀 User setup guide
 
 ### Pip
 
@@ -35,7 +35,7 @@ and you can run it like so:
 docker run --rm omar2535/graphqler --help
 ```
 
-## Developer setup guide
+## 🤓 Developer setup guide
 
 Firstly, it is recommended to do everythiong in a pyenv and virtual environment. Links are provided below, but not necessary:
 
