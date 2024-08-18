@@ -112,7 +112,8 @@ class Fuzzer(object):
         """
         node = [n for n in self.dependency_graph.nodes if n.name == node_name]
         if len(node) == 0:
-            self.logger.error(f"Node {node_name} not found")
+            print(f"(F) Node `{node_name}` not found")
+            self.logger.error(f"Node `{node_name}` not found")
             return self.objects_bucket
 
         self.stats.start_time = time.time()
