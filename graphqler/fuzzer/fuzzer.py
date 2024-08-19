@@ -193,17 +193,7 @@ class Fuzzer(object):
             self.stats.print_running_stats()
             new_objects_bucket = self.objects_bucket
             self.logger.info(f"Running node: {current_node}")
-            if current_node.graphql_type == "Query" or current_node.graphql_type == "Mutation":
-                new_objects_bucket, _graphql_response, result = self.fengine.run_regular_payload(
-                    current_node.name,
-                    self.objects_bucket,
-                    current_node.graphql_type,
-                    check_hard_depends_on=False
-                )
-            elif current_node.graphql_type == "Object":
-                continue
-            else:
-                raise Exception(f"Unknown GraphQL type: {current_node.graphql_type}")
+            _next_visit_path, result = self.__evaluate_node(current_node, [current_node], check_hard_depends_on=False)
 
             # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
@@ -275,7 +265,7 @@ class Fuzzer(object):
                 self.logger.info("Hit max run times. Ending DFS")
                 break
 
-    def __evaluate_node(self, node: Node, visit_path: list[Node]) -> tuple[list[list[Node]], Result]:
+    def __evaluate_node(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
         """Evaluates the node, performing the following based on the type of node
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
@@ -284,6 +274,7 @@ class Fuzzer(object):
         Args:
             node (Node): Node to be evaluated
             visit_path (list[Node]): The list of visited paths to arrive at the node
+            check_hard_depends_n (bool): The check hard depends on flag for materializing the object
 
         Returns:
             tuple[list[list[Node]], Result]: A list of the next to_visit paths, and the result of the node evaluation
@@ -301,7 +292,7 @@ class Fuzzer(object):
                 node.name,
                 self.objects_bucket,
                 node.graphql_type,
-                check_hard_depends_on=True
+                check_hard_depends_on=check_hard_depends_on
             )
             if res == Result.GENERAL_SUCCESS:
                 self.objects_bucket = new_objects_bucket

@@ -12,7 +12,7 @@ from graphqler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer, IDORFuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
-from graphqler.utils.argument_parser import set_auth_token_constant
+from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.config_handler import parse_config, set_constants_with_config
 from graphqler import constants
@@ -117,6 +117,11 @@ if __name__ == "__main__":
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--version", help="display version", action="store_true")
     args = parser.parse_args()
+
+    # If not compile mode, check if compiled directory exists
+    if args.mode != 'compile' and not is_compiled(args.path):
+        print("(!) Compiled directory does not exist, please run in compile mode first")
+        sys.exit(1)
 
     # Set proxy if provided
     if args.proxy:
