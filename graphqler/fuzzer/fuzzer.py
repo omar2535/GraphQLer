@@ -194,6 +194,7 @@ class Fuzzer(object):
             new_objects_bucket = self.objects_bucket
             self.logger.info(f"Running node: {current_node}")
             _next_visit_path, result = self.__evaluate_node(current_node, [current_node], check_hard_depends_on=False)
+            self.__fuzz_node(current_node, [current_node])
 
             # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
@@ -309,11 +310,12 @@ class Fuzzer(object):
             visit_path (list[Node]): The list of visited paths to arrive at the node
         """
         # DOS Query / Mutation
-        random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
-        for depth in random_numbers:
+        if not constants.SKIP_DOS_ATTACKS:
+            random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
+            random_number = random.choice(random_numbers)
             if node.graphql_type in ["Query", "Mutation"]:
-                self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {depth}")
-                new_objects_bucket, _graphql_response, res = self.fengine.run_dos_payload(node.name, self.objects_bucket, node.graphql_type, depth)
+                self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
+                new_objects_bucket, _graphql_response, res = self.fengine.run_dos_payload(node.name, self.objects_bucket, node.graphql_type, random_number)
                 self.stats.update_stats_from_result(node, res)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
