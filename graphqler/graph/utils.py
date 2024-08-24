@@ -1,14 +1,15 @@
 import networkx
 import matplotlib.pyplot as plt
 from .node import Node
+from pathlib import Path
 
 
-def draw_graph(graph: networkx.DiGraph, save_path: str):
+def draw_graph(graph: networkx.DiGraph, save_path: Path):
     """Draws a graph
 
     Args:
         graph (networkx.DiGraph): The networkx graph
-        save_path (str): The path to save the visualization
+        save_path (Path): The path to save the visualization
     """
     pos = networkx.random_layout(graph)
     networkx.draw(graph, pos, with_labels=False, node_size=100, node_color="skyblue", font_size=8, font_color="black", font_weight="bold", edge_color="gray", width=2)

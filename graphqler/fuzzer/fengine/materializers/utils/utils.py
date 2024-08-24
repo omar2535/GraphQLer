@@ -25,7 +25,7 @@ def get_random_float(input_name: str) -> float:
     return random.uniform(0.0, 1000.0)
 
 
-def get_random_bool(input_name: str) -> bool:
+def get_random_bool(input_name: str) -> str:
     return str(bool(random.getrandbits(1))).lower()
 
 
@@ -122,7 +122,7 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
             raise Exception(f"This custom scalar is supported at this time: {input_name}:{scalar_type}")
 
 
-def get_random_enum_value(enum_values: list[dict]) -> str:
+def get_random_enum_value(enum_values: list[dict]) -> str | None:
     """Gets a random enum from the enumValue list
 
     Args:

@@ -109,7 +109,7 @@ class FEngine(object):
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, Response, Result]:
+    def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, Response | None, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -214,7 +214,7 @@ class FEngine(object):
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
             return (objects_bucket, None, Result.INTERNAL_FAILURE)
 
-    def __run_query(self, query_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response, Result]:
+    def __run_query(self, query_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response | None, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
