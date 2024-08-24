@@ -92,7 +92,7 @@ class Fuzzer(object):
         # Terminate the thread if it's still alive after the max time
         if p.is_alive():
             print(f"(+) Terminating the fuzzer process - reached max time {constants.MAX_TIME}s")
-            p.terminate()
+            p.terminate() # type: ignore -- we have to ignore since thread has no terminate method
         p.join()
 
         # Get results from objects bucket
@@ -129,7 +129,7 @@ class Fuzzer(object):
         Returns:
             dict: The objects bucket
         """
-        nodes_to_run = self.dependency_graph.nodes
+        nodes_to_run = list(self.dependency_graph.nodes)
         self.__run_nodes(nodes_to_run)
         self.logger.info("Completed fuzzing")
         self.stats.print_results()

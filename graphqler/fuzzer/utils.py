@@ -11,12 +11,12 @@ def get_node(graph: networkx.DiGraph, name: str) -> Node:
         name (str): The name of the node
 
     Returns:
-        Node: A node matching the name, None if not found
+        Node: A node matching the name. Raises exception if node isn't found
     """
     for node in graph.nodes:
         if node.name == name:
             return node
-    return None
+    raise Exception(f"Node with name {name} not found in graph")
 
 
 def put_in_object_bucket(objects_bucket: dict, object_name: str, object_val: str) -> dict:

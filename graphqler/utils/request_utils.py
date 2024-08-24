@@ -1,3 +1,5 @@
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
 from typing import Callable
 from graphqler import constants
 
@@ -43,7 +45,7 @@ def get_proxies() -> dict:
         return {}
 
 
-def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = None) -> tuple[dict, requests.Response]:
+def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] | None = None) -> tuple[dict, requests.Response]:
     """Send GraphQL request to the specified endpoint
 
     Args:
@@ -76,8 +78,8 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] = 
     if response.status_code != 200:
         return parse_response(response.text), response
 
-    if next:
-        return next(json.loads(response.text))
+    # if next:
+    #     return next(json.loads(response.text))
 
     return parse_response(response.text), response
 
@@ -126,6 +128,6 @@ def create_new_session() -> requests.Session:
     # Set proxy if available
     if constants.PROXY:
         session.proxies.update(get_proxies())
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+        disable_warnings(InsecureRequestWarning)
         session.verify = False
     return session
