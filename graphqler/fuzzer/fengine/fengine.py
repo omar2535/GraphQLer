@@ -60,7 +60,7 @@ class FEngine(object):
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
 
-    def run_regular_payload(self, name: str, objects_bucket: dict, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Response, Result]:
+    def run_regular_payload(self, name: str, objects_bucket: dict, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, dict, Result]:
         """Runs the regular payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -70,7 +70,7 @@ class FEngine(object):
             check_hard_depends_on (bool): Whether to check the hard depends on of the query's input - if it's not met, we fail. Defaults to True
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the response dict, and the result of the query
         """
         materializer = RegularPayloadMaterializer(
             self.objects,
@@ -84,7 +84,7 @@ class FEngine(object):
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def run_dos_payload(self, name: str, objects_bucket: dict, graphql_type: str, max_depth: int = 20) -> tuple[dict, Response, Result]:
+    def run_dos_payload(self, name: str, objects_bucket: dict, graphql_type: str, max_depth: int = 20) -> tuple[dict, dict, Result]:
         """Runs the DOS payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -94,7 +94,7 @@ class FEngine(object):
             max_depth (int, optional): The maximum recursion depth. Defaults to 20.
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the response dict, and the result of the query
         """
         materializer = DOSPayloadMaterializer(
             self.objects,
@@ -109,7 +109,7 @@ class FEngine(object):
         )
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, Response | None, Result]:
+    def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, dict, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -119,7 +119,7 @@ class FEngine(object):
             graphql_type (str): The GraphQL type (either query or mutation)
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the query
+            tuple[dict, Response, Result]: The new objects bucket, the GraphQL response dict, and the result of the query
         """
         if graphql_type == "Query":
             return self.__run_query(name, objects_bucket, materializer)
@@ -127,9 +127,9 @@ class FEngine(object):
             return self.__run_mutation(name, objects_bucket, materializer)
         else:
             self.logger.warning(f"Unknown GraphQL type: {graphql_type} for {name}")
-            return (objects_bucket, None, Result.INTERNAL_FAILURE)
+            return (objects_bucket, {}, Result.INTERNAL_FAILURE)
 
-    def __run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response, Result]:
+    def __run_mutation(self, mutation_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, dict, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -144,7 +144,7 @@ class FEngine(object):
             objects_bucket (dict): The current objects bucket
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the response object, and the result of the mutation,
+            tuple[dict, dict, Result]: The new objects bucket, the graphql response dict, and the result of the mutation,
         """
         try:
             # Step 1
@@ -206,15 +206,15 @@ class FEngine(object):
             return (objects_bucket, graphql_response, Result.GENERAL_SUCCESS)
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
-            return (objects_bucket, None, Result.INTERNAL_FAILURE)
+            return (objects_bucket, {}, Result.INTERNAL_FAILURE)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
             # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
-            return (objects_bucket, None, Result.INTERNAL_FAILURE)
+            return (objects_bucket, {}, Result.INTERNAL_FAILURE)
 
-    def __run_query(self, query_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, Response | None, Result]:
+    def __run_query(self, query_name: str, objects_bucket: dict, materializer: Materializer) -> tuple[dict, dict, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
@@ -223,7 +223,7 @@ class FEngine(object):
             materializer (QueryMaterializer): The materializer to use
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the graphql response, and the result of the query
+            tuple[dict, dict, Result]: The new objects bucket, the graphql response as a dict, and the result of the query
         """
         try:
             # Step 1
@@ -277,4 +277,4 @@ class FEngine(object):
             raise exc
         except Exception as e:
             self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.format_exc()}")
-            return (objects_bucket, None, Result.INTERNAL_FAILURE)
+            return (objects_bucket, {}, Result.INTERNAL_FAILURE)
