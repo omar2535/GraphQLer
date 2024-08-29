@@ -122,7 +122,7 @@ def get_random_scalar(input_name: str, scalar_type: str, objects_bucket: dict) -
             raise Exception(f"This custom scalar is supported at this time: {input_name}:{scalar_type}")
 
 
-def get_random_enum_value(enum_values: list[dict]) -> str | None:
+def get_random_enum_value(enum_values: list[dict]) -> str:
     """Gets a random enum from the enumValue list
 
     Args:
@@ -136,7 +136,7 @@ def get_random_enum_value(enum_values: list[dict]) -> str | None:
         enum = random.choice(non_deprecated_enum_values)
         return enum["name"]
     else:
-        return None
+        raise Exception("No non-deprecated enum values found for this enum")
 
 
 def get_random_id_from_bucket(input_name: str, objects_bucket: dict) -> str:
