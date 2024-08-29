@@ -2,26 +2,21 @@
 Base class for a regular materializer
 """
 
-from graphqler import constants
+from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 from .utils.utils import get_random_scalar, get_random_enum_value, clean_output_selectors
 from .utils.materialization_utils import is_valid_object_materialization
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
-from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
+from graphqler.utils.api import API
+from graphqler import constants
+
 
 import random
 import logging
 
 
 class Materializer:
-    def __init__(self,
-                 objects: dict,
-                 operator_info: dict,
-                 input_objects: dict,
-                 enums: dict,
-                 unions: dict,
-                 interfaces: dict,
-                 fail_on_hard_dependency_not_met: bool = True):
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True):
         """Default constructor for a regular materializer
 
         Args:
@@ -33,12 +28,7 @@ class Materializer:
             interfaces (dict): The interfaces that exist in the Graphql schema
             logger (logging.Logger): The logger
         """
-        self.objects = objects
-        self.operator_info = operator_info
-        self.input_objects = input_objects
-        self.enums = enums
-        self.unions = unions
-        self.interfaces = interfaces
+        self.api = api
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
@@ -54,22 +44,20 @@ class Materializer:
         Returns:
             tuple[str, dict]: The string of the payload, and the used objects list
         """
-        pass
+        return ("", {})
 
     def materialize_output(self,
-                           output_info: dict,
-                           used_objects: list[str],
+                           operator_info: dict,
+                           output: dict,
                            objects_bucket: dict,
-                           include_name: bool,
                            max_depth: int = 5) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
 
         Args:
+            operator_info (dict): The operator information
             output_info (dict): The output information
-            used_objects (list[str]): The used objects
             objects_bucket (dict): List of objects that have been created or found
-            include_name (bool): The included name
             max_depth (int, optional): Maximum depth for recursive expansion of objects. Defaults to 2.
                                        If nothing is returned for this max depth, then we try to get at least something
                                        by bypassing the max depth until the hard cutoff.
@@ -80,11 +68,13 @@ class Materializer:
         output_selectors = ""
         max_depth = max_depth
         while output_selectors == "":
+            # The initial call to materialize_output_recursive should not include the name and has no objects used yet
             output_selectors = self.materialize_output_recursive(
-                field=output_info,
-                used_objects=used_objects,
+                operator_info=operator_info,
+                output_field=output,
+                used_objects=[],
                 objects_bucket=objects_bucket,
-                include_name=include_name,
+                include_name=False,
                 max_depth=max_depth,
                 current_depth=0
             )
@@ -95,7 +85,8 @@ class Materializer:
         return cleaned_output_selectors
 
     def materialize_output_recursive(self,
-                                     field: dict,
+                                     operator_info: dict,
+                                     output_field: dict,
                                      used_objects: list[str],
                                      objects_bucket: dict,
                                      include_name: bool,
@@ -107,7 +98,8 @@ class Materializer:
            Note: This function should be called on a base output type
 
         Args:
-            field (dict): The field to be output
+            operator_info (dict): Information about the operator that we want to materialize
+            output_field (dict): The field to be output
             used_objects (list[str]): A list of used objects
             objects_bucket (dict): List of objects that have been created or found
             include_name (bool): Whether to include the name of the field or not
@@ -121,40 +113,40 @@ class Materializer:
 
         # When we are including names (IE. fields of an object), we need to include the name of the field
         if include_name:
-            built_str += field["name"]
+            built_str += output_field["name"]
 
         # If there are arguments for this, materialize the arguments
-        if 'inputs' in field and len(field["inputs"]) != 0:
-            inputs = self.materialize_input_fields(self.operator_info, field["inputs"], {}, max_depth, current_depth)
+        if 'inputs' in output_field and len(output_field["inputs"]) != 0:
+            inputs = self.materialize_input_fields(operator_info, output_field["inputs"], {}, max_depth, current_depth)
             if inputs != "":
                 built_str += f"({inputs})"
 
         # Main materialiation logic
-        if field["kind"] == "OBJECT":
-            materialized_object_fields = self.materialize_output_object_fields(field["type"], used_objects, objects_bucket, max_depth, current_depth)
+        if output_field["kind"] == "OBJECT":
+            materialized_object_fields = self.materialize_output_object_fields(operator_info, output_field["type"], used_objects, objects_bucket, max_depth, current_depth)
             if materialized_object_fields != "":
                 built_str += " {"
                 built_str += materialized_object_fields
                 built_str += "},"
-        elif field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
-            union_types = self.unions[field["type"]]["possibleTypes"]
+        elif output_field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
+            union_types = self.api.unions[output_field["type"]]["possibleTypes"]
             built_str += " {"
             for union_type in union_types:
-                materialized_fragment = self.materialize_output_recursive(union_type, used_objects, objects_bucket, False, max_depth, current_depth)
+                materialized_fragment = self.materialize_output_recursive(operator_info, union_type, used_objects, objects_bucket, False, max_depth, current_depth)
                 if materialized_fragment != "":
                     built_str += f"... on {union_type['name']} " + materialized_fragment
             built_str += "},"
-        elif field["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
-            interface_types = self.interfaces[field["type"]]["possibleTypes"]
+        elif output_field["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
+            interface_types = self.api.interfaces[output_field["type"]]["possibleTypes"]
             built_str += " {"
             for interface_type in interface_types:
-                materialized_fragment = self.materialize_output_recursive(interface_type, used_objects, objects_bucket, False, max_depth, current_depth)
+                materialized_fragment = self.materialize_output_recursive(operator_info, interface_type, used_objects, objects_bucket, False, max_depth, current_depth)
                 if materialized_fragment != "":
                     built_str += f"... on {interface_type['name']} " + materialized_fragment
             built_str += "},"
-        elif field["kind"] == "NON_NULL" or field["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
-            oftype = field["ofType"]
-            materialized_output = self.materialize_output_recursive(oftype, used_objects, objects_bucket, False, max_depth, current_depth)
+        elif output_field["kind"] == "NON_NULL" or output_field["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
+            oftype = output_field["ofType"]
+            materialized_output = self.materialize_output_recursive(operator_info, oftype, used_objects, objects_bucket, False, max_depth, current_depth)
             if materialized_output != "":
                 built_str += materialized_output + ", "
         else:
@@ -164,10 +156,10 @@ class Materializer:
         # Very important for NON_NULL / LIST / OBJECT types
         chars_to_remove = ",{}. "
         translation_table = str.maketrans('', '', chars_to_remove)
-        if get_base_oftype(field)['kind'] != "SCALAR" and include_name:
-            if built_str == field["name"]:
+        if get_base_oftype(output_field)['kind'] != "SCALAR" and include_name:
+            if built_str == output_field["name"]:
                 return ""
-            elif built_str.translate(translation_table) == field["name"]:
+            elif built_str.translate(translation_table) == output_field["name"]:
                 return ""
             elif not is_valid_object_materialization(built_str):
                 return ""
@@ -181,6 +173,7 @@ class Materializer:
         return built_str
 
     def materialize_output_object_fields(self,
+                                         operator_info: dict,
                                          object_name: str,
                                          used_objects: list[str],
                                          objects_bucket: dict,
@@ -189,6 +182,7 @@ class Materializer:
         """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
+            operator_info (dict): The operator information
             object_information (dict): The object's information
             used_objects (list[str]): A list of used objects
             objects_bucket (dict): List of objects that have been created or found
@@ -199,7 +193,7 @@ class Materializer:
             str: The built output string
         """
         built_str = ""
-        object_info = self.objects[object_name]
+        object_info = self.api.objects[object_name]
         fields_to_materialize = object_info["fields"]
 
         # If we've seen this object more than the max object cycles, don't use it again
@@ -216,7 +210,7 @@ class Materializer:
 
         # Loop through the fields to materialize each field
         for field in fields_to_materialize:
-            field_output = self.materialize_output_recursive(field, used_objects, objects_bucket, True, max_depth, current_depth + 1)
+            field_output = self.materialize_output_recursive(operator_info, field, used_objects, objects_bucket, True, max_depth, current_depth + 1)
             if field_output != "" and field_output != "{}":
                 built_str += field_output
         return built_str
@@ -324,12 +318,12 @@ class Materializer:
         elif input_field["kind"] == "LIST":
             built_str += f"[{self.materialize_input_recursive(operator_info, input_field['ofType'], objects_bucket, input_name, True, max_depth, current_depth)}]"
         elif input_field["kind"] == "INPUT_OBJECT":
-            input_object = self.input_objects[input_field["type"]]
+            input_object = self.api.input_objects[input_field["type"]]
             built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
         elif input_field["kind"] == "SCALAR":
             built_str += get_random_scalar(input_name, input_field["type"], objects_bucket)
         elif input_field["kind"] == "ENUM":
-            built_str += get_random_enum_value(self.enums[input_field["type"]]["enumValues"])
+            built_str += get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
         else:
             built_str += ""
 

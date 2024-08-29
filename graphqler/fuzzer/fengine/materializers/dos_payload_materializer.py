@@ -4,26 +4,12 @@ Materializes a mutation that is ready to be sent off
 
 from .materializer import Materializer
 from .utils.materialization_utils import prettify_graphql_payload
+from graphqler.utils.api import API
 
 
 class DOSPayloadMaterializer(Materializer):
-    def __init__(self,
-                 objects: dict,
-                 queries: dict,
-                 mutations: dict,
-                 input_objects: dict,
-                 enums: dict,
-                 unions: dict,
-                 interfaces: dict,
-                 fail_on_hard_dependency_not_met: bool = False,
-                 max_depth: int = 20):
-        super().__init__(objects, mutations, input_objects, enums, unions, interfaces)
-        self.objects = objects
-        self.queries = queries
-        self.mutations = mutations
-        self.input_objects = input_objects
-        self.enums = enums
-        self.unions = unions
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
+        super().__init__(api, fail_on_hard_dependency_not_met)
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.max_depth = max_depth
 
@@ -48,9 +34,9 @@ class DOSPayloadMaterializer(Materializer):
             raise ValueError("Invalid graphql_type provided")
 
     def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
-        mutation_info = self.mutations[mutation_name]
+        mutation_info = self.api.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=self.max_depth)
-        mutation_output = self.materialize_output(mutation_info["output"], [], objects_bucket, False, max_depth=self.max_depth)
+        mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=self.max_depth)
         if mutation_inputs.strip() == "":
             mutation_payload = f"""
             mutation {{
@@ -71,9 +57,9 @@ class DOSPayloadMaterializer(Materializer):
         return pretty_payload, self.used_objects
 
     def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
-        query_info = self.queries[query_name]
+        query_info = self.api.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=self.max_depth)
-        query_outputs = self.materialize_output(query_info["output"], [], objects_bucket, False, max_depth=self.max_depth)
+        query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=self.max_depth)
 
         if query_inputs != "":
             query_inputs = f"({query_inputs})"
@@ -81,7 +67,7 @@ class DOSPayloadMaterializer(Materializer):
         payload = f"""
         query {{
             {query_name} {query_inputs}
-            {query_outputs}
+            {query_output}
         }}
         """
         pretty_payload = prettify_graphql_payload(payload)

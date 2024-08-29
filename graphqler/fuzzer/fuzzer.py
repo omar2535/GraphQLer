@@ -13,6 +13,7 @@ from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.file_utils import read_yaml_to_dict
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.stats import Stats
+from graphqler.utils.api import API
 from .fengine.fengine import FEngine
 from .fengine.types import Result
 
@@ -36,43 +37,17 @@ class Fuzzer(object):
         self.url = url
         self.logger = Logger().get_fuzzer_logger()
         self.stats = Stats()
-
-        self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
-        self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
-        self.extracted_enums_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
-        self.extracted_input_objects_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
-        self.extracted_unions_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
-        self.extracted_interfaces_save_path = Path(save_path) / constants.INTERFACE_LIST_FILE_NAME
-
-        self.queries = read_yaml_to_dict(self.compiled_queries_save_path)
-        self.objects = read_yaml_to_dict(self.compiled_objects_save_path)
-        self.mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
-        self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path)
-        self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
-        self.unions = read_yaml_to_dict(self.extracted_unions_save_path)
-        self.interfaces = read_yaml_to_dict(self.extracted_interfaces_save_path)
+        self.api = API(url, save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
-        self.fengine = FEngine(
-            self.queries,
-            self.objects,
-            self.mutations,
-            self.input_objects,
-            self.enums,
-            self.unions,
-            self.interfaces,
-            self.url,
-            self.save_path
-        )
-
+        self.fengine = FEngine(self.api)
         self.objects_bucket = {}
 
         # Stats about the run
         self.dfs_ran_nodes: set[Node] = set()
-        self.stats.number_of_queries = len(self.queries.keys())
-        self.stats.number_of_mutations = len(self.mutations.keys())
-        self.stats.number_of_objects = len(self.objects.keys())
+        self.stats.number_of_queries = self.api.get_num_queries()
+        self.stats.number_of_mutations = self.api.get_num_mutations()
+        self.stats.number_of_objects = self.api.get_num_objects()
 
     def run(self) -> dict:
         """Runs the fuzzer

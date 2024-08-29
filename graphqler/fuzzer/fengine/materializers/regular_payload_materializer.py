@@ -5,26 +5,13 @@ Materializes a mutation that is ready to be sent off
 from .materializer import Materializer
 from .utils.materialization_utils import prettify_graphql_payload
 from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
+from graphqler.utils.api import API
 
 
 class RegularPayloadMaterializer(Materializer):
-    def __init__(self,
-                 objects: dict,
-                 queries: dict,
-                 mutations: dict,
-                 input_objects: dict,
-                 enums: dict,
-                 unions: dict,
-                 interfaces: dict,
-                 fail_on_hard_dependency_not_met: bool = True):
-        super().__init__(objects, mutations, input_objects, enums, unions, interfaces)
-        self.objects = objects
-        self.queries = queries
-        self.mutations = mutations
-        self.input_objects = input_objects
-        self.enums = enums
-        self.unions = unions
-        self.interfaces = interfaces
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True):
+        super().__init__(api, fail_on_hard_dependency_not_met)
+        self.api = api
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
@@ -49,9 +36,9 @@ class RegularPayloadMaterializer(Materializer):
             raise ValueError("Invalid graphql_type provided")
 
     def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
-        query_info = self.queries[query_name]
+        query_info = self.api.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        query_outputs = self.materialize_output(query_info["output"], [], objects_bucket, False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
 
         if query_inputs != "":
             query_inputs = f"({query_inputs})"
@@ -59,16 +46,16 @@ class RegularPayloadMaterializer(Materializer):
         payload = f"""
         query {{
             {query_name} {query_inputs}
-            {query_outputs}
+            {query_output}
         }}
         """
         pretty_payload = prettify_graphql_payload(payload)
         return pretty_payload, self.used_objects
 
     def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
-        mutation_info = self.mutations[mutation_name]
+        mutation_info = self.api.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        mutation_output = self.materialize_output(mutation_info["output"], [], objects_bucket, False, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
 
         if mutation_inputs.strip() == "":
             mutation_payload = f"""
