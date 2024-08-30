@@ -8,9 +8,7 @@
 6. Clean up
 """
 
-from pathlib import Path
 from graphqler.graph import GraphGenerator, Node
-from graphqler.utils.file_utils import read_yaml_to_dict
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.stats import Stats
 from graphqler.utils.api import API
