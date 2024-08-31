@@ -283,7 +283,7 @@ class Fuzzer(object):
             visit_path (list[Node]): The list of visited paths to arrive at the node
         """
         # DOS Query / Mutation
-        if not constants.SKIP_DOS_ATTACKS:
+        if not constants.SKIP_DOS_ATTACKS and constants.MAX_FUZZING_ITERATIONS != 0:
             random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
             random_number = random.choice(random_numbers)
             if node.graphql_type in ["Query", "Mutation"]:
