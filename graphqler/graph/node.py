@@ -31,4 +31,3 @@ class Node:
 
     def __repr__(self):
         return f"Node({self.graphql_type} | {self.name})"
-
