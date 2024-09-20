@@ -23,3 +23,4 @@ def get_custom_labels(graph):
     for node in graph.nodes():
         labels[node] = f"{node.name}\n({node.graphql_type})"
     return labels
+

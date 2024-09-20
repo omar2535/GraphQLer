@@ -12,12 +12,12 @@ from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.stats import Stats
 from graphqler.utils.api import API
+from graphqler import constants
 from .fengine.fengine import FEngine
 from .fengine.types import Result
 
 import multiprocessing
 import threading
-from graphqler import constants
 import networkx
 import random
 import time
