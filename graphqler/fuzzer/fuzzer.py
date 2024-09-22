@@ -333,4 +333,4 @@ class Fuzzer(object):
 
         # This shouldn't ever be hit, but in case, then we choose random nodes as the starter nodes
         self.logger.error("No starter nodes found, choosing a random node")
-        return [random.choice(self.dependency_graph.nodes)]
+        return [random.choice(list(self.dependency_graph.nodes))]

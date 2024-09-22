@@ -33,7 +33,7 @@ class Materializer:
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
 
-    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str = '') -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
 
         Args:
