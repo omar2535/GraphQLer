@@ -96,7 +96,7 @@ class Compiler:
         result, response = send_graphql_request(self.url, introspection_query)
         if "introspection is not allowed" in response.text.lower():
             self.logger.warning("GraphQL Introspection is not allowed")
-            return None
+            return {}
         elif response.status_code != 200:
             error_message = f"Introspection query failed with status code {response.status_code}"
             self.logger.error(error_message)
@@ -124,7 +124,7 @@ class Compiler:
                 headers=get_headers(),
                 input_document=None,
                 input_schema_path=None,
-                output_path=self.introspection_result_save_path
+                output_path=str(self.introspection_result_save_path)
             )
         )
         schema = json.loads(schema_str)
@@ -144,7 +144,7 @@ class Compiler:
         self.run_parser_and_save_list(self.union_list_parser, self.union_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.interface_list_parser, self.interface_list_save_path, introspection_result)
 
-    def run_parser_and_save_list(self, parser_instance: Parser, save_path: str, introspection_result: dict):
+    def run_parser_and_save_list(self, parser_instance: Parser, save_path: str | Path, introspection_result: dict):
         """Runs the given parser instance on the introspection result and saves to the save_path
 
         Args:

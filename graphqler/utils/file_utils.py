@@ -13,7 +13,7 @@ def initialize_file(file_path: Path):
     open(file_path, "w").close()
 
 
-def write_json_to_file(contents: dict, output_file: str):
+def write_json_to_file(contents: dict, output_file: str | Path):
     """Write JSON to a file
 
     Args:
@@ -24,7 +24,7 @@ def write_json_to_file(contents: dict, output_file: str):
         json.dump(contents, file_handle, indent=4)
 
 
-def write_dict_to_yaml(contents: dict, output_file: str):
+def write_dict_to_yaml(contents: dict, output_file: str | Path):
     """Writes dict to YAML file
 
     Args:
