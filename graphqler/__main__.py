@@ -119,7 +119,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # If not compile mode, check if compiled directory exists
-    if args.mode != 'compile' and not is_compiled(args.path):
+    if args.mode not in ['compile', 'run'] and not is_compiled(args.path):
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
