@@ -2,12 +2,12 @@
 Materializes a mutation that is ready to be sent off
 """
 
-from .materializer import Materializer
-from .utils.materialization_utils import prettify_graphql_payload
+from ..materializer import Materializer
+from ..utils.materialization_utils import prettify_graphql_payload
 from graphqler.utils.api import API
 
 
-class DOSPayloadMaterializer(Materializer):
+class DOSDeepRecursionMaterializer(Materializer):
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
         super().__init__(api, fail_on_hard_dependency_not_met)
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
