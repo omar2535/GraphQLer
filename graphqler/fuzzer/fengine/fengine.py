@@ -20,7 +20,8 @@ from graphqler.utils.api import API
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import Materializer
-from .materializers import RegularPayloadMaterializer, DOSPayloadMaterializer
+from .materializers import RegularPayloadMaterializer
+from .materializers import dos_materializers
 from .retrier import Retrier
 from .utils import check_is_data_empty
 from .types import Result
@@ -52,7 +53,7 @@ class FEngine(object):
         materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
-    def run_dos_payload(self, name: str, objects_bucket: dict, graphql_type: str, max_depth: int = 20) -> tuple[dict, dict, Result]:
+    def run_dos_payloads(self, name: str, objects_bucket: dict, graphql_type: str, max_depth: int = 20) -> list[tuple[dict, dict, Result]]:
         """Runs the DOS payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -62,10 +63,14 @@ class FEngine(object):
             max_depth (int, optional): The maximum recursion depth. Defaults to 20.
 
         Returns:
-            tuple[dict, Response, Result]: The new objects bucket, the response dict, and the result of the query
+            list[tuple[dict, Response, Result]]: A list of results of (The new objects bucket, the response dict, and the result of the query)
         """
-        materializer = DOSPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-        return self.__run_payload(name, objects_bucket, materializer, graphql_type)
+        results = []
+        for dos_materializer in dos_materializers:
+            self.logger.info(f"Running DOS materializer: {dos_materializer.__name__}")
+            materializer = dos_materializer(self.api, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
+            results += [self.__run_payload(name, objects_bucket, materializer, graphql_type)]
+        return results
 
     def __run_payload(self, name: str, objects_bucket: dict, materializer: Materializer, graphql_type: str) -> tuple[dict, dict, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket

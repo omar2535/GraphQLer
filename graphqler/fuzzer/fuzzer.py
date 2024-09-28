@@ -282,13 +282,16 @@ class Fuzzer(object):
             node (Node): The node to fuzz
             visit_path (list[Node]): The list of visited paths to arrive at the node
         """
+        # If not a query or mutation, just return since there's nothing to fuzz / send to the host
+        if node.graphql_type not in ["Query", "Mutation"]:
+            return
         # DOS Query / Mutation
         if not constants.SKIP_DOS_ATTACKS and constants.MAX_FUZZING_ITERATIONS != 0:
             random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
             random_number = random.choice(random_numbers)
-            if node.graphql_type in ["Query", "Mutation"]:
-                self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
-                new_objects_bucket, _graphql_response, res = self.fengine.run_dos_payload(node.name, self.objects_bucket, node.graphql_type, random_number)
+            self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
+            results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
+            for new_objects_bucket, _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:

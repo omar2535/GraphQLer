@@ -4,5 +4,6 @@ from .materializer import Materializer
 # Regular materializers
 from .regular_payload_materializer import RegularPayloadMaterializer
 
-# Fuzzing materializers
-from .dos_payload_materializer import DOSPayloadMaterializer
+# Attack materializers
+from .dos import DOSDeepRecursionMaterializer
+from .dos import dos_materializers
