@@ -4,7 +4,7 @@ Base class for a regular materializer
 
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 from .utils.materialization_utils import is_valid_object_materialization, clean_output_selectors
-from .getters import Getters
+from .getter import Getter
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
 from graphqler.utils.api import API
@@ -16,19 +16,19 @@ import logging
 
 
 class Materializer:
-    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, getters: Getters = Getters()):
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, getter: Getter = Getter()):
         """Default constructor for a regular materializer
 
         Args:
             api (API): The API object
             fail_on_hard_dependency_not_met (bool, optional): Whether to fail on hard dependency not met. Defaults to True.
-            getters (Getters, optional): The getters object. Defaults to Getters()
+            getter (Getter, optional): The getters object. Defaults to Getter()
         """
         self.api = api
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
-        self.getters = getters
+        self.getter = getter
 
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
@@ -318,9 +318,9 @@ class Materializer:
             input_object = self.api.input_objects[input_field["type"]]
             built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
         elif input_field["kind"] == "SCALAR":
-            built_str += self.getters.get_random_scalar(input_name, input_field["type"], objects_bucket)
+            built_str += self.getter.get_random_scalar(input_name, input_field["type"], objects_bucket)
         elif input_field["kind"] == "ENUM":
-            built_str += self.getters.get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
+            built_str += self.getter.get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
         else:
             built_str += ""
 
