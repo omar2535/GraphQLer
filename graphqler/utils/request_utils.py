@@ -98,7 +98,7 @@ def parse_response(response_text: str) -> dict:
         json_text = json.loads(response_text)
         return json_text
     except Exception:
-        return {"errors": json_text}
+        return {"errors": [response_text]}
 
 
 def get_or_create_session() -> requests.Session:
