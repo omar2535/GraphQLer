@@ -37,6 +37,29 @@ def is_valid_object_materialization(materialized_str: str) -> bool:
         return False
 
 
+def clean_output_selectors(output_selectors: str) -> str:
+    """Cleans the output selectors by doing the following:L
+       - Removing any extra commas
+       - Removing Removing keys that don't have an object (ie. {stuff {}, otherstuff} -> {otherstuff})
+
+    Args:
+        output_selectors (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    # Removing any extra commas
+    while ',,' in output_selectors:
+        output_selectors = output_selectors.replace(",,", ",")
+
+    # Removing keys that don't have an object
+    while "{}" in output_selectors:
+        output_selectors = output_selectors.replace("{},", "")
+        output_selectors = output_selectors.replace(",{}", "")
+
+    return output_selectors
+
+
 def remove_consecutive_characters(s: str, char: str) -> str:
     """Removes consecutive occurrences of a specified character in a string,
     reducing them to a single occurrence of the character.

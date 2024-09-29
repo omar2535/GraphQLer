@@ -4,15 +4,17 @@ Materializes a mutation that is ready to be sent off
 
 from .materializer import Materializer
 from .utils.materialization_utils import prettify_graphql_payload
+from .getters import Getters
 from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 from graphqler.utils.api import API
 
 
 class RegularPayloadMaterializer(Materializer):
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True):
-        super().__init__(api, fail_on_hard_dependency_not_met)
+        self.getters = Getters()
         self.api = api
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
+        super().__init__(self.api, self.fail_on_hard_dependency_not_met, self.getters)
 
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
