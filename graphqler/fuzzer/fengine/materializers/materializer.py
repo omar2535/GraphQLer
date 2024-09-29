@@ -3,8 +3,8 @@ Base class for a regular materializer
 """
 
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
-from .utils.utils import get_random_scalar, get_random_enum_value, clean_output_selectors
-from .utils.materialization_utils import is_valid_object_materialization
+from .utils.materialization_utils import is_valid_object_materialization, clean_output_selectors
+from .getters import Getters
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
 from graphqler.utils.api import API
@@ -16,22 +16,19 @@ import logging
 
 
 class Materializer:
-    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True):
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, getters: Getters = Getters()):
         """Default constructor for a regular materializer
 
         Args:
-            objects (dict): The objects that exist in the Graphql schema
-            operator_info (dict): All information about the operator (either all QUERYs or all MUTATIONs) that we want to materialize
-            input_objects (dict): The input objects that exist in the Graphql schema
-            enums (dict): The enums that exist in the Graphql schema
-            unions (dict): The unions that exist in the Graphql schema
-            interfaces (dict): The interfaces that exist in the Graphql schema
-            logger (logging.Logger): The logger
+            api (API): The API object
+            fail_on_hard_dependency_not_met (bool, optional): Whether to fail on hard dependency not met. Defaults to True.
+            getters (Getters, optional): The getters object. Defaults to Getters()
         """
         self.api = api
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
+        self.getters = getters
 
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
@@ -321,9 +318,9 @@ class Materializer:
             input_object = self.api.input_objects[input_field["type"]]
             built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
         elif input_field["kind"] == "SCALAR":
-            built_str += get_random_scalar(input_name, input_field["type"], objects_bucket)
+            built_str += self.getters.get_random_scalar(input_name, input_field["type"], objects_bucket)
         elif input_field["kind"] == "ENUM":
-            built_str += get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
+            built_str += self.getters.get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
         else:
             built_str += ""
 
