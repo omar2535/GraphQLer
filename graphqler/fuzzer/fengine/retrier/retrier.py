@@ -30,8 +30,12 @@ class Retrier:
             tuple[dict, bool]: The response, and whether the retry succeeded or not
         """
         error = gql_response["errors"][0]
-        if ("Cannot return null for non-nullable field" in error["message"]
-                or "Field must have selections" in error["message"]):
+
+        # If the error doesn't have a message, we can't do anything to fix it
+        if "message" not in error:
+            return (gql_response, False)
+
+        if ("Cannot return null for non-nullable field" in error["message"] or "Field must have selections" in error["message"]):
             if "locations" not in error:
                 return (gql_response, False)
             locations = error["locations"]
