@@ -16,13 +16,13 @@ pycares = ">=4.0.0"
 
 [[package]]
 name = "aiohappyeyeballs"
-version = "2.3.5"
+version = "2.4.2"
 description = "Happy Eyeballs for asyncio"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "aiohappyeyeballs-2.3.5-py3-none-any.whl", hash = "sha256:4d6dea59215537dbc746e93e779caea8178c866856a721c9c660d7a5a7b8be03"},
-    {file = "aiohappyeyeballs-2.3.5.tar.gz", hash = "sha256:6fa48b9f1317254f122a07a131a86b71ca6946ca989ce6326fff54a99a920105"},
+    {file = "aiohappyeyeballs-2.4.2-py3-none-any.whl", hash = "sha256:8522691d9a154ba1145b157d6d5c15e5c692527ce6a53c5e5f9876977f6dab2f"},
+    {file = "aiohappyeyeballs-2.4.2.tar.gz", hash = "sha256:4ca893e6c5c1f5bf3888b04cb5a3bee24995398efef6e0b9f747b5e89d84fd74"},
 ]
 
 [[package]]
@@ -711,10 +711,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = [
-    {version = ">=1.16,<2.0", markers = "python_version <= \"3.11\""},
-    {version = ">=1.26.0rc1,<2.0", markers = "python_version >= \"3.12\""},
-]
+numpy = {version = ">=1.26.0rc1,<2.0", markers = "python_version >= \"3.12\""}
 
 [package.extras]
 bokeh = ["bokeh", "selenium"]
@@ -3006,5 +3003,5 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.11,<3.13"
-content-hash = "4c550108f244cd6e1088dde6b695d4955e26b772f2a50a8573415dd16c8e91c0"
+python-versions = ">=3.12,<3.13"
+content-hash = "8dca86d6c8c02bee3bc0b43552864c910a377354982fd382f79d21f85e4dd965"
