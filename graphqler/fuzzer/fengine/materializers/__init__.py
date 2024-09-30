@@ -5,5 +5,5 @@ from .materializer import Materializer
 from .regular_payload_materializer import RegularPayloadMaterializer
 
 # Attack materializers
-from .dos import DOSDeepRecursionMaterializer
 from .dos import dos_materializers
+from .injection import injection_materializers
