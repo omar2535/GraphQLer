@@ -10,8 +10,10 @@ from typing import override
 class SQLInjectionMaterializer(Materializer):
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
         super().__init__(api, fail_on_hard_dependency_not_met)
-        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.max_depth = max_depth
+        self.getter = SQLInjectionGetter()
+        self.api = api
+        self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
     @override
     def get_payload(self, name: str, objects_bucket: dict, graphql_type: str = '') -> tuple[str, dict]:
@@ -82,4 +84,4 @@ class SQLInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        return super().get_random_string(input_name)
+        return f"\"aaa ' OR 1=1--\""

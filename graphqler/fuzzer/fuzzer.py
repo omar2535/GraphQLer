@@ -294,6 +294,12 @@ class Fuzzer(object):
             for new_objects_bucket, _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
+        if not constants.SKIP_INJECTION_ATTACKS:
+            self.logger.info(f"Running injection {node.graphql_type}: {node.name}")
+            results = self.fengine.run_injection_payloads(node.name, self.objects_bucket, node.graphql_type)
+            for new_objects_bucket, _graphql_response, res in results:
+                self.stats.update_stats_from_result(node, res)
+
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node
 

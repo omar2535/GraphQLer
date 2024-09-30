@@ -64,6 +64,7 @@ ALLOW_DELETION_OF_OBJECTS = False  # This mode is for when we want to allow the 
 MAX_FUZZING_ITERATIONS = 5
 MAX_TIME = 3600  # in seconds
 SKIP_DOS_ATTACKS = False  # This mode is for when we want to skip the DoS check
+SKIP_INJECTION_ATTACKS = False # This mode is for when we want to skip the injection check
 
 """For each request"""
 REQUEST_TIMEOUT = 120 # in seconds
