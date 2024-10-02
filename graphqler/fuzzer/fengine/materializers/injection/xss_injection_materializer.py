@@ -8,7 +8,7 @@ from typing import override
 
 # The main class that's being used
 class XSSInjectionMaterializer(InjectionMaterializer):
-    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20): 
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20):
         super().__init__(api, fail_on_hard_dependency_not_met)
         self.api = api
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
