@@ -36,7 +36,7 @@ jobs:
     - name: Run integration test for food delivery API
       run: |
         poetry run pytest tests/integration/test_food_delivery_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
-    
+
     - name: Run integration test for user wallet API
       run: |
         poetry run pytest tests/integration/test_user_wallet_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
