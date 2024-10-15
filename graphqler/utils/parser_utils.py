@@ -40,6 +40,7 @@ def get_output_type(operation_name: str, operations: dict) -> str:
     else:
         return type_to_parse["name"]
 
+
 def get_output_type_from_details(operation_details: dict) -> str:
     """Gets the output type from the operation details
 
