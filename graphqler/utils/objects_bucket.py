@@ -14,7 +14,6 @@ from graphqler.constants import USE_OBJECTS_BUCKET
 from .singleton import singleton
 from graphqler.utils.api import API
 from graphqler.utils.parser_utils import get_output_type_from_details
-import random
 import pprint
 
 
@@ -24,7 +23,7 @@ class ObjectsBucket:
         self.bucket = {}
         self.api = api
 
-        # Stores {object_name: set() }} where set() is a result with the scalar fields of the object
+        # Stores {object_name: {type: str, results: dict}} where set() is a result with the scalar fields of the object
         self.objects: dict[str, set] = {}
 
         # Stores the raw scalars {scalar_name: {type: str, values: set() }} where set() is a result with the scalar fields of the object
@@ -45,7 +44,7 @@ class ObjectsBucket:
         return name in self.bucket
 
     def put_in_bucket(self, response_data: dict) -> bool:
-        """Puts an object in the bucket, returns the new bucket. If the object already exists, it will not be added.
+        """Puts an object in the bucket, returns True if the object was added, False otherwise
 
         Args:
             response_data (dict): The data to put in the bucket. This is the responses data from GraphQL
@@ -65,10 +64,8 @@ class ObjectsBucket:
         for data_key, data in response_data.items():
             if self.api.is_operation_in_api(data_key):
                 self.parse_as_object(data_key, data)
-
-            else:
-                # This means the operation name isn't known to us -- just parse the data as a regular scalar
-                self.parse_as_scalar(data_key, data)
+            # Regardless, always parse the entire data into our scalars bucket as well for future lookups
+            self.parse_as_scalar(data_key, data)
         return True
 
     def parse_as_object(self, operation_name: str, data: dict | list[dict]):
@@ -88,8 +85,8 @@ class ObjectsBucket:
         else:
             self.put_object_in_bucket(operation_output_type, data)
 
-    def parse_as_scalar(self, method_name: str, method_data: str):
-        """Parses the data as a scalar
+    def parse_as_scalar(self, method_name: str, method_data: dict | list | str | int | float | bool | None):
+        """Parses the data as a scalar (can be a list, dict, or any of the base GraphQL types
 
         Args:
             method_name (str): The method name
@@ -97,11 +94,40 @@ class ObjectsBucket:
         """
         if isinstance(method_data, str):
             self.put_scalar_in_bucket(method_name, "String", method_data)
+        elif isinstance(method_data, bool):
+            self.put_scalar_in_bucket(method_name, "Boolean", method_data)
+        elif isinstance(method_data, int):
+            self.put_scalar_in_bucket(method_name, "Int", method_data)
+        elif isinstance(method_data, float):
+            self.put_scalar_in_bucket(method_name, "Float", method_data)
+        elif isinstance(method_data, list):
+            for item in method_data:
+                self.parse_as_scalar(method_name, item)
+        elif isinstance(method_data, dict):
+            self.parse_object_scalars(method_data)
 
     def put_object_in_bucket(self, object_name: str, object_info: dict):
-        pass
+        """Puts an object in the bucket
 
-    def put_scalar_in_bucket(self, name: str, type: str, data: str):
+        Args:
+            object_name (str): The object's name
+            object_info (dict): The object's info
+        """
+        if object_name not in self.objects:
+            self.objects[object_name] = set()
+
+        self.objects[object_name].add(object_info)
+
+    def parse_object_scalars(self, object_info: dict):
+        """Parses each field of a dictionary as a scalar and parses it into the scalar components
+
+        Args:
+            object_info (dict): The object info
+        """
+        for field_name, field_value in object_info.items():
+            self.parse_as_scalar(field_name, field_value)
+
+    def put_scalar_in_bucket(self, name: str, type: str, data: str | int | float | bool):
         """Puts scalar in the bucket
 
         Args:
@@ -110,5 +136,5 @@ class ObjectsBucket:
             data (str): The scalar's data
         """
         if name not in self.scalars:
-            self.scalars[name] = {"type": type, "values": set(data)}
+            self.scalars[name] = {"type": type, "values": {data}}
         self.scalars[name]["values"].add(data)
