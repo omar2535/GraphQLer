@@ -18,7 +18,7 @@ def get_base_oftype(oftype: dict) -> dict:
         return oftype
 
 
-def get_output_type(payload_name: str, payloads: dict) -> str:
+def get_output_type(operation_name: str, operations: dict) -> str:
     """Gets the mutation/query's output type. If it's a SCALAR, just returns the name of the field
        If it's an object, returns the Object's name
 
@@ -29,11 +29,30 @@ def get_output_type(payload_name: str, payloads: dict) -> str:
     Returns:
         str: The output name
     """
-    payload_info = payloads[payload_name]
+    payload_info = operations[operation_name]
     if payload_info["output"]["ofType"] is not None:
         type_to_parse = get_base_oftype(payload_info["output"]["ofType"])
     else:
         type_to_parse = payload_info["output"]
+
+    if type_to_parse["kind"] == "OBJECT":
+        return type_to_parse["type"]
+    else:
+        return type_to_parse["name"]
+
+def get_output_type_from_details(operation_details: dict) -> str:
+    """Gets the output type from the operation details
+
+    Args:
+        operation_details (str): The operation details
+
+    Returns:
+        str: The output type
+    """
+    if operation_details["output"]["ofType"] is not None:
+        type_to_parse = get_base_oftype(operation_details["output"]["ofType"])
+    else:
+        type_to_parse = operation_details["output"]
 
     if type_to_parse["kind"] == "OBJECT":
         return type_to_parse["type"]

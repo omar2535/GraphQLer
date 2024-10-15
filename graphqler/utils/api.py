@@ -90,3 +90,29 @@ class API:
             int: The number of interfaces
         """
         return len(self.interfaces.keys())
+
+    def is_operation_in_api(self, operation: str) -> bool:
+        """Checks if the operation is in the API
+
+        Args:
+            operation (str): The operation
+
+        Returns:
+            bool: True if the operation is in the API, False otherwise
+        """
+        return operation in self.queries or operation in self.mutations
+
+    def get_operation(self, operation: str) -> dict:
+        """Gets the operation from the API
+
+        Args:
+            operation (str): The operation
+
+        Returns:
+            dict: The operation
+        """
+        if operation in self.queries:
+            return self.queries[operation]
+        if operation in self.mutations:
+            return self.mutations[operation]
+        return {}
