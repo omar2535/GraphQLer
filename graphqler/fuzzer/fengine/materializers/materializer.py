@@ -2,11 +2,13 @@
 Base class for a regular materializer
 """
 
+from graphqler.utils.objects_bucket import ObjectsBucket
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 from .utils.materialization_utils import is_valid_object_materialization, clean_output_selectors
 from .getter import Getter
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
+from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.api import API
 from graphqler import constants
 
@@ -30,7 +32,7 @@ class Materializer:
         self.used_objects = {}
         self.getter = getter
 
-    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
 
         Args:
@@ -46,7 +48,7 @@ class Materializer:
     def materialize_output(self,
                            operator_info: dict,
                            output: dict,
-                           objects_bucket: dict,
+                           objects_bucket: ObjectsBucket,
                            max_depth: int = 5) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
@@ -85,7 +87,7 @@ class Materializer:
                                      operator_info: dict,
                                      output_field: dict,
                                      used_objects: list[str],
-                                     objects_bucket: dict,
+                                     objects_bucket: ObjectsBucket,
                                      include_name: bool,
                                      max_depth: int,
                                      current_depth: int = 0) -> str:
@@ -173,7 +175,7 @@ class Materializer:
                                          operator_info: dict,
                                          object_name: str,
                                          used_objects: list[str],
-                                         objects_bucket: dict,
+                                         objects_bucket: ObjectsBucket,
                                          max_depth: int,
                                          current_depth: int) -> str:
         """Loop through an objects fields, and call materialize_output on each of them
@@ -215,7 +217,7 @@ class Materializer:
     def materialize_inputs(self,
                            operator_info: dict,
                            inputs: dict,
-                           objects_bucket: dict,
+                           objects_bucket: ObjectsBucket,
                            max_depth: int) -> str:
         """Goes through the inputs of the payload
 
@@ -233,7 +235,7 @@ class Materializer:
     def materialize_input_fields(self,
                                  operator_info: dict,
                                  inputs: dict,
-                                 objects_bucket: dict,
+                                 objects_bucket: ObjectsBucket,
                                  max_depth: int,
                                  current_depth: int = 0) -> str:
         """Goes through the inputs of the payload
@@ -260,7 +262,7 @@ class Materializer:
     def materialize_input_recursive(self,
                                     operator_info: dict,
                                     input_field: dict,
-                                    objects_bucket: dict,
+                                    objects_bucket: ObjectsBucket,
                                     input_name: str,
                                     check_deps: bool,
                                     max_depth: int,

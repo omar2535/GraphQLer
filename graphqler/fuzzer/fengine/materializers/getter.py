@@ -5,6 +5,7 @@ Used by the materializer to understand how to get values for fields
 
 from graphql import parse, print_ast
 from datetime import datetime, timedelta
+from graphqler.utils.objects_bucket import ObjectsBucket
 import random
 import string
 import Levenshtein
@@ -71,7 +72,7 @@ class Getter:
         return f"\"{graphql_datetime}\""
 
     # Gets a random scalar for the scalar type given
-    def get_random_scalar(self, input_name: str, scalar_type: str, objects_bucket: dict) -> str:
+    def get_random_scalar(self, input_name: str, scalar_type: str, objects_bucket: ObjectsBucket) -> str:
         """Gets a random scalar based on the scalar type, the return value will
            be a string regardless if of it's type as this function meant to be used
            during materialization
@@ -134,7 +135,7 @@ class Getter:
         else:
             raise Exception("No non-deprecated enum values found for this enum")
 
-    def get_random_id_from_bucket(self, input_name: str, objects_bucket: dict) -> str:
+    def get_random_id_from_bucket(self, input_name: str, objects_bucket: ObjectsBucket) -> str:
         """Tries to get an ID from the bucket based on the input_name first, then just randomly chooses an ID from the bucket,
            if the bucket is empty, then just returns an empty string
         Gets a random ID from the bucket, or just "" if there are no IDs in the bucket
@@ -153,7 +154,7 @@ class Getter:
         random_object = random.choice(objects_bucket[key])
         return f'"{random_object}"'
 
-    def get_closest_key_to_bucket(self, input_name: str, objects_bucket: dict) -> str:
+    def get_closest_key_to_bucket(self, input_name: str, objects_bucket: ObjectsBucket) -> str:
         """Tries to find the object name if it has ID behind, if not, then chooses at random
         Args:
             input_name (str): The input name

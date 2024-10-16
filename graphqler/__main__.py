@@ -64,11 +64,11 @@ def run_fuzz_mode(path: str, url: str):
     if constants.USE_DEPENDENCY_GRAPH:
         print("(F) Running in dependency graph mode")
         objects_bucket = Fuzzer(path, url).run()
-        pprint.pprint(objects_bucket)
+        print(objects_bucket)
     else:
         print("(F) Not using dependency graph")
         objects_bucket = Fuzzer(path, url).run_no_dfs()
-        pprint.pprint(objects_bucket)
+        print(objects_bucket)
 
     print("(F) Saving objects bucket")
     with open(f"{path}/objects_bucket.pkl", "wb") as f:
