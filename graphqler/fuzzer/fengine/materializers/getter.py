@@ -149,3 +149,28 @@ class Getter:
 
         random_id = objects_bucket.get_random_scalar_from_bucket_by_type('ID')
         return str(random_id)
+
+    def get_closest_value_to_input(self, input_name: str, object_name: str, objects_bucket: ObjectsBucket) -> str | int | float | bool:
+        """Gets the closest value to the input name given the object name, the input name, and the objects bucket
+        Args:
+            input_name (str): The input name
+            object_name (str): The object name
+            objects_bucket (dict): The objects bucket
+
+        Returns:
+            str: The closest field name
+        """
+        # Get the object from the bucket
+        found_value = objects_bucket.get_random_object_field_value(object_name, input_name)
+        if found_value is not None:
+            return found_value
+
+        # Get the object name without the input name
+        new_field_name = input_name.lower().replace(object_name.lower(), "")
+
+        # Try finding the value again
+        found_value = objects_bucket.get_random_object_field_value(object_name, new_field_name)
+        if found_value is not None:
+            return found_value
+
+        raise Exception(f"Could not find a value for the input name: {input_name} in the object: {object_name}")

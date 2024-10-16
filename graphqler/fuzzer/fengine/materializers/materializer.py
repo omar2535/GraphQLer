@@ -290,7 +290,7 @@ class Materializer:
             hard_dependency_object_name = hard_dependencies[input_field["name"]]
             if objects_bucket.is_object_in_bucket(hard_dependency_object_name):
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_object_dependency_val = objects_bucket.get_random_object_field(hard_dependency_object_name, input_field["name"])
+                randomly_chosen_object_dependency_val = self.getter.get_closest_value_to_input(input_field["name"], hard_dependency_object_name, objects_bucket)
                 self.used_objects[hard_dependency_object_name] = randomly_chosen_object_dependency_val
                 built_str += f'"{randomly_chosen_object_dependency_val}"'
             elif hard_dependency_object_name == "UNKNOWN":
@@ -306,7 +306,7 @@ class Materializer:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_dependency_val = objects_bucket.get_random_object_field(soft_depedency_name, input_field["name"])
+                randomly_chosen_dependency_val = objects_bucket.get_random_object_field_value(soft_depedency_name, input_field["name"])
                 self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
                 built_str += f'"{randomly_chosen_dependency_val}"'
             else:

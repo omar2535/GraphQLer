@@ -57,7 +57,7 @@ class ObjectsBucket:
 
         return next(iter(self.objects[object_name]))
 
-    def get_random_object_field(self, object_name: str, field_name: str) -> str | int | float | bool:
+    def get_random_object_field_value(self, object_name: str, field_name: str) -> str | int | float | bool | None:
         """Returns a random field from an object
 
         Args:
@@ -75,7 +75,7 @@ class ObjectsBucket:
         found_key, found_value = self.find_key_in_dict(object_to_use, field_name)
 
         if found_value is None:
-            raise Exception(f"Field {field_name} not found in object {object_name} with value {object_to_use}")
+            return None
         return found_value
 
     # ------------------- SETTERS -------------------
