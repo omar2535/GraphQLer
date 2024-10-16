@@ -245,7 +245,6 @@ class FEngine(object):
             self.logger.info(f"Response: {graphql_response}")
 
             if type(graphql_response["data"][query_name]) is dict:
-                query_output_type = get_output_type(query_name, self.api.queries)
                 objects_bucket.put_in_bucket(graphql_response["data"])
                 # TODO: Implement this
                 # Either we have a single object or a list of objects

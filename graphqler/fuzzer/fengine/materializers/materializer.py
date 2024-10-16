@@ -2,7 +2,6 @@
 Base class for a regular materializer
 """
 
-from graphqler.utils.objects_bucket import ObjectsBucket
 from ..exceptions.hard_dependency_not_met_exception import HardDependencyNotMetException
 from .utils.materialization_utils import is_valid_object_materialization, clean_output_selectors
 from .getter import Getter
