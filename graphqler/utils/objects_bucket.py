@@ -181,6 +181,14 @@ class ObjectsBucket:
         self.objects.clear()
         self.scalars.clear()
 
+    def is_empty(self) -> bool:
+        """Checks if the object bucket is empty
+
+        Returns:
+            bool: True if the object bucket is empty, False otherwise
+        """
+        return len(self.objects) == 0 and len(self.scalars) == 0
+
     def is_object_in_bucket(self, object_name: str) -> bool:
         """Checks if an object is in the bucket
 

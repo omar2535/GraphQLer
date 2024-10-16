@@ -35,8 +35,11 @@ class Getter:
     def get_random_bool(self, input_name: str) -> str:
         return str(bool(random.getrandbits(1))).lower()
 
-    def get_random_id(self, input_name: str) -> str:
-        return '"' + "".join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '"'
+    def get_random_id(self, input_name: str, objects_bucket: ObjectsBucket) -> str:
+        random_id = self.get_random_id_from_bucket(input_name, objects_bucket)
+        if random_id.strip() == "":
+            random_id = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        return '"' + str(random_id) + '"'
 
     def get_random_date(self, input_name: str) -> str:
         return f"\"{datetime.today().strftime('%Y-%m-%d')}\""
@@ -50,8 +53,8 @@ class Getter:
         return str(random.randint(0, 1000000))
 
     def get_random_datetime(self, input_name: str) -> str:
-        # Current datetime
-        now = datetime.utcnow()
+        # Current datetime)
+        now = datetime.now()
         # Range: 3 days before to 3 days after the current datetime
         start_date = now - timedelta(days=3)
         end_date = now + timedelta(days=3)
@@ -95,10 +98,7 @@ class Getter:
         elif scalar_type == "Date":
             return self.get_random_date(input_name)
         elif scalar_type == "ID":
-            random_id = self.get_random_id_from_bucket(input_name, objects_bucket)
-            if random_id == "":
-                random_id = str(self.get_random_id(input_name))
-            return random_id
+            return self.get_random_id(input_name, objects_bucket)
         elif scalar_type == "Cursor":
             if input_name == "after" or input_name == "from":
                 return "null"
@@ -107,10 +107,7 @@ class Getter:
         else:
             # Must be a custom scalar, check if it's an ID, if not then just fail
             if scalar_type.lower().endswith("id") or scalar_type.lower().endswith("ids"):
-                random_id = self.get_random_id_from_bucket(input_name, objects_bucket)
-                if random_id == "":
-                    random_id = str(self.get_random_id(input_name))
-                return random_id
+                return str(self.get_random_id(input_name, objects_bucket))
             elif scalar_type.lower() == "time":
                 return self.get_random_time(input_name)
             elif scalar_type.lower() == "long":
@@ -147,27 +144,8 @@ class Getter:
             str: an ID
         """
         # If it's empty, just return a random ID
-        if not objects_bucket:
+        if objects_bucket.is_empty():
             return ""
 
-        key = self.get_closest_key_to_bucket(input_name, objects_bucket)
-        random_object = random.choice(objects_bucket[key])
-        return f'"{random_object}"'
-
-    def get_closest_key_to_bucket(self, input_name: str, objects_bucket: ObjectsBucket) -> str:
-        """Tries to find the object name if it has ID behind, if not, then chooses at random
-        Args:
-            input_name (str): The input name
-            objects_bucket (dict): The objects bucket
-
-        Returns:
-            str: The key of the object
-        """
-        # Tries for the object name
-        if input_name.endswith("Id"):
-            object_name = input_name[0].capitalize() + input_name[1:-2]
-            if object_name in objects_bucket:
-                return object_name
-
-        # Gives up and gets a key
-        return random.choice(list(objects_bucket.keys()))
+        random_id = objects_bucket.get_random_scalar_from_bucket_by_type('ID')
+        return str(random_id)
