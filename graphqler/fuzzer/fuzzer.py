@@ -254,12 +254,13 @@ class Fuzzer(object):
         """
         neighboring_nodes = self._get_neighboring_nodes(node)
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
+        self.logger.info(self.objects_bucket)
 
         if node.graphql_type == "Object":
             if self.objects_bucket.is_object_in_bucket(node.name):
-                return ([], Result.INTERNAL_FAILURE)
-            else:
                 return (new_visit_paths, Result.GENERAL_SUCCESS)
+            else:
+                return ([], Result.INTERNAL_FAILURE)
         else:
             _graphql_response, res = self.fengine.run_regular_payload(
                 node.name,

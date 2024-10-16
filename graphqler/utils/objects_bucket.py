@@ -16,6 +16,7 @@ from graphqler.utils.api import API
 from graphqler.utils.parser_utils import get_output_type_from_details
 import pprint
 
+import random
 
 @singleton
 class ObjectsBucket:
@@ -31,15 +32,14 @@ class ObjectsBucket:
     def __str__(self):
         """Returns a string representation of the objects bucket
         """
-        built_str = ""
+        built_str = "ObjectsBucket("
         for object_name, objects in self.objects.items():
-            built_str += f"Object: {object_name}\n"
-            for obj in objects:
-                built_str += pprint.pformat(obj) + "\n"
+            built_str += f"{object_name}:{objects}\n"
 
         for scalar_name, scalar in self.scalars.items():
             built_str += f"Scalar: {scalar_name} | Type: {scalar['type']} | Values: {scalar['values']}\n"
 
+        built_str += ")\n"
         return built_str
 
     # ------------------- GETTERS -------------------
@@ -56,6 +56,27 @@ class ObjectsBucket:
             return {}
 
         return next(iter(self.objects[object_name]))
+
+    def get_random_object_field(self, object_name: str, field_name: str) -> str | int | float | bool:
+        """Returns a random field from an object
+
+        Args:
+            object_name (str): The object name
+            field_name (str): The field name
+
+        Returns:
+            str | int | float | bool: The field value
+        """
+        if object_name not in self.objects:
+            raise Exception("Object not found in bucket")
+
+        random_index = random.randint(0, len(self.objects[object_name]) - 1)
+        object_to_use = self.objects[object_name][random_index]
+        found_key, found_value = self.find_key_in_dict(object_to_use, field_name)
+
+        if found_value is None:
+            raise Exception(f"Field {field_name} not found in object {object_name} with value {object_to_use}")
+        return found_value
 
     # ------------------- SETTERS -------------------
     def put_in_bucket(self, response_data: dict) -> bool:
@@ -170,3 +191,51 @@ class ObjectsBucket:
             bool: True if the object is in the bucket, False otherwise
         """
         return object_name in self.objects and len(self.objects[object_name]) > 0
+
+    def find_key_in_dict(self, dictionary: dict, key: str) -> tuple[str, str | int | float | bool | None]:
+        """Recursively searches for the key in a nested dictionary and returns its full path and value.
+
+        Args:
+            dictionary (dict): The dictionary to search
+            key (str): The key to search for
+
+        Returns:
+            tuple[str, str | int | float | bool | None]: The key and value
+
+        """
+        for k, v in dictionary.items():
+            if k == key:
+                return k, v
+            if isinstance(v, dict):
+                result = self.find_key_in_dict(v, key)
+                if result is not None:
+                    return result
+        return ("", None)
+
+    def get_random_scalar_from_bucket_by_type(self, scalar_type: str) -> str | int | float | bool:
+        """Gets a random scalar from the bucket
+
+        Args:
+            scalar_type (str): The scalar type
+
+        Returns:
+            str | int | float | bool: The scalar value
+        """
+        for scalar_name, scalar in self.scalars.items():
+            if scalar["type"] == scalar_type:
+                return random.choice(list(scalar["values"]))
+        return ""
+
+    def get_random_scalar_from_bucket_by_name(self, scalar_name) -> str | int | float | bool:
+        """Gets a random scalar from the bucket with the name
+
+        Args:
+            scalar_name (str): The scalar name
+
+        Returns:
+            str | int | float | bool: The scalar value
+        """
+        if scalar_name not in self.scalars:
+            return ""
+
+        return random.choice(list(self.scalars[scalar_name]["values"]))

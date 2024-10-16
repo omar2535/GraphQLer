@@ -243,14 +243,8 @@ class FEngine(object):
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
-
             if type(graphql_response["data"][query_name]) is dict:
                 objects_bucket.put_in_bucket(graphql_response["data"])
-                # TODO: Implement this
-                # Either we have a single object or a list of objects
-                # Add them to the objects bucket
-            else:
-                pass
 
             return (graphql_response, Result.HAS_DATA_SUCCESS)
         except bdb.BdbQuit as exc:
