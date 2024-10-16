@@ -7,6 +7,7 @@ from .utils.materialization_utils import prettify_graphql_payload
 from .getter import Getter
 from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 from graphqler.utils.api import API
+from graphqler.utils.objects_bucket import ObjectsBucket
 
 
 class RegularPayloadMaterializer(Materializer):
@@ -16,7 +17,7 @@ class RegularPayloadMaterializer(Materializer):
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         super().__init__(self.api, self.fail_on_hard_dependency_not_met, self.getters)
 
-    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
@@ -37,7 +38,7 @@ class RegularPayloadMaterializer(Materializer):
         else:
             raise ValueError("Invalid graphql_type provided")
 
-    def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def _get_query_payload(self, query_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
         query_info = self.api.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
         query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
@@ -54,7 +55,7 @@ class RegularPayloadMaterializer(Materializer):
         pretty_payload = prettify_graphql_payload(payload)
         return pretty_payload, self.used_objects
 
-    def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def _get_mutation_payload(self, mutation_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
         mutation_info = self.api.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
         mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)

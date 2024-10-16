@@ -12,6 +12,7 @@ from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.stats import Stats
 from graphqler.utils.api import API
+from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler import constants
 from .fengine.fengine import FEngine
 from .fengine.types import Result
@@ -39,7 +40,7 @@ class Fuzzer(object):
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
         self.fengine = FEngine(self.api)
-        self.objects_bucket = {}
+        self.objects_bucket = ObjectsBucket(self.api)
 
         # Stats about the run
         self.dfs_ran_nodes: set[Node] = set()
@@ -47,7 +48,7 @@ class Fuzzer(object):
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
 
-    def run(self) -> dict:
+    def run(self) -> ObjectsBucket:
         """Runs the fuzzer
 
         Returns:
@@ -74,7 +75,7 @@ class Fuzzer(object):
 
         return self.objects_bucket
 
-    def run_single(self, node_name: str) -> dict:
+    def run_single(self, node_name: str) -> ObjectsBucket:
         """Runs a single node
 
         Args:
@@ -96,7 +97,7 @@ class Fuzzer(object):
         self.stats.save()
         return self.objects_bucket
 
-    def run_no_dfs(self) -> dict:
+    def run_no_dfs(self) -> ObjectsBucket:
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
 
         Returns:
@@ -164,7 +165,6 @@ class Fuzzer(object):
         """
         for current_node in nodes:
             self.stats.print_running_stats()
-            new_objects_bucket = self.objects_bucket
             self.logger.info(f"Running node: {current_node}")
             _next_visit_path, result = self.__evaluate_node(current_node, [current_node], check_hard_depends_on=False)
             self.__fuzz_node(current_node, [current_node])
@@ -175,7 +175,6 @@ class Fuzzer(object):
             # If it was a success, then update the objects bucket
             if result.get_success():
                 self.logger.info(f"Node was successful: {current_node}")
-                self.objects_bucket = new_objects_bucket
 
     def __perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
         """Performs DFS with the initial starter stack
@@ -257,19 +256,18 @@ class Fuzzer(object):
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
         if node.graphql_type == "Object":
-            if node.name not in self.objects_bucket or len(self.objects_bucket[node.name]) == 0:
+            if self.objects_bucket.is_object_in_bucket(node.name):
                 return ([], Result.INTERNAL_FAILURE)
             else:
                 return (new_visit_paths, Result.GENERAL_SUCCESS)
         else:
-            new_objects_bucket, _graphql_response, res = self.fengine.run_regular_payload(
+            _graphql_response, res = self.fengine.run_regular_payload(
                 node.name,
                 self.objects_bucket,
                 node.graphql_type,
                 check_hard_depends_on=check_hard_depends_on
             )
             if res == Result.GENERAL_SUCCESS:
-                self.objects_bucket = new_objects_bucket
                 return (new_visit_paths, res)
             else:
                 return ([], res)
@@ -291,13 +289,13 @@ class Fuzzer(object):
             random_number = random.choice(random_numbers)
             self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
             results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
-            for new_objects_bucket, _graphql_response, res in results:
+            for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
         if not constants.SKIP_INJECTION_ATTACKS:
             self.logger.info(f"Running injection {node.graphql_type}: {node.name}")
             results = self.fengine.run_injection_payloads(node.name, self.objects_bucket, node.graphql_type)
-            for new_objects_bucket, _graphql_response, res in results:
+            for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:

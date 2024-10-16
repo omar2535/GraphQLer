@@ -3,11 +3,12 @@
 from graphqler.fuzzer.fuzzer import Fuzzer
 from graphqler.graph import Node
 from graphqler.utils.logging_utils import Logger
+from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.fuzzer.fengine.types.result import Result
 
 
 class IDORFuzzer(Fuzzer):
-    def __init__(self, path: str, url: str, objects_bucket: dict):
+    def __init__(self, path: str, url: str, objects_bucket: ObjectsBucket):
         """Iniitializes the IDOR fuzzer
 
         Args:
@@ -22,14 +23,14 @@ class IDORFuzzer(Fuzzer):
         self.logger = Logger().get_idor_logger()
         self.fengine.logger = self.logger
 
-    def run(self) -> list[Node]:
+    def run(self) -> ObjectsBucket:
         """Runs the fuzzer
 
         Returns:
             dict: The objects bucket
         """
         self.logger.info("Starting IDOR Fuzzer")
-        nodes_to_check: list[Node] = self.dependency_graph.nodes
+        nodes_to_check: list[Node] = list(self.dependency_graph.nodes)
         possible_idor_nodes: list[Node] = []
 
         for node in nodes_to_check:
@@ -38,7 +39,7 @@ class IDORFuzzer(Fuzzer):
                 possible_idor_nodes.append(node)
 
         self.logger.info(f"Possible IDOR nodes: {possible_idor_nodes}")
-        return possible_idor_nodes
+        return self.objects_bucket
 
     def check_node(self, node: Node) -> bool:
         """Checks if a node has a possible IDOR vulnerability, if it does, return True, else False
@@ -50,7 +51,7 @@ class IDORFuzzer(Fuzzer):
             bool: True if has suspected IDOR vulenrablity, False otherwise
         """
         if node.graphql_type == "Query" or node.graphql_type == "Mutation":
-            _objects_bucket, graphql_response, result = self.fengine.run_regular_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+            graphql_response, result = self.fengine.run_regular_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
             if result == Result.HAS_DATA_SUCCESS:
                 return True
         return False

@@ -20,29 +20,44 @@ import pprint
 @singleton
 class ObjectsBucket:
     def __init__(self, api: API):
-        self.bucket = {}
         self.api = api
 
-        # Stores {object_name: {type: str, results: dict}} where set() is a result with the scalar fields of the object
-        self.objects: dict[str, set] = {}
+        # Stores {object_name: {type: str, results: dict}} where list is a result with the scalar fields of the object
+        self.objects: dict[str, list] = {}
 
         # Stores the raw scalars {scalar_name: {type: str, values: set() }} where set() is a result with the scalar fields of the object
         self.scalars: dict[str, dict] = {}
 
     def __str__(self):
-        return pprint.pformat(self.bucket)
+        """Returns a string representation of the objects bucket
+        """
+        built_str = ""
+        for object_name, objects in self.objects.items():
+            built_str += f"Object: {object_name}\n"
+            for obj in objects:
+                built_str += pprint.pformat(obj) + "\n"
 
-    def is_object_in_bucket(self, name: str) -> bool:
-        """Checks if the object is in the bucket
+        for scalar_name, scalar in self.scalars.items():
+            built_str += f"Scalar: {scalar_name} | Type: {scalar['type']} | Values: {scalar['values']}\n"
+
+        return built_str
+
+    # ------------------- GETTERS -------------------
+    def get_random_object(self, object_name: str) -> dict:
+        """Returns a random object from the bucket
 
         Args:
-            name (str): The objects name
+            object_name (str): The object name
 
         Returns:
-            bool: True if the object is in the bucket, False otherwise
+            dict: A random object from the bucket
         """
-        return name in self.bucket
+        if object_name not in self.objects:
+            return {}
 
+        return next(iter(self.objects[object_name]))
+
+    # ------------------- SETTERS -------------------
     def put_in_bucket(self, response_data: dict) -> bool:
         """Puts an object in the bucket, returns True if the object was added, False otherwise
 
@@ -114,9 +129,8 @@ class ObjectsBucket:
             object_info (dict): The object's info
         """
         if object_name not in self.objects:
-            self.objects[object_name] = set()
-
-        self.objects[object_name].add(object_info)
+            self.objects[object_name] = []
+        self.objects[object_name].append(object_info)
 
     def parse_object_scalars(self, object_info: dict):
         """Parses each field of a dictionary as a scalar and parses it into the scalar components
@@ -138,3 +152,21 @@ class ObjectsBucket:
         if name not in self.scalars:
             self.scalars[name] = {"type": type, "values": {data}}
         self.scalars[name]["values"].add(data)
+
+    # ------------------- HELPERS -------------------
+    def clear_bucket(self):
+        """Clears the bucket
+        """
+        self.objects.clear()
+        self.scalars.clear()
+
+    def is_object_in_bucket(self, object_name: str) -> bool:
+        """Checks if an object is in the bucket
+
+        Args:
+            object_name (str): The object name
+
+        Returns:
+            bool: True if the object is in the bucket, False otherwise
+        """
+        return object_name in self.objects and len(self.objects[object_name]) > 0

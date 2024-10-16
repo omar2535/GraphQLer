@@ -4,6 +4,7 @@ Materializes a mutation that is ready to be sent off
 
 from ..materializer import Materializer
 from ..utils.materialization_utils import prettify_graphql_payload
+from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.api import API
 
 
@@ -13,7 +14,7 @@ class DOSDeepRecursionMaterializer(Materializer):
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.max_depth = max_depth
 
-    def get_payload(self, name: str, objects_bucket: dict, graphql_type: str = '') -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str = '') -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
@@ -33,7 +34,7 @@ class DOSDeepRecursionMaterializer(Materializer):
         else:
             raise ValueError("Invalid graphql_type provided")
 
-    def _get_mutation_payload(self, mutation_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def _get_mutation_payload(self, mutation_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
         mutation_info = self.api.mutations[mutation_name]
         mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=self.max_depth)
         mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=self.max_depth)
@@ -56,7 +57,7 @@ class DOSDeepRecursionMaterializer(Materializer):
         pretty_payload = prettify_graphql_payload(mutation_payload)
         return pretty_payload, self.used_objects
 
-    def _get_query_payload(self, query_name: str, objects_bucket: dict) -> tuple[str, dict]:
+    def _get_query_payload(self, query_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
         query_info = self.api.queries[query_name]
         query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=self.max_depth)
         query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=self.max_depth)
