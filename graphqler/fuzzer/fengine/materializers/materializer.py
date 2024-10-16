@@ -287,18 +287,18 @@ class Materializer:
 
         # Must first resolve any dependencies we have access to(since if we go down and resolve ofTypes we lose its name)
         if check_deps and input_field["name"] in hard_dependencies:
-            hard_dependency_name = hard_dependencies[input_field["name"]]
-            if hard_dependency_name in objects_bucket:
+            hard_dependency_object_name = hard_dependencies[input_field["name"]]
+            if objects_bucket.is_object_in_bucket(hard_dependency_object_name):
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_dependency_val = random.choice(objects_bucket[hard_dependency_name])
-                self.used_objects[hard_dependency_name] = randomly_chosen_dependency_val
-                built_str += f'"{randomly_chosen_dependency_val}"'
-            elif hard_dependency_name == "UNKNOWN":
+                randomly_chosen_object_dependency_val = objects_bucket.get_random_object_field(hard_dependency_object_name, input_field["name"])
+                self.used_objects[hard_dependency_object_name] = randomly_chosen_object_dependency_val
+                built_str += f'"{randomly_chosen_object_dependency_val}"'
+            elif hard_dependency_object_name == "UNKNOWN":
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
                 built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
             else:
                 if self.fail_on_hard_dependency_not_met:  # If we are using the dependency graph, then we should be careful dependencies aren't met
-                    raise HardDependencyNotMetException(hard_dependency_name)
+                    raise HardDependencyNotMetException(hard_dependency_object_name)
                 else:  # Otherwise, in regular non-dependency aware mode, we just materialize the input field
                     self.logger.info("Hard dependency not met -- using random input")
                     built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
@@ -306,7 +306,7 @@ class Materializer:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if soft_depedency_name in objects_bucket:
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_dependency_val = random.choice(objects_bucket[soft_depedency_name])
+                randomly_chosen_dependency_val = objects_bucket.get_random_object_field(soft_depedency_name, input_field["name"])
                 self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
                 built_str += f'"{randomly_chosen_dependency_val}"'
             else:
