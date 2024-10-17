@@ -33,15 +33,23 @@ class ObjectsBucket:
     def __str__(self):
         """Returns a string representation of the objects bucket
         """
-        built_str = "ObjectsBucket("
-        for object_name, objects in self.objects.items():
-            built_str += f"{object_name}:{objects}\n"
+        built_str = "\n------------------- OBJECTS BUCKET -------------------\n"
+        built_str += pprint.pformat(self.objects)
 
-        for scalar_name, scalar in self.scalars.items():
-            built_str += f"Scalar: {scalar_name} | Type: {scalar['type']} | Values: {scalar['values']}\n"
+        built_str += "\n------------------- SCALARS BUCKET -------------------\n"
+        built_str += pprint.pformat(self.scalars)
+        # for scalar_name, scalar in self.scalars.items():
+        #     built_str += f"Scalar: {scalar_name} | Type: {scalar['type']} | Values: {scalar['values']}\n"
 
-        built_str += ")\n"
         return built_str
+
+    def __getstate__(self):
+        # Return a dictionary of the attributes to pickle
+        return self.__dict__
+
+    def __setstate__(self, state):
+        # Restore the state from the pickled attributes
+        self.__dict__.update(state)
 
     # ------------------- GETTERS -------------------
     def get_random_object(self, object_name: str) -> dict:

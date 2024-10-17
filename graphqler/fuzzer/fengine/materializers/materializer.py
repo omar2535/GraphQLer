@@ -12,10 +12,6 @@ from graphqler.utils.api import API
 from graphqler import constants
 
 
-import random
-import logging
-
-
 class Materializer:
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, getter: Getter = Getter()):
         """Default constructor for a regular materializer

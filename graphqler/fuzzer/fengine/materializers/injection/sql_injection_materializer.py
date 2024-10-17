@@ -83,4 +83,4 @@ class SQLInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        return f"\"aaa ' OR 1=1--\""
+        return "\"aaa ' OR 1=1--\""

@@ -3,10 +3,10 @@ Graphler - main start
 """
 
 import sys
-import pickle
 import argparse
 import pprint
 import importlib.metadata
+import cloudpickle
 
 from graphqler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer, IDORFuzzer
@@ -72,7 +72,7 @@ def run_fuzz_mode(path: str, url: str):
 
     print("(F) Saving objects bucket")
     with open(f"{path}/objects_bucket.pkl", "wb") as f:
-        pickle.dump(objects_bucket, f)
+        cloudpickle.dump(objects_bucket, f)
 
     print("(F) Complete fuzzing phase")
 
@@ -83,7 +83,7 @@ def run_idor_mode(path: str, url: str):
     logger.initialize_loggers("idor", path)
     try:
         with open(f"{path}/objects_bucket.pkl", "rb") as f:
-            objects_bucket = pickle.load(f)
+            objects_bucket = cloudpickle.load(f)
             possible_idor_nodes = IDORFuzzer(path, url, objects_bucket).run()
             print("Possible IDOR nodes:")
             pprint.pprint(possible_idor_nodes)

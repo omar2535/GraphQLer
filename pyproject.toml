@@ -122,6 +122,7 @@ wcwidth = "0.2.8"
 wrapt = "1.15.0"
 yarl = "1.9.4"
 zipp = "3.19.1"
+cloudpickle = "^3.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "7.4.2"
