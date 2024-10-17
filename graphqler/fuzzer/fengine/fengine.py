@@ -4,27 +4,27 @@
 """
 
 import bdb
-import re
 import traceback
-from pathlib import Path
-from requests import Response
 
 from graphqler import constants
+from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.parser_utils import get_output_type
 from graphqler.utils.request_utils import send_graphql_request
 from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
-from graphqler.utils.api import API
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import Materializer
-from .materializers import RegularPayloadMaterializer
-from .materializers import dos_materializers, injection_materializers
+from .materializers import (
+    Materializer,
+    RegularPayloadMaterializer,
+    dos_materializers,
+    injection_materializers,
+)
 from .retrier import Retrier
-from .utils import check_is_data_empty
 from .types import Result
+from .utils import check_is_data_empty
 
 
 @singleton
