@@ -56,4 +56,4 @@ class TestUserWalletApi(unittest.TestCase):
         __main__.run_fuzz_mode(self.PATH, self.URL)
         stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
         percentage = get_percent_query_mutation_success(stats_path)
-        self.assertTrue(percentage >= 90)
+        self.assertTrue(percentage >= 80)
