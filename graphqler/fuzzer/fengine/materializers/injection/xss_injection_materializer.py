@@ -1,5 +1,4 @@
 from .injection_materializer import InjectionMaterializer
-from ..utils.materialization_utils import prettify_graphql_payload
 from graphqler.utils.api import API
 from ..getter import Getter
 
@@ -23,4 +22,4 @@ class XSSInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        return f"\"<script>alert(1)</script>\""
+        return "\"<script>alert(1)</script>\""
