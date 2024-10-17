@@ -18,6 +18,7 @@ import pprint
 
 import random
 
+
 @singleton
 class ObjectsBucket:
     def __init__(self, api: API):
