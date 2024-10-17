@@ -77,7 +77,7 @@ class Fuzzer(object):
         else:
             return self.objects_bucket
 
-    def run_single(self, node_name: str) -> str:
+    def run_single(self, node_name: str) -> bytes:
         """Runs a single node
 
         Args:
@@ -90,7 +90,7 @@ class Fuzzer(object):
         if len(node) == 0:
             print(f"(F) Node `{node_name}` not found")
             self.logger.error(f"Node `{node_name}` not found")
-            return self.objects_bucket
+            return cloudpickle.dumps(self.objects_bucket)
 
         self.stats.start_time = time.time()
         self.__run_nodes(node)
@@ -100,7 +100,7 @@ class Fuzzer(object):
 
         return cloudpickle.dumps(self.objects_bucket)
 
-    def run_no_dfs(self) -> str:
+    def run_no_dfs(self) -> bytes:
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
 
         Returns:
