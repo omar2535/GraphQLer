@@ -17,6 +17,7 @@ from graphqler import constants
 from .fengine.fengine import FEngine
 from .fengine.types import Result
 
+import cloudpickle
 import multiprocessing
 import threading
 import networkx
@@ -71,11 +72,12 @@ class Fuzzer(object):
 
         # Get results from objects bucket
         if not queue.empty():
-            self.objects_bucket = queue.get()
+            new_objects_bucket = cloudpickle.loads(queue.get())
+            return new_objects_bucket
+        else:
+            return self.objects_bucket
 
-        return self.objects_bucket
-
-    def run_single(self, node_name: str) -> ObjectsBucket:
+    def run_single(self, node_name: str) -> str:
         """Runs a single node
 
         Args:
@@ -95,9 +97,10 @@ class Fuzzer(object):
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()
-        return self.objects_bucket
 
-    def run_no_dfs(self) -> ObjectsBucket:
+        return cloudpickle.dumps(self.objects_bucket)
+
+    def run_no_dfs(self) -> str:
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
 
         Returns:
@@ -108,7 +111,7 @@ class Fuzzer(object):
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()
-        return self.objects_bucket
+        return cloudpickle.dumps(self.objects_bucket)
 
     def __run_steps(self, queue: multiprocessing.Queue):
         """Runs the fuzzer. Performs steps as follows:
@@ -152,7 +155,7 @@ class Fuzzer(object):
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
         self.stats.print_results()
         self.stats.save()
-        queue.put(self.objects_bucket)
+        queue.put(cloudpickle.dumps(self.objects_bucket))
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
