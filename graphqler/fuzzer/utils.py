@@ -1,6 +1,6 @@
-from graphqler.constants import USE_OBJECTS_BUCKET
-from graphqler.graph import Node
 import networkx
+
+from graphqler.graph import Node
 
 
 def get_node(graph: networkx.DiGraph, name: str) -> Node:
