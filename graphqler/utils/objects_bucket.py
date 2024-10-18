@@ -183,6 +183,17 @@ class ObjectsBucket:
             self.scalars[name] = {"type": type, "values": {data}}
         self.scalars[name]["values"].add(data)
 
+    # ------------------- DELETERS -------------------
+    def delete_object_from_bucket(self, object_name: str):
+        """Deletes an object from the bucket
+
+        Args:
+            object_name (str): The object name
+        """
+        # TODO: Need to figure out what to remove from bucket since
+        #       there will be many objects under the object name
+        pass
+
     # ------------------- HELPERS -------------------
     def clear_bucket(self):
         """Clears the bucket
