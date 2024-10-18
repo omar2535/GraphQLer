@@ -11,6 +11,7 @@ class TestFoodDeliveryAPI(unittest.TestCase):
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-food-delivery-api/"
     API_PATH = "tests/test-apis/food-delivery-api"
+    CONFIG_PATH = "tests/test-apis/test_configs/food_delivery_api_config.toml"
     process = None
     process_pid = None
 
@@ -18,6 +19,7 @@ class TestFoodDeliveryAPI(unittest.TestCase):
     def setUpClass(cls):
         cls.process = run_node_project(cls.API_PATH, ['node dbinitializer.js'], str(cls.PORT))
         cls.process_pid = cls.process.pid
+        __main__.set_constants_with_config(cls.CONFIG_PATH)
         wait_for_server(cls.URL, timeout=30)
 
     @classmethod

@@ -11,6 +11,7 @@ class TestUserWalletApi(unittest.TestCase):
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-user-wallet-api/"
     API_PATH = "tests/test-apis/user-wallet-api"
+    CONFIG_PATH = "tests/test-apis/test_configs/user_wallet_api_config.toml"
     process = None
     process_pid = None
 
@@ -18,6 +19,7 @@ class TestUserWalletApi(unittest.TestCase):
     def setUpClass(cls):
         cls.process = run_node_project(cls.API_PATH, [], str(cls.PORT))
         cls.process_pid = cls.process.pid
+        __main__.set_constants_with_config(cls.CONFIG_PATH)
         wait_for_server(cls.URL, timeout=30)
 
     @classmethod
