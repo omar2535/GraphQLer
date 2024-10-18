@@ -17,9 +17,15 @@ class TestUserWalletApi(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Start the GrapQL server
         cls.process = run_node_project(cls.API_PATH, [], str(cls.PORT))
         cls.process_pid = cls.process.pid
-        __main__.set_constants_with_config(cls.CONFIG_PATH)
+
+        # Parse the config
+        config = __main__.parse_config(cls.CONFIG_PATH)
+        __main__.set_constants_with_config(config)
+
+        # Wait for the server to to respond
         wait_for_server(cls.URL, timeout=30)
 
     @classmethod
