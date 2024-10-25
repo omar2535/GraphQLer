@@ -25,6 +25,9 @@ class Stats:
     number_of_successes: int = 0
     number_of_failures: int = 0
 
+    # Detection stats
+    is_introspection_available: bool = False
+
     def __init__(self):
         self.http_status_codes = {}
 
@@ -63,13 +66,14 @@ class Stats:
             payload_name (str): The name of the query or mutation
             status_code (int): The status code
         """
-        if status_code in self.http_status_codes:
-            if payload_name in self.http_status_codes[status_code]:
-                self.http_status_codes[status_code][payload_name] += 1
+        status_code_str = str(status_code)
+        if status_code in self.http_status_codes.keys():
+            if payload_name in self.http_status_codes[status_code_str]:
+                self.http_status_codes[status_code_str][payload_name] += 1
             else:
-                self.http_status_codes[status_code][payload_name] = 1
+                self.http_status_codes[status_code_str][payload_name] = 1
         else:
-            self.http_status_codes[status_code] = {payload_name: 1}
+            self.http_status_codes[status_code_str] = {payload_name: 1}
         self.save()
 
     def set_file_path(self, working_dir: str):
