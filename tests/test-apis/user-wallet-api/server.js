@@ -1,39 +1,49 @@
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
 import { createServer } from 'http';
 import cors from 'cors';
-import { useServer } from 'graphql-ws/lib/use/ws';
-import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
-import schema from './data/schema.js';
 import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/lib/use/ws';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import bodyParser from 'body-parser';
+import fs from 'fs';
+import resolvers from './data/schema.js'; // Import resolvers from schema.js
 
 const PORT = process.env.PORT || 4000;
 const app = express();
+app.use(cors());
 
-app.use('*', cors());
-
+// Create HTTP server
 const httpServer = createServer(app);
+
+// Create the WebSocket server for subscriptions
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: '/graphql',
+});
+
+// Read schema from file
+const schemaString = fs.readFileSync('./data/schema.gql', 'utf-8');
+
+// Create executable schema with imported resolvers
+const schemaExecutable = makeExecutableSchema({ typeDefs: [schemaString], resolvers });
+
+useServer({ schema: schemaExecutable }, wsServer);
 
 const startApolloServer = async () => {
   const server = new ApolloServer({
-    schema,
-    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+    schema: schemaExecutable,
   });
 
   await server.start();
 
-  server.applyMiddleware({ app });
-
-  const wsServer = new WebSocketServer({
-    server: httpServer,
-    path: server.graphqlPath,
-  });
-
-  useServer({ schema }, wsServer);
+  // Use express middleware to handle Apollo Server
+  app.use('/graphql', bodyParser.json(), expressMiddleware(server));
 
   httpServer.listen(PORT, () => {
-    console.log(`> Server ready at http://localhost:${PORT}${server.graphqlPath}`);
-    console.log(`> Subscriptions ready at ws://localhost:${PORT}${server.graphqlPath}`);
+    console.log(`> Server ready at http://localhost:${PORT}/graphql`);
+    console.log(`> Subscriptions ready at ws://localhost:${PORT}/graphql`);
   });
 };
 
