@@ -111,7 +111,7 @@ class Materializer:
 
         # If there are arguments for this, materialize the arguments
         if 'inputs' in output_field and len(output_field["inputs"]) != 0:
-            inputs = self.materialize_input_fields(operator_info, output_field["inputs"], {}, max_depth, current_depth)
+            inputs = self.materialize_input_fields(operator_info, output_field["inputs"], objects_bucket, max_depth, current_depth)
             if inputs != "":
                 built_str += f"({inputs})"
 
