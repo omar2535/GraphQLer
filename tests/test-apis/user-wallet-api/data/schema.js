@@ -1,7 +1,7 @@
 import fs from 'fs';
 import {v4} from 'uuid';
 
-import { makeExecutableSchema } from 'graphql-tools';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 
 const uuid = v4;
 
@@ -392,7 +392,7 @@ const resolvers = {
             return root.wallets.map((walletID) => getWallet(walletID));
         }
     },
-    
+
     Wallet: {
         currency: (root) => {
             return getCurrency(root.currency);
@@ -425,13 +425,4 @@ const resolvers = {
     }
 }
 
-/**
- * Finally, we construct our schema (whose starting query type is the query
- * type we defined above) and export it.
- */
-const walletSchema = makeExecutableSchema({
-    typeDefs: [schemaString],
-    resolvers
-});
-
-export default walletSchema;
+export default resolvers;
