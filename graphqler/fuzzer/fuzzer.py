@@ -8,21 +8,23 @@
 6. Clean up
 """
 
-from graphqler.graph import GraphGenerator, Node
-from graphqler.utils.logging_utils import Logger
-from graphqler.utils.stats import Stats
-from graphqler.utils.api import API
-from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler import constants
-from .fengine.fengine import FEngine
-from .fengine.types import Result
+import multiprocessing
+import random
+import threading
+import time
 
 import cloudpickle
-import multiprocessing
-import threading
 import networkx
-import random
-import time
+
+from graphqler import constants
+from graphqler.graph import GraphGenerator, Node
+from graphqler.utils.api import API
+from graphqler.utils.logging_utils import Logger
+from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.utils.stats import Stats
+
+from .fengine.fengine import FEngine
+from .fengine.types import Result
 
 
 class Fuzzer(object):
@@ -169,8 +171,8 @@ class Fuzzer(object):
         for current_node in nodes:
             self.stats.print_running_stats()
             self.logger.info(f"Running node: {current_node}")
-            _next_visit_path, result = self.__evaluate_node(current_node, [current_node], check_hard_depends_on=False)
-            self.__fuzz_node(current_node, [current_node])
+            _next_visit_path, result = self.__evaluate(current_node, [current_node], check_hard_depends_on=False)
+            self.__fuzz(current_node, [current_node])
 
             # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
@@ -206,8 +208,8 @@ class Fuzzer(object):
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.__evaluate_node(current_node, current_visit_path)     # For positive testing (normal run)
-                self.__fuzz_node(current_node, current_visit_path)                                      # For negative testing (fuzzing)
+                new_paths_to_evaluate, res = self.__evaluate(current_node, current_visit_path)     # For positive testing (normal run)
+                self.__fuzz(current_node, current_visit_path)                                      # For negative testing (fuzzing)
                 self.stats.update_stats_from_result(current_node, res)                                  # Update the stats
 
                 # If it's not successful:
@@ -241,8 +243,8 @@ class Fuzzer(object):
                 self.logger.info("Hit max run times. Ending DFS")
                 break
 
-    def __evaluate_node(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
-        """Evaluates the node, performing the following based on the type of node
+    def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
+        """Evaluates the path, performing the following based on the type of node:
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
            Case 2: If it's an query node or mutation node, run the payload with the required objects, then store the results in the object bucket
@@ -276,7 +278,7 @@ class Fuzzer(object):
             else:
                 return ([], res)
 
-    def __fuzz_node(self, node: Node, visit_path: list[Node]):
+    def __fuzz(self, node: Node, visit_path: list[Node]):
         """Fuzzes a node by running the node and storing the results. Currently runs:
            - DOS Query / Mutation (from size 0 to MAX_INPUT_DEPTH or HARD_CUTOFF_DEPTH, whichever is smaller)
 
