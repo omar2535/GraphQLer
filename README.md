@@ -23,11 +23,13 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
 
 ## Key features
 
-- Dependency awareness: Run queries and mutations based on their dependencies!
-- Dynamic testing: Keep track of resources created during testing
+- Request generation: Automatically generate valid queries and mutations based on the schema (supports fragments, unions, interfaces, enums)!
+- Dependency awareness: Run queries and mutations based on their natural dependencies
+- Resource tracking: Keep track of any objects seen in the API for future use and reconnaisance
 - Error correction: Try and fix requests so that the GraphQL API accepts them
-- Statistics collection: Shows your results in a nice file
+- Statistics collection: Shows your results in a easy-to-read file
 - Ease of use: All you need is the endpoint and the authentication token if needed
+- Customizability: Change the configuration file to suit your needs, proxy requests through Burp or ZAP if you want
 
 ## Getting started
 
