@@ -31,6 +31,7 @@ class MutationListParser(Parser):
             mutation_name = mutation["name"]
             mutation_args = self.extract_arg_info(mutation["args"])
             is_deprecated = mutation["isDeprecated"]
+            description = mutation["description"]
 
             return_type = {"kind": mutation["type"]["kind"], "name": mutation["type"]["name"], "ofType": self.extract_oftype(mutation["type"]), "type": mutation["type"]["name"]}
 
@@ -39,6 +40,7 @@ class MutationListParser(Parser):
                 "inputs": mutation_args,
                 "output": return_type,
                 "isDepracated": is_deprecated,
+                "description": description
             }
 
         return mutation_info_dict

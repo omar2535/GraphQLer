@@ -6,9 +6,9 @@ hardDependsOn: A dictionary of inputname-object name that is required
 softDependsOn: A dictionary of inputname-object name, depends on, ie: {'userId': 'User'}
 """
 
-from .resolver import Resolver
-
 import re
+
+from .resolver import Resolver
 
 
 class MutationObjectResolver(Resolver):
@@ -33,7 +33,7 @@ class MutationObjectResolver(Resolver):
             dict: The mutations enriched with aforementioned fields
         """
         for mutation_name, mutation in mutations.items():
-            mutation_type = self.get_mutation_action(mutation_name)
+            mutation_type = self.get_mutation_action(mutation_name, mutation["description"])
             inputs_related_to_ids = self.get_inputs_related_to_ids(mutation["inputs"], input_objects)
             resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(mutation_name, inputs_related_to_ids, objects)
 
@@ -44,11 +44,12 @@ class MutationObjectResolver(Resolver):
 
         return mutations
 
-    def get_mutation_action(self, mutation_name: str) -> str:
-        """Gets the method action as a string
+    def get_mutation_action(self, mutation_name: str, mutation_description: str | None) -> str:
+        """Gets the method action as a string by checking both the method name and method description
 
         Args:
             mutation_name (str): The mutation name
+            mutation_description (str | None): The mutation description
 
         Returns:
             str: One of [CREATE,UDPATE,DELETE,UNKNOWN]
@@ -64,5 +65,14 @@ class MutationObjectResolver(Resolver):
             return "UPDATE"
         elif delete_pattern.search(mutation_name):
             return "DELETE"
-        else:
-            return "UNKNOWN"
+
+        # Check if the method description matches any pattern
+        if mutation_description:
+            if create_pattern.search(mutation_description):
+                return "CREATE"
+            elif update_pattern.search(mutation_description):
+                return "UPDATE"
+            elif delete_pattern.search(mutation_description):
+                return "DELETE"
+
+        return "UNKNOWN"
