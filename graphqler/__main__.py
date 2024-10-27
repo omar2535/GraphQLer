@@ -8,7 +8,7 @@ import pprint
 import importlib.metadata
 import cloudpickle
 
-from graphqler.compiler import Compiler
+from graphqler.compiler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer, IDORFuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats

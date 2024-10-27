@@ -3,7 +3,6 @@ Parser for input objects
 Input objects can depend on other input objects https://spec.graphql.org/June2018/#sec-Input-Object
 """
 
-from typing import List
 from .parser import Parser
 
 

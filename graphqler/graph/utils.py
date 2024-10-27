@@ -1,6 +1,5 @@
 import networkx
 import matplotlib.pyplot as plt
-from .node import Node
 from pathlib import Path
 
 

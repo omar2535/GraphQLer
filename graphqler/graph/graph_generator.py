@@ -14,7 +14,6 @@ from graphqler import constants
 from .node import Node
 from .utils import draw_graph
 
-import graphqler.constants
 import networkx
 
 
