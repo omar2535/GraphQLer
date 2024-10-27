@@ -3,140 +3,469 @@ schema {
     mutation: Mutation
 }
 
-type Query{
+"""
+Root Query type.
+"""
+type Query {
+    """
+    Retrieves a user by their ID.
+    """
     getUser(userID: ID!): User
+
+    """
+    Retrieves a transaction by its ID.
+    """
     getTransaction(transactionID: ID!): Transaction
+
+    """
+    Retrieves a location by its ID.
+    """
     getLocation(locationID: ID!): Location
+
+    """
+    Retrieves a currency by its ID.
+    """
     getCurrency(currencyID: ID!): Currency
+
+    """
+    Retrieves a wallet by its ID.
+    """
     getWallet(walletID: ID!): Wallet
+
+    """
+    Retrieves all users.
+    """
     getUsers: [User]
+
+    """
+    Retrieves all wallets.
+    """
     getWallets: [Wallet]
+
+    """
+    Retrieves all transactions.
+    """
     getTransactions: [Transaction]
+
+    """
+    Retrieves all locations.
+    """
     getLocations: [Location]
+
+    """
+    Retrieves all currencies.
+    """
     getCurrencies: [Currency]
-    # if no foreign currency symbol is specified, use USD as default
-    getCurrentRate(mainCurrencySymbol: String!, foreignCurrencySymbol: String): Float
+
+    """
+    Retrieves the current exchange rate between two currencies.
+    If no foreign currency symbol is specified, USD is used by default.
+    """
+    getCurrentRate(
+        """
+        The main currency symbol.
+        """
+        mainCurrencySymbol: String!
+        """
+        The foreign currency symbol. Defaults to 'USD' if not provided.
+        """
+        foreignCurrencySymbol: String
+    ): Float
 }
 
+"""
+Root Mutation type.
+"""
 type Mutation {
+    """
+    Creates a new user.
+    """
     createUser(
+        """
+        The first name of the user.
+        """
         firstName: String!
+        """
+        The last name of the user.
+        """
         lastName: String
-        description: String 
+        """
+        A description of the user.
+        """
+        description: String
     ): User
 
+    """
+    Creates a new transaction.
+    """
     createTransaction(
+        """
+        The amount of the transaction.
+        """
         amount: Float!
+        """
+        The ID of the payer.
+        """
         payerID: ID!
+        """
+        The ID of the wallet associated with the transaction.
+        """
         walletID: ID!
+        """
+        The ID of the currency used in the transaction.
+        """
         currencyID: ID!
     ): Transaction
 
+    """
+    Creates a new location.
+    """
     createLocation(
-        lat: Float 
-        lng: Float 
+        """
+        The latitude of the location.
+        """
+        lat: Float
+        """
+        The longitude of the location.
+        """
+        lng: Float
+        """
+        The name of the location.
+        """
         name: String
     ): Location
 
+    """
+    Creates a new currency.
+    """
     createCurrency(
+        """
+        The abbreviation of the currency (e.g., 'USD').
+        """
         abbreviation: String!
+        """
+        The symbol of the currency (e.g., '$').
+        """
         symbol: String!
+        """
+        The country where the currency is used.
+        """
         country: String
     ): Currency
 
+    """
+    Creates a new wallet.
+    """
     createWallet(
+        """
+        The name of the wallet.
+        """
         name: String!
+        """
+        The ID of the currency for the wallet.
+        """
         currencyID: ID!
+        """
+        The ID of the user who owns the wallet.
+        """
         userID: ID!
     ): Wallet
 
+    """
+    Deletes a user by their ID.
+    """
     deleteUser(
+        """
+        The ID of the user to delete.
+        """
         userID: ID!
     ): User
+
+    """
+    Deletes a transaction by its ID.
+    """
     deleteTransaction(
+        """
+        The ID of the transaction to delete.
+        """
         transactionID: ID!
     ): Transaction
+
+    """
+    Deletes a location by its ID.
+    """
     deleteLocation(
+        """
+        The ID of the location to delete.
+        """
         locationID: ID!
     ): Location
+
+    """
+    Deletes a currency by its ID.
+    """
     deleteCurrency(
+        """
+        The ID of the currency to delete.
+        """
         currencyID: ID!
     ): Currency
+
+    """
+    Deletes a wallet by its ID.
+    """
     deleteWallet(
+        """
+        The ID of the wallet to delete.
+        """
         walletID: ID!
     ): Wallet
 
+    """
+    Updates an existing user.
+    """
     updateUser(
+        """
+        The ID of the user to update.
+        """
         userID: ID!
+        """
+        The new first name of the user.
+        """
         firstName: String
+        """
+        The new last name of the user.
+        """
         lastName: String
+        """
+        The new description of the user.
+        """
         description: String
-    ):User
+    ): User
+
+    """
+    Updates an existing transaction.
+    """
     updateTransaction(
+        """
+        The ID of the transaction to update.
+        """
         transactionID: ID!
+        """
+        The new amount of the transaction.
+        """
         amount: Float
+        """
+        The new payer's ID.
+        """
         payer: ID
+        """
+        The new description of the transaction.
+        """
         description: String
     ): Transaction
+
+    """
+    Updates an existing location.
+    """
     updateLocation(
+        """
+        The ID of the location to update.
+        """
         locationID: ID!
+        """
+        The new latitude of the location.
+        """
         lat: Float
+        """
+        The new longitude of the location.
+        """
         lng: Float
+        """
+        The new name of the location.
+        """
         name: String
     ): Location
+
+    """
+    Updates an existing currency.
+    """
     updateCurrency(
+        """
+        The ID of the currency to update.
+        """
         currencyID: ID!
+        """
+        The new abbreviation of the currency.
+        """
         abbreviation: String
+        """
+        The new symbol of the currency.
+        """
         symbol: String
+        """
+        The new country of the currency.
+        """
         country: String
     ): Currency
+
+    """
+    Updates an existing wallet.
+    """
     updateWallet(
+        """
+        The ID of the wallet to update.
+        """
         walletID: ID!
+        """
+        The new name of the wallet.
+        """
         name: String
     ): Wallet
 }
 
-
+"""
+Represents a user in the system.
+"""
 type User {
+    """
+    The unique ID of the user.
+    """
     id: ID!
+    """
+    The first name of the user.
+    """
     firstName: String!
+    """
+    The last name of the user.
+    """
     lastName: String
+    """
+    A description of the user.
+    """
     description: String
+    """
+    The list of wallets owned by the user.
+    """
     wallets: [Wallet]
+    """
+    The list of the user's friends.
+    """
     friends: [User]
 }
 
+"""
+Represents a wallet associated with a user.
+"""
 type Wallet {
+    """
+    The unique ID of the wallet.
+    """
     id: ID!
+    """
+    The name of the wallet.
+    """
     name: String!
+    """
+    The currency used in the wallet.
+    """
     currency: Currency!
+    """
+    The list of transactions associated with the wallet.
+    """
     transactions: [Transaction]
+    """
+    The user who owns the wallet.
+    """
     user: User!
+    """
+    The current balance of the wallet.
+    """
     balance: Float
 }
 
+"""
+Represents a transaction in the system.
+"""
 type Transaction {
-    id: ID! 
+    """
+    The unique ID of the transaction.
+    """
+    id: ID!
+    """
+    The amount of the transaction.
+    """
     amount: Float!
+    """
+    The exchange rate used in the transaction.
+    """
     rate: Float!
+    """
+    The user who made the transaction.
+    """
     payer: User!
+    """
+    The wallet associated with the transaction.
+    """
     wallet: Wallet!
+    """
+    A description of the transaction.
+    """
     description: String
+    """
+    The location where the transaction occurred.
+    """
     location: Location
+    """
+    The timestamp of the transaction.
+    """
     timestamp: String
 }
 
+"""
+Represents a currency in the system.
+"""
 type Currency {
+    """
+    The unique ID of the currency.
+    """
     id: ID!
+    """
+    The abbreviation of the currency (e.g., 'USD').
+    """
     abbreviation: String!
+    """
+    The symbol of the currency (e.g., '$').
+    """
     symbol: String!
+    """
+    The current exchange rate of the currency.
+    """
     rate: Float!
+    """
+    The country where the currency is used.
+    """
     country: String!
 }
 
+"""
+Represents a geographical location.
+"""
 type Location {
+    """
+    The unique ID of the location.
+    """
     id: ID!
+    """
+    The latitude coordinate.
+    """
     lat: Float
+    """
+    The longitude coordinate.
+    """
     lng: Float
+    """
+    The name of the location.
+    """
     name: String!
 }
