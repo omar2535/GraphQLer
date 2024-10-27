@@ -31,8 +31,7 @@ class ObjectsBucket:
         self.scalars: dict[str, dict] = {}
 
     def __str__(self):
-        """Returns a string representation of the objects bucket
-        """
+        """Returns a string representation of the objects bucket"""
         built_str = "\n------------------- OBJECTS BUCKET -------------------\n"
         built_str += pprint.pformat(self.objects)
 
@@ -196,8 +195,7 @@ class ObjectsBucket:
 
     # ------------------- HELPERS -------------------
     def clear_bucket(self):
-        """Clears the bucket
-        """
+        """Clears the bucket"""
         self.objects.clear()
         self.scalars.clear()
 

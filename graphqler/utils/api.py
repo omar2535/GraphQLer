@@ -1,6 +1,6 @@
-'''Class for the target API
+"""Class for the target API
 - Used to retrieve information about the API
-'''
+"""
 
 from pathlib import Path
 from graphqler import constants
@@ -8,7 +8,8 @@ from graphqler.utils.file_utils import read_yaml_to_dict
 
 
 class API:
-    '''Variables for the API'''
+    """Variables for the API"""
+
     queries = {}
     objects = {}
     mutations = {}
@@ -17,7 +18,7 @@ class API:
     unions = {}
     interfaces = {}
 
-    def __init__(self, url: str = 'http://localhost:4000/graphql', save_path: Path | str = 'output/'):
+    def __init__(self, url: str = "http://localhost:4000/graphql", save_path: Path | str = "output/"):
         self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME

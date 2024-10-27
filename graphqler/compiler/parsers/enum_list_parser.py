@@ -1,6 +1,7 @@
 """
 Enum objects: https://spec.graphql.org/June2018/#sec-Enum
 """
+
 from .parser import Parser
 from typing import List
 

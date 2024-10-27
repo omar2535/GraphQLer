@@ -1,7 +1,7 @@
 """Compiler class - responsible for:
-    - Getting the introspection query results into various files we can use later on
-    - Resolving dependencies among objects
-    - Tieing queries / mutations to objects
+- Getting the introspection query results into various files we can use later on
+- Resolving dependencies among objects
+- Tieing queries / mutations to objects
 """
 
 from pathlib import Path
@@ -113,7 +113,7 @@ class Compiler:
         """
         wordlist = []
         if constants.WORDLIST_PATH != "":
-            with open(constants.WORDLIST_PATH, 'r') as file:
+            with open(constants.WORDLIST_PATH, "r") as file:
                 wordlist = file.read().splitlines()
 
         schema_str = asyncio.run(
@@ -124,7 +124,7 @@ class Compiler:
                 headers=get_headers(),
                 input_document=None,
                 input_schema_path=None,
-                output_path=str(self.introspection_result_save_path)
+                output_path=str(self.introspection_result_save_path),
             )
         )
         schema = json.loads(schema_str)

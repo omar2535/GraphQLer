@@ -1,19 +1,5 @@
-[tool.black]
+[tool.ruff]
 line-length = 180
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
 
 [tool.poetry]
 name = "GraphQLer"
@@ -28,7 +14,7 @@ package-mode = true
 python = ">=3.12,<3.13"
 requests = "2.32.3"
 aiodns = "3.2.0"
-aiohttp = "3.10.2"
+aiohttp = "3.10.10"
 aiosignal = "1.3.1"
 astroid = "2.15.8"
 asttokens = "2.4.0"

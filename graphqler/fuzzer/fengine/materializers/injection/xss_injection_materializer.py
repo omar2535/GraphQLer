@@ -22,4 +22,4 @@ class XSSInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        return "\"<script>alert(1)</script>\""
+        return '"<script>alert(1)</script>"'

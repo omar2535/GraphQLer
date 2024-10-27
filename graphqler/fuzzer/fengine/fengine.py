@@ -1,6 +1,6 @@
 """FEngine: Responsible for getting the materialized query, running it against the API, and returning if it succeeds
-            and storing any new objects that were returned to the objects_bucket (if any were updated).
-   Note: The run_regular_mutation and run_regular_query functions are very similar, but they are kept separate for clarity purposes
+         and storing any new objects that were returned to the objects_bucket (if any were updated).
+Note: The run_regular_mutation and run_regular_query functions are very similar, but they are kept separate for clarity purposes
 """
 
 import bdb
@@ -132,7 +132,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
             self.logger.info(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, 'Mutation')
+            mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
 
             # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
@@ -210,7 +210,7 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
-            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, 'Query')
+            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
 
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")

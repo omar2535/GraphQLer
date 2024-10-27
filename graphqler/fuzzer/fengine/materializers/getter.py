@@ -70,7 +70,7 @@ class Getter:
         # Format the datetime in ISO 8601 format with a 'Z' suffix for UTC
         graphql_datetime = random_date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        return f"\"{graphql_datetime}\""
+        return f'"{graphql_datetime}"'
 
     # Gets a random scalar for the scalar type given
     def get_random_scalar(self, input_name: str, scalar_type: str, objects_bucket: ObjectsBucket) -> str:
@@ -145,7 +145,7 @@ class Getter:
         if objects_bucket.is_empty():
             return ""
 
-        random_id = objects_bucket.get_random_scalar_from_bucket_by_type('ID')
+        random_id = objects_bucket.get_random_scalar_from_bucket_by_type("ID")
         return str(random_id)
 
     def get_closest_value_to_input(self, input_name: str, object_name: str, objects_bucket: ObjectsBucket) -> str | int | float | bool:

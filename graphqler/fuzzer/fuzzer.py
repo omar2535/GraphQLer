@@ -69,7 +69,7 @@ class Fuzzer(object):
         # Terminate the thread if it's still alive after the max time
         if p.is_alive():
             print(f"(+) Terminating the fuzzer process - reached max time {constants.MAX_TIME}s")
-            p.terminate() # type: ignore -- we have to ignore since thread has no terminate method
+            p.terminate()  # type: ignore -- we have to ignore since thread has no terminate method
         p.join()
 
         # Get results from objects bucket
@@ -208,9 +208,9 @@ class Fuzzer(object):
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.__evaluate(current_node, current_visit_path)     # For positive testing (normal run)
-                self.__fuzz(current_node, current_visit_path)                                      # For negative testing (fuzzing)
-                self.stats.update_stats_from_result(current_node, res)                                  # Update the stats
+                new_paths_to_evaluate, res = self.__evaluate(current_node, current_visit_path)  # For positive testing (normal run)
+                self.__fuzz(current_node, current_visit_path)  # For negative testing (fuzzing)
+                self.stats.update_stats_from_result(current_node, res)  # Update the stats
 
                 # If it's not successful:
                 # then we check if it's exceeded the max retries
@@ -267,12 +267,7 @@ class Fuzzer(object):
             else:
                 return ([], Result.INTERNAL_FAILURE)
         else:
-            _graphql_response, res = self.fengine.run_regular_payload(
-                node.name,
-                self.objects_bucket,
-                node.graphql_type,
-                check_hard_depends_on=check_hard_depends_on
-            )
+            _graphql_response, res = self.fengine.run_regular_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
             if res == Result.GENERAL_SUCCESS:
                 return (new_visit_paths, res)
             else:

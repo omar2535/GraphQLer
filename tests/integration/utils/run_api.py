@@ -17,17 +17,17 @@ def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Po
     """
     # Set the environment variable
     env = os.environ.copy()
-    env['PORT'] = port
+    env["PORT"] = port
 
     # Run npm install
-    subprocess.run(['npm', 'install'], cwd=path, check=True, env=env)
+    subprocess.run(["npm", "install"], cwd=path, check=True, env=env)
 
     # Run each command in the list
     for command in commands:
         subprocess.run(command.split(), cwd=path, check=True, env=env)
 
     # Run node server.js
-    process = subprocess.Popen(['node', 'server.js'], cwd=path, env=env)
+    process = subprocess.Popen(["node", "server.js"], cwd=path, env=env)
 
     return process
 

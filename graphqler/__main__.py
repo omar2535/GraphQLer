@@ -101,7 +101,7 @@ def run_single_mode(path: str, url: str, name: str):
 
 if __name__ == "__main__":
     # If version, display version and exit
-    if '--version' in sys.argv:
+    if "--version" in sys.argv:
         version = importlib.metadata.version("GraphQLer")
         print(version)
         sys.exit(0)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--url", help="remote host URL", required=True)
     parser.add_argument("--path", help="directory location for files to be saved-to/used-from", required=True)
     parser.add_argument("--config", help="configuration file for the program", required=False)
-    parser.add_argument("--mode", help="mode to run the program in", choices=['compile', 'fuzz', 'idor', 'run', 'single'], required=True)
+    parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # If not compile mode, check if compiled directory exists
-    if args.mode not in ['compile', 'run'] and not is_compiled(args.path):
+    if args.mode not in ["compile", "run"] and not is_compiled(args.path):
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
@@ -137,16 +137,16 @@ if __name__ == "__main__":
         set_constants_with_config(config)
 
     # Run either compilation or fuzzing mode
-    if args.mode == 'compile':
+    if args.mode == "compile":
         run_compile_mode(args.path, args.url)
-    elif args.mode == 'fuzz':
+    elif args.mode == "fuzz":
         run_fuzz_mode(args.path, args.url)
-    elif args.mode == 'run':
+    elif args.mode == "run":
         run_compile_mode(args.path, args.url)
         run_fuzz_mode(args.path, args.url)
-    elif args.mode == 'idor':
+    elif args.mode == "idor":
         run_idor_mode(args.path, args.url)
-    elif args.mode == 'single':
+    elif args.mode == "single":
         if not args.node:
             print("Please provide a node to run in single mode")
             sys.exit(1)
