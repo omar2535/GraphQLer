@@ -8,7 +8,6 @@ rather, it's responsible for modifying the query / mutation to make it work. Sce
 
 from graphqler.fuzzer.fengine.retrier.utils import find_block_end, remove_lines_within_range
 from graphqler.utils.request_utils import send_graphql_request
-
 import logging
 
 
