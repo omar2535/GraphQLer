@@ -17,7 +17,7 @@ class Retrier:
         self.logger = logger.getChild(__name__)
         self.max_retries = 3
 
-    def retry(self, url: str, payload: str, gql_response: dict, retry_count) -> tuple[dict, bool]:
+    def retry(self, url: str, payload: str | dict | list, gql_response: dict, retry_count) -> tuple[dict, bool]:
         """Retries the payload based on the error
 
         Args:
@@ -30,6 +30,9 @@ class Retrier:
             tuple[dict, bool]: The response, and whether the retry succeeded or not
         """
         error = gql_response["errors"][0]
+
+        if isinstance(payload, dict) or isinstance(payload, list):
+            return (gql_response, False)
 
         # If the error doesn't have a message, we can't do anything to fix it
         if "message" not in error:

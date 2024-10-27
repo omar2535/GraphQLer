@@ -3,7 +3,6 @@ from urllib3 import disable_warnings
 from typing import Callable
 from graphqler import constants
 
-import pprint
 import time
 import requests
 import json
@@ -45,12 +44,12 @@ def get_proxies() -> dict:
         return {}
 
 
-def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] | None = None) -> tuple[dict, requests.Response]:
+def send_graphql_request(url: str, payload: str | dict | list, next: Callable[[dict], dict] | None = None) -> tuple[dict, requests.Response]:
     """Send GraphQL request to the specified endpoint
 
     Args:
         url (str): URL of the graphql server
-        payload (str): The payload to hit the server with (query or mutation)
+        payload (str | dict | list): The payload to send to the GraphQL API. If dict or string, must provide the query and variables keys
         next (Callable[[dict], dict], optional): Callback function in case there is action to be done after. Defaults to None.
 
     Returns:
@@ -58,8 +57,12 @@ def send_graphql_request(url: str, payload: str, next: Callable[[dict], dict] | 
     """
     global last_request_time
 
-    # Make the body
-    body = {"query": payload}
+    # Make the body (if it's a string, add the key, if it's dict or list, assume the creator of the request knows what they are doing
+    # (ie. added the query / variable keys themselves))
+    if isinstance(payload, str):
+        body = {"query": payload}
+    else:
+        body = payload
 
     # If the last request was made recently, wait for a bit
     time_since_last_request = time.time() - last_request_time
