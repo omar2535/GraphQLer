@@ -112,7 +112,7 @@ def get_or_create_session() -> requests.Session:
     """
     global session
 
-    if session and type(session) is requests.Session:
+    if session and isinstance(session, requests.Session):
         return session
     else:
         session = create_new_session()
