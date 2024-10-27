@@ -1,166 +1,786 @@
+"""
+A custom scalar representing a date.
+"""
 scalar Date
 
+"""
+Represents a restaurant entity.
+"""
 type Restaurant {
+  """
+  The unique identifier of the restaurant.
+  """
   id: ID!
+  """
+  The name of the restaurant.
+  """
   name: String!
+  """
+  A description of the restaurant.
+  """
   description: String
+  """
+  The list of dishes offered by the restaurant.
+  """
   menu: [Dish!]!
+  """
+  The physical address of the restaurant.
+  """
   address: String!
+  """
+  The average rating of the restaurant.
+  """
   rating: Float
+  """
+  The list of orders associated with the restaurant.
+  """
   orders: [Order!]!
+  """
+  The types of cuisine the restaurant offers.
+  """
   cuisineTypes: [CuisineType!]!
+  """
+  The list of reviews for the restaurant.
+  """
   reviews: [Review!]!
 }
 
+"""
+Represents a dish on a restaurant's menu.
+"""
 type Dish {
+  """
+  The unique identifier of the dish.
+  """
   id: ID!
+  """
+  The name of the dish.
+  """
   name: String!
+  """
+  A description of the dish.
+  """
   description: String
+  """
+  The price of the dish.
+  """
   price: Float!
+  """
+  The restaurant that offers the dish.
+  """
   restaurant: Restaurant!
+  """
+  The list of reviews for the dish.
+  """
   reviews: [Review!]!
 }
 
+"""
+Represents an order placed by a customer.
+"""
 type Order {
+  """
+  The unique identifier of the order.
+  """
   id: ID!
+  """
+  The customer who placed the order.
+  """
   customer: Customer!
+  """
+  The restaurant from which the order was placed.
+  """
   restaurant: Restaurant!
+  """
+  The list of dishes included in the order.
+  """
   dishes: [Dish!]!
+  """
+  The total amount of the order.
+  """
   total: Float!
+  """
+  The current status of the order.
+  """
   status: OrderStatus!
+  """
+  The timestamp when the order was created.
+  """
   createdAt: String!
+  """
+  The timestamp when the order was last updated.
+  """
   updatedAt: String
+  """
+  The scheduled delivery date and time for the order.
+  """
   deliveryDateTime: Date
+  """
+  The delivery address for the order.
+  """
   deliveryAddress: Address
+  """
+  The payment information associated with the order.
+  """
   payment: Payment
+  """
+  The delivery driver assigned to the order.
+  """
   deliveryDriver: DeliveryDriver
+  """
+  The list of reviews associated with the order.
+  """
   reviews: [Review!]!
 }
 
+"""
+Represents a customer who can place orders.
+"""
 type Customer {
+  """
+  The unique identifier of the customer.
+  """
   id: ID!
+  """
+  The name of the customer.
+  """
   name: String!
+  """
+  The email address of the customer.
+  """
   email: String!
+  """
+  The list of orders placed by the customer.
+  """
   orders: [Order!]!
+  """
+  The list of addresses associated with the customer.
+  """
   addresses: [Address!]!
+  """
+  The list of reviews submitted by the customer.
+  """
   reviews: [Review!]!
 }
 
+"""
+Represents a delivery driver.
+"""
 type DeliveryDriver {
+  """
+  The unique identifier of the delivery driver.
+  """
   id: ID!
+  """
+  The name of the delivery driver.
+  """
   name: String!
+  """
+  The email address of the delivery driver.
+  """
   email: String!
+  """
+  The list of orders assigned to the delivery driver.
+  """
   orders: [Order!]!
+  """
+  The current location of the delivery driver.
+  """
   currentLocation: String
 }
 
+"""
+Represents a physical address associated with a customer.
+"""
 type Address {
+  """
+  The unique identifier of the address.
+  """
   id: ID!
+  """
+  The street address.
+  """
   street: String!
+  """
+  The city of the address.
+  """
   city: String!
+  """
+  The state of the address.
+  """
   state: String!
+  """
+  The postal code of the address.
+  """
   postalCode: String!
+  """
+  The customer associated with the address.
+  """
   customer: Customer!
 }
 
+"""
+Represents a review submitted by a customer.
+"""
 type Review {
+  """
+  The unique identifier of the review.
+  """
   id: ID!
+  """
+  The rating given in the review.
+  """
   rating: Float!
+  """
+  The comment provided in the review.
+  """
   comment: String
+  """
+  The customer who submitted the review.
+  """
   customer: Customer!
+  """
+  The dish that was reviewed (if applicable).
+  """
   dish: Dish
+  """
+  The restaurant that was reviewed (if applicable).
+  """
   restaurant: Restaurant
+  """
+  The timestamp when the review was created.
+  """
   createdAt: String!
 }
 
+"""
+Represents a type of cuisine.
+"""
 type CuisineType {
+  """
+  The unique identifier of the cuisine type.
+  """
   id: ID!
+  """
+  The name of the cuisine type.
+  """
   name: String!
+  """
+  The list of restaurants that offer this cuisine type.
+  """
   restaurants: [Restaurant!]!
 }
 
+"""
+An enumeration of possible order statuses.
+"""
 enum OrderStatus {
+  """
+  Order has been placed but not yet processed.
+  """
   PENDING
+  """
+  Order is being prepared.
+  """
   PREPARING
+  """
+  Order is out for delivery.
+  """
   DELIVERING
+  """
+  Order has been delivered.
+  """
   DELIVERED
+  """
+  Order has been canceled.
+  """
   CANCELED
 }
 
+"""
+Represents a payment made for an order.
+"""
 type Payment {
+  """
+  The unique identifier of the payment.
+  """
   id: ID!
+  """
+  The identifier of the order associated with the payment.
+  """
   orderId: ID!
+  """
+  The amount paid.
+  """
   amount: Float!
+  """
+  The method of payment used.
+  """
   paymentMethod: String!
+  """
+  The status of the payment.
+  """
   status: PaymentStatus!
 }
 
+"""
+An enumeration of possible payment statuses.
+"""
 enum PaymentStatus {
+  """
+  Payment has been initiated but not completed.
+  """
   PENDING
+  """
+  Payment has been completed successfully.
+  """
   COMPLETED
+  """
+  Payment has been canceled.
+  """
   CANCELED
 }
 
+"""
+Represents a promotional offer.
+"""
 type Promotion {
+  """
+  The unique identifier of the promotion.
+  """
   id: ID!
+  """
+  The promotional code.
+  """
   code: String!
+  """
+  The discount percentage offered.
+  """
   discountPercentage: Float!
+  """
+  The start date of the promotion's validity.
+  """
   validFrom: Date!
+  """
+  The end date of the promotion's validity.
+  """
   validTo: Date!
 }
 
+"""
+Represents a notification sent to a user.
+"""
 type Notification {
+  """
+  The unique identifier of the notification.
+  """
   id: ID!
+  """
+  The message content of the notification.
+  """
   message: String!
+  """
+  The user who is the recipient of the notification.
+  """
   recipient: User!
+  """
+  The timestamp when the notification was created.
+  """
   createdAt: String!
 }
 
+"""
+Represents a user in the system.
+"""
 type User {
+  """
+  The unique identifier of the user.
+  """
   id: ID!
+  """
+  The username of the user.
+  """
   username: String!
+  """
+  The email address of the user.
+  """
   email: String!
+  """
+  The list of orders associated with the user.
+  """
   orders: [Order!]!
+  """
+  The list of notifications for the user.
+  """
   notifications: [Notification!]!
 }
 
+"""
+Root Query type.
+"""
 type Query {
+  """
+  Retrieves a list of all restaurants.
+  """
   restaurants: [Restaurant!]!
-  restaurant(id: ID!): Restaurant
+  """
+  Retrieves a restaurant by its ID.
+  """
+  restaurant(
+    """
+    The unique identifier of the restaurant.
+    """
+    id: ID!
+  ): Restaurant
+  """
+  Retrieves a list of all dishes.
+  """
   dishes: [Dish!]!
-  dish(id: ID!): Dish
+  """
+  Retrieves a dish by its ID.
+  """
+  dish(
+    """
+    The unique identifier of the dish.
+    """
+    id: ID!
+  ): Dish
+  """
+  Retrieves a list of all orders.
+  """
   orders: [Order!]!
-  order(id: ID!): Order
+  """
+  Retrieves an order by its ID.
+  """
+  order(
+    """
+    The unique identifier of the order.
+    """
+    id: ID!
+  ): Order
+  """
+  Retrieves a list of all customers.
+  """
   customers: [Customer!]!
-  customer(id: ID!): Customer
+  """
+  Retrieves a customer by their ID.
+  """
+  customer(
+    """
+    The unique identifier of the customer.
+    """
+    id: ID!
+  ): Customer
+  """
+  Retrieves a list of all delivery drivers.
+  """
   deliveryDrivers: [DeliveryDriver!]!
-  deliveryDriver(id: ID!): DeliveryDriver
+  """
+  Retrieves a delivery driver by their ID.
+  """
+  deliveryDriver(
+    """
+    The unique identifier of the delivery driver.
+    """
+    id: ID!
+  ): DeliveryDriver
+  """
+  Retrieves a list of all reviews.
+  """
   reviews: [Review!]!
-  review(id: ID!): Review
+  """
+  Retrieves a review by its ID.
+  """
+  review(
+    """
+    The unique identifier of the review.
+    """
+    id: ID!
+  ): Review
+  """
+  Retrieves a list of all cuisine types.
+  """
   cuisineTypes: [CuisineType!]!
-  cuisineType(id: ID!): CuisineType
-  orderHistory(customerId: ID!): [Order!]!
-  orderDetails(orderId: ID!): Order
+  """
+  Retrieves a cuisine type by its ID.
+  """
+  cuisineType(
+    """
+    The unique identifier of the cuisine type.
+    """
+    id: ID!
+  ): CuisineType
+  """
+  Retrieves the order history for a specific customer.
+  """
+  orderHistory(
+    """
+    The unique identifier of the customer.
+    """
+    customerId: ID!
+  ): [Order!]!
+  """
+  Retrieves detailed information about a specific order.
+  """
+  orderDetails(
+    """
+    The unique identifier of the order.
+    """
+    orderId: ID!
+  ): Order
 }
 
+"""
+Root Mutation type.
+"""
 type Mutation {
-  createRestaurant(name: String!, description: String, address: String!, cuisineTypeIds: [ID!]!): Restaurant
-  createDish(name: String!, description: String, price: Float!, restaurantId: ID!): Dish
-  createOrder(customerId: ID!, restaurantId: ID!, dishIds: [ID!]!, deliveryAddressId: ID!, deliveryDateTime: Date): Order
-  updateOrderStatus(id: ID!, status: OrderStatus!): Order
-  cancelOrder(id: ID!): ID
-  createCustomer(name: String!, email: String!): Customer
-  createDeliveryDriver(name: String!, email: String!): DeliveryDriver
-  createAddress(customerId: ID!, street: String!, city: String!, state: String!, postalCode: String!): Address
-  createReview(customerId: ID!, dishId: ID, restaurantId: ID, rating: Float!, comment: String): Review
-  makePayment(orderId: ID!, paymentMethod: String!, amount: Float!): Payment
-  scheduleDelivery(orderId: ID!, deliveryDateTime: Date!): Order
-  applyPromotion(orderId: ID!, promoCode: String!): Order
-  createCuisineType(name: String!): CuisineType
-  createNotification(userId: ID!, message: String!): Notification
+  """
+  Creates a new restaurant.
+  """
+  createRestaurant(
+    """
+    The name of the restaurant.
+    """
+    name: String!
+    """
+    A description of the restaurant.
+    """
+    description: String
+    """
+    The address of the restaurant.
+    """
+    address: String!
+    """
+    The list of cuisine type IDs associated with the restaurant.
+    """
+    cuisineTypeIds: [ID!]!
+  ): Restaurant
+  """
+  Creates a new dish.
+  """
+  createDish(
+    """
+    The name of the dish.
+    """
+    name: String!
+    """
+    A description of the dish.
+    """
+    description: String
+    """
+    The price of the dish.
+    """
+    price: Float!
+    """
+    The ID of the restaurant offering the dish.
+    """
+    restaurantId: ID!
+  ): Dish
+  """
+  Creates a new order.
+  """
+  createOrder(
+    """
+    The ID of the customer placing the order.
+    """
+    customerId: ID!
+    """
+    The ID of the restaurant from which to order.
+    """
+    restaurantId: ID!
+    """
+    The list of dish IDs to include in the order.
+    """
+    dishIds: [ID!]!
+    """
+    The ID of the delivery address.
+    """
+    deliveryAddressId: ID!
+    """
+    The scheduled delivery date and time.
+    """
+    deliveryDateTime: Date
+  ): Order
+  """
+  Updates the status of an existing order.
+  """
+  updateOrderStatus(
+    """
+    The unique identifier of the order.
+    """
+    id: ID!
+    """
+    The new status for the order.
+    """
+    status: OrderStatus!
+  ): Order
+  """
+  Cancels an existing order.
+  """
+  cancelOrder(
+    """
+    The unique identifier of the order to cancel.
+    """
+    id: ID!
+  ): ID
+  """
+  Creates a new customer.
+  """
+  createCustomer(
+    """
+    The name of the customer.
+    """
+    name: String!
+    """
+    The email address of the customer.
+    """
+    email: String!
+  ): Customer
+  """
+  Creates a new delivery driver.
+  """
+  createDeliveryDriver(
+    """
+    The name of the delivery driver.
+    """
+    name: String!
+    """
+    The email address of the delivery driver.
+    """
+    email: String!
+  ): DeliveryDriver
+  """
+  Creates a new address for a customer.
+  """
+  createAddress(
+    """
+    The ID of the customer associated with the address.
+    """
+    customerId: ID!
+    """
+    The street address.
+    """
+    street: String!
+    """
+    The city of the address.
+    """
+    city: String!
+    """
+    The state of the address.
+    """
+    state: String!
+    """
+    The postal code of the address.
+    """
+    postalCode: String!
+  ): Address
+  """
+  Creates a new review.
+  """
+  createReview(
+    """
+    The ID of the customer submitting the review.
+    """
+    customerId: ID!
+    """
+    The ID of the dish being reviewed (optional).
+    """
+    dishId: ID
+    """
+    The ID of the restaurant being reviewed (optional).
+    """
+    restaurantId: ID
+    """
+    The rating given in the review.
+    """
+    rating: Float!
+    """
+    The comment provided in the review.
+    """
+    comment: String
+  ): Review
+  """
+  Processes a payment for an order.
+  """
+  makePayment(
+    """
+    The ID of the order being paid.
+    """
+    orderId: ID!
+    """
+    The method of payment used.
+    """
+    paymentMethod: String!
+    """
+    The amount to be paid.
+    """
+    amount: Float!
+  ): Payment
+  """
+  Schedules the delivery date and time for an order.
+  """
+  scheduleDelivery(
+    """
+    The unique identifier of the order.
+    """
+    orderId: ID!
+    """
+    The scheduled delivery date and time.
+    """
+    deliveryDateTime: Date!
+  ): Order
+  """
+  Applies a promotional code to an order.
+  """
+  applyPromotion(
+    """
+    The unique identifier of the order.
+    """
+    orderId: ID!
+    """
+    The promotional code to apply.
+    """
+    promoCode: String!
+  ): Order
+  """
+  Creates a new cuisine type.
+  """
+  createCuisineType(
+    """
+    The name of the cuisine type.
+    """
+    name: String!
+  ): CuisineType
+  """
+  Creates a new notification for a user.
+  """
+  createNotification(
+    """
+    The unique identifier of the user to notify.
+    """
+    userId: ID!
+    """
+    The message content of the notification.
+    """
+    message: String!
+  ): Notification
 }
 
+"""
+Root Subscription type for real-time updates.
+"""
 type Subscription {
+  """
+  Subscription that triggers when an order's status changes.
+  """
   orderStatusChanged: Order
-  newNotification(userId: ID!): Notification
+  """
+  Subscription that triggers when a new notification is sent to a user.
+  """
+  newNotification(
+    """
+    The unique identifier of the user to receive notifications.
+    """
+    userId: ID!
+  ): Notification
 }
