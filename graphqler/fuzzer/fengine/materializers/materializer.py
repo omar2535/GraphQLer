@@ -27,7 +27,7 @@ class Materializer:
         self.used_objects = {}
         self.getter = getter
 
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str | list | dict, dict]:
         """Materializes the payload with parameters filled in
 
         Args:
