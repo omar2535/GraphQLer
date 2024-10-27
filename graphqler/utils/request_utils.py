@@ -34,9 +34,9 @@ def get_proxies() -> dict:
     Returns:
         dict: The proxies for the request
     """
-    if constants.PROXY and 'http:' in constants.PROXY:
+    if constants.PROXY and "http:" in constants.PROXY:
         return {"http": constants.PROXY}
-    elif constants.PROXY and 'https:' in constants.PROXY:
+    elif constants.PROXY and "https:" in constants.PROXY:
         return {"https": constants.PROXY}
     elif constants.PROXY:
         return {"http": constants.PROXY, "https": constants.PROXY}

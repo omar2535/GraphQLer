@@ -18,7 +18,7 @@ class TestFoodDeliveryAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Start the GrapQL server
-        cls.process = run_node_project(cls.API_PATH, ['node dbinitializer.js'], str(cls.PORT))
+        cls.process = run_node_project(cls.API_PATH, ["node dbinitializer.js"], str(cls.PORT))
         cls.process_pid = cls.process.pid
 
         # Parse the config

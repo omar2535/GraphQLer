@@ -22,4 +22,4 @@ class PathTraversalInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        return "\"../../../../etc/passwd\""
+        return '"../../../../etc/passwd"'

@@ -40,11 +40,7 @@ class Materializer:
         """
         return ("", {})
 
-    def materialize_output(self,
-                           operator_info: dict,
-                           output: dict,
-                           objects_bucket: ObjectsBucket,
-                           max_depth: int = 5) -> str:
+    def materialize_output(self, operator_info: dict, output: dict, objects_bucket: ObjectsBucket, max_depth: int = 5) -> str:
         """Materializes the output. If returns empty string,
            then tries to get at least something, bypassing the max depth until the hard cutoff.
 
@@ -64,13 +60,7 @@ class Materializer:
         while output_selectors == "":
             # The initial call to materialize_output_recursive should not include the name and has no objects used yet
             output_selectors = self.materialize_output_recursive(
-                operator_info=operator_info,
-                output_field=output,
-                used_objects=[],
-                objects_bucket=objects_bucket,
-                include_name=False,
-                max_depth=max_depth,
-                current_depth=0
+                operator_info=operator_info, output_field=output, used_objects=[], objects_bucket=objects_bucket, include_name=False, max_depth=max_depth, current_depth=0
             )
             if max_depth > constants.HARD_CUTOFF_DEPTH:
                 break
@@ -78,14 +68,9 @@ class Materializer:
         cleaned_output_selectors = clean_output_selectors(output_selectors)
         return cleaned_output_selectors
 
-    def materialize_output_recursive(self,
-                                     operator_info: dict,
-                                     output_field: dict,
-                                     used_objects: list[str],
-                                     objects_bucket: ObjectsBucket,
-                                     include_name: bool,
-                                     max_depth: int,
-                                     current_depth: int = 0) -> str:
+    def materialize_output_recursive(
+        self, operator_info: dict, output_field: dict, used_objects: list[str], objects_bucket: ObjectsBucket, include_name: bool, max_depth: int, current_depth: int = 0
+    ) -> str:
         """Materializes the output recursively. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
@@ -110,7 +95,7 @@ class Materializer:
             built_str += output_field["name"]
 
         # If there are arguments for this, materialize the arguments
-        if 'inputs' in output_field and len(output_field["inputs"]) != 0:
+        if "inputs" in output_field and len(output_field["inputs"]) != 0:
             inputs = self.materialize_input_fields(operator_info, output_field["inputs"], objects_bucket, max_depth, current_depth)
             if inputs != "":
                 built_str += f"({inputs})"
@@ -138,7 +123,9 @@ class Materializer:
                 if materialized_fragment != "":
                     built_str += f"... on {interface_type['name']} " + materialized_fragment
             built_str += "},"
-        elif output_field["kind"] == "NON_NULL" or output_field["kind"] == "LIST":  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
+        elif (
+            output_field["kind"] == "NON_NULL" or output_field["kind"] == "LIST"
+        ):  # For a NON_NULL / LIST kind: Don't +1 here because it is an oftype (which doesn't add depth), or else we will double count
             oftype = output_field["ofType"]
             materialized_output = self.materialize_output_recursive(operator_info, oftype, used_objects, objects_bucket, False, max_depth, current_depth)
             if materialized_output != "":
@@ -149,8 +136,8 @@ class Materializer:
         # If it's a non-scalar but we didn't materialize any fields, then we should return an empty string
         # Very important for NON_NULL / LIST / OBJECT types
         chars_to_remove = ",{}. "
-        translation_table = str.maketrans('', '', chars_to_remove)
-        if get_base_oftype(output_field)['kind'] != "SCALAR" and include_name:
+        translation_table = str.maketrans("", "", chars_to_remove)
+        if get_base_oftype(output_field)["kind"] != "SCALAR" and include_name:
             if built_str == output_field["name"]:
                 return ""
             elif built_str.translate(translation_table) == output_field["name"]:
@@ -166,13 +153,9 @@ class Materializer:
 
         return built_str
 
-    def materialize_output_object_fields(self,
-                                         operator_info: dict,
-                                         object_name: str,
-                                         used_objects: list[str],
-                                         objects_bucket: ObjectsBucket,
-                                         max_depth: int,
-                                         current_depth: int) -> str:
+    def materialize_output_object_fields(
+        self, operator_info: dict, object_name: str, used_objects: list[str], objects_bucket: ObjectsBucket, max_depth: int, current_depth: int
+    ) -> str:
         """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
@@ -209,11 +192,7 @@ class Materializer:
                 built_str += field_output
         return built_str
 
-    def materialize_inputs(self,
-                           operator_info: dict,
-                           inputs: dict,
-                           objects_bucket: ObjectsBucket,
-                           max_depth: int) -> str:
+    def materialize_inputs(self, operator_info: dict, inputs: dict, objects_bucket: ObjectsBucket, max_depth: int) -> str:
         """Goes through the inputs of the payload
 
         Args:
@@ -227,12 +206,7 @@ class Materializer:
         """
         return self.materialize_input_fields(operator_info, inputs, objects_bucket, max_depth, current_depth=0)
 
-    def materialize_input_fields(self,
-                                 operator_info: dict,
-                                 inputs: dict,
-                                 objects_bucket: ObjectsBucket,
-                                 max_depth: int,
-                                 current_depth: int = 0) -> str:
+    def materialize_input_fields(self, operator_info: dict, inputs: dict, objects_bucket: ObjectsBucket, max_depth: int, current_depth: int = 0) -> str:
         """Goes through the inputs of the payload
 
         Args:
@@ -254,14 +228,9 @@ class Materializer:
             built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
         return built_str
 
-    def materialize_input_recursive(self,
-                                    operator_info: dict,
-                                    input_field: dict,
-                                    objects_bucket: ObjectsBucket,
-                                    input_name: str,
-                                    check_deps: bool,
-                                    max_depth: int,
-                                    current_depth: int) -> str:
+    def materialize_input_recursive(
+        self, operator_info: dict, input_field: dict, objects_bucket: ObjectsBucket, input_name: str, check_deps: bool, max_depth: int, current_depth: int
+    ) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name

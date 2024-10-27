@@ -1,4 +1,4 @@
-""" Retrier
+"""Retrier
 This moule will retry any immediate errors that arise during the query. This is not responsible for running the same query / mutation again,
 rather, it's responsible for modifying the query / mutation to make it work. Scenarios:
 - We have a NON-NULL column that is selected for in the output, but the server is responding with NULL, you will get the following error:
@@ -38,7 +38,7 @@ class Retrier:
         if "message" not in error:
             return (gql_response, False)
 
-        if ("Cannot return null for non-nullable field" in error["message"] or "Field must have selections" in error["message"]):
+        if "Cannot return null for non-nullable field" in error["message"] or "Field must have selections" in error["message"]:
             if "locations" not in error:
                 return (gql_response, False)
             locations = error["locations"]

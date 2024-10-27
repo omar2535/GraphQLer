@@ -1,6 +1,7 @@
 """
 Interface objects: https://spec.graphql.org/October2021/#sec-Interfaces
 """
+
 from .parser import Parser
 from typing import List
 
@@ -69,7 +70,7 @@ class InterfaceListParser(Parser):
                 "kind": interface["kind"],
                 "name": interface["name"],
                 "fields": [self.__extract_field_info(field) for field in interface["fields"]],
-                "possibleTypes": self.extract_possible_types(interface["possibleTypes"])
+                "possibleTypes": self.extract_possible_types(interface["possibleTypes"]),
             }
 
         return interfaces_dict

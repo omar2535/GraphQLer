@@ -1,4 +1,5 @@
 """Simple singleton class to parse mutation listings from the introspection query"""
+
 from .parser import Parser
 
 
@@ -34,12 +35,6 @@ class MutationListParser(Parser):
 
             return_type = {"kind": mutation["type"]["kind"], "name": mutation["type"]["name"], "ofType": self.extract_oftype(mutation["type"]), "type": mutation["type"]["name"]}
 
-            mutation_info_dict[mutation_name] = {
-                "name": mutation_name,
-                "inputs": mutation_args,
-                "output": return_type,
-                "isDepracated": is_deprecated,
-                "description": description
-            }
+            mutation_info_dict[mutation_name] = {"name": mutation_name, "inputs": mutation_args, "output": return_type, "isDepracated": is_deprecated, "description": description}
 
         return mutation_info_dict

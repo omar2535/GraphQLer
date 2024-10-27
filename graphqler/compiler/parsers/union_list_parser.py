@@ -1,6 +1,7 @@
 """
 Union objects: https://spec.graphql.org/October2021/#sec-Unions
 """
+
 from .parser import Parser
 from typing import List
 

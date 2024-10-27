@@ -1,5 +1,5 @@
-"""Utilities used on the output portion of the payload
-"""
+"""Utilities used on the output portion of the payload"""
+
 import re
 from graphql import parse, print_ast
 
@@ -21,10 +21,10 @@ def is_valid_object_materialization(materialized_str: str) -> bool:
         bool: Whether the output string is valid or not
     """
     # Cleaned string
-    materialized_str = materialized_str.replace(' ', '')
-    materialized_str = remove_consecutive_characters(materialized_str, ',')
-    materialized_str = materialized_str.strip(',')
-    if '{}' in materialized_str or '{,}' in materialized_str:
+    materialized_str = materialized_str.replace(" ", "")
+    materialized_str = remove_consecutive_characters(materialized_str, ",")
+    materialized_str = materialized_str.strip(",")
+    if "{}" in materialized_str or "{,}" in materialized_str:
         return False
 
     # Parse the AST for validity of the payload
@@ -49,7 +49,7 @@ def clean_output_selectors(output_selectors: str) -> str:
         str: _description_
     """
     # Removing any extra commas
-    while ',,' in output_selectors:
+    while ",," in output_selectors:
         output_selectors = output_selectors.replace(",,", ",")
 
     # Removing keys that don't have an object
@@ -71,7 +71,7 @@ def remove_consecutive_characters(s: str, char: str) -> str:
     Returns:
         str: The modified string with consecutive characters reduced.
     """
-    return re.sub(f'{char}+', char, s)
+    return re.sub(f"{char}+", char, s)
 
 
 def prettify_graphql_payload(payload: str) -> str:

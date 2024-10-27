@@ -1,9 +1,9 @@
 """This module will be used to create a object dependency resolver
-   The representation of this will be essentially a text-based graph
+The representation of this will be essentially a text-based graph
 
-   The dependencies will be generated from object - object
-   while methods such as queries / mutations will be related to objects
-   based on either output type or semantic understanding
+The dependencies will be generated from object - object
+while methods such as queries / mutations will be related to objects
+based on either output type or semantic understanding
 """
 
 from graphqler.constants import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
