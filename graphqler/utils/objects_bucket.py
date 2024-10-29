@@ -37,8 +37,6 @@ class ObjectsBucket:
 
         built_str += "\n------------------- SCALARS BUCKET -------------------\n"
         built_str += pprint.pformat(self.scalars)
-        # for scalar_name, scalar in self.scalars.items():
-        #     built_str += f"Scalar: {scalar_name} | Type: {scalar['type']} | Values: {scalar['values']}\n"
 
         return built_str
 

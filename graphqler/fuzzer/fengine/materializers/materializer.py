@@ -60,7 +60,13 @@ class Materializer:
         while output_selectors == "":
             # The initial call to materialize_output_recursive should not include the name and has no objects used yet
             output_selectors = self.materialize_output_recursive(
-                operator_info=operator_info, output_field=output, used_objects=[], objects_bucket=objects_bucket, include_name=False, max_depth=max_depth, current_depth=0
+                operator_info=operator_info,
+                output_field=output,
+                used_objects=[],
+                objects_bucket=objects_bucket,
+                include_name=False,
+                max_depth=max_depth,
+                current_depth=0
             )
             if max_depth > constants.HARD_CUTOFF_DEPTH:
                 break
@@ -68,9 +74,14 @@ class Materializer:
         cleaned_output_selectors = clean_output_selectors(output_selectors)
         return cleaned_output_selectors
 
-    def materialize_output_recursive(
-        self, operator_info: dict, output_field: dict, used_objects: list[str], objects_bucket: ObjectsBucket, include_name: bool, max_depth: int, current_depth: int = 0
-    ) -> str:
+    def materialize_output_recursive(self,
+                                     operator_info: dict,
+                                     output_field: dict,
+                                     used_objects: list[str],
+                                     objects_bucket: ObjectsBucket,
+                                     include_name: bool,
+                                     max_depth: int,
+                                     current_depth: int = 0) -> str:
         """Materializes the output recursively. Some interesting cases:
            - If we want to stop on an object materializing its fields, we need to not even include the object name
              IE: {id, firstName, user {}} should just be {id, firstName}
@@ -153,9 +164,13 @@ class Materializer:
 
         return built_str
 
-    def materialize_output_object_fields(
-        self, operator_info: dict, object_name: str, used_objects: list[str], objects_bucket: ObjectsBucket, max_depth: int, current_depth: int
-    ) -> str:
+    def materialize_output_object_fields(self,
+                                         operator_info: dict,
+                                         object_name: str,
+                                         used_objects: list[str],
+                                         objects_bucket: ObjectsBucket,
+                                         max_depth: int,
+                                         current_depth: int) -> str:
         """Loop through an objects fields, and call materialize_output on each of them
 
         Args:
@@ -223,14 +238,23 @@ class Materializer:
         if inputs is None or len(inputs) == 0 or type(inputs) is not dict:
             return built_str
 
+        # Return early if we exceed the max depth
+        if current_depth >= max_depth:
+            return built_str
+
         # Go through each input field and materialize it
         for input_name, input_field in inputs.items():
             built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
         return built_str
 
-    def materialize_input_recursive(
-        self, operator_info: dict, input_field: dict, objects_bucket: ObjectsBucket, input_name: str, check_deps: bool, max_depth: int, current_depth: int
-    ) -> str:
+    def materialize_input_recursive(self,
+                                    operator_info: dict,
+                                    input_field: dict,
+                                    objects_bucket: ObjectsBucket,
+                                    input_name: str,
+                                    check_deps: bool,
+                                    max_depth: int,
+                                    current_depth: int) -> str:
         """Materializes a single input field
            - if the field is one we already know it depends on, just instantly resolve. Or else going down into
              the oftype will make us lose its name
@@ -245,7 +269,6 @@ class Materializer:
         Returns:
             str: String of the materialized input field
         """
-
         built_str = ""
         hard_dependencies: dict = operator_info.get("hardDependsOn", {})
         soft_dependencies: dict = operator_info.get("softDependsOn", {})
