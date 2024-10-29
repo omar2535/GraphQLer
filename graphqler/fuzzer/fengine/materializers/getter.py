@@ -50,6 +50,9 @@ class Getter:
     def get_random_long(self, input_name: str) -> str:
         return str(random.randint(0, 1000000))
 
+    def get_random_json(self, input_name: str) -> str:
+        return "{}"
+
     def get_random_datetime(self, input_name: str) -> str:
         # Current datetime)
         now = datetime.now()
@@ -112,6 +115,8 @@ class Getter:
                 return self.get_random_long(input_name)
             elif scalar_type.lower() == "datetime":
                 return self.get_random_datetime(input_name)
+            elif scalar_type.lower() == "json":
+                return self.get_random_json(input_name)
             else:
                 raise Exception(f"This custom scalar is supported at this time: {input_name}:{scalar_type}")
 
@@ -164,7 +169,8 @@ class Getter:
             return found_value
 
         # Get the object name without the input name
-        new_field_name = input_name.lower().replace(object_name.lower(), "")
+        # IE. If the input name is "name" and the object name is "PersonName", the lookup name would be just 'name' in the object
+        new_field_name = input_name.lower().replace(object_name.lower(), "").replace("_", "").replace(" ", "")
 
         # Try finding the value again
         found_value = objects_bucket.get_random_object_field_value(object_name, new_field_name)

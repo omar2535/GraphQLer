@@ -1,6 +1,7 @@
 from pathlib import Path
 from graphqler.graph import Node
 from graphqler.fuzzer.fengine.types import Result
+from graphqler.utils.objects_bucket import ObjectsBucket
 from .singleton import singleton
 from .file_utils import initialize_file
 
@@ -24,6 +25,7 @@ class Stats:
     number_of_objects: int = 0
     number_of_successes: int = 0
     number_of_failures: int = 0
+    objects_bucket: ObjectsBucket = None
 
     # Detection stats
     is_introspection_available: bool = False
@@ -75,6 +77,14 @@ class Stats:
         else:
             self.http_status_codes[status_code_str] = {payload_name: 1}
         self.save()
+
+    def set_objects_bucket(self, objects_bucket: ObjectsBucket):
+        """Sets the objects bucket
+
+        Args:
+            objects_bucket (dict): The objects bucket
+        """
+        self.objects_bucket = objects_bucket
 
     def set_file_path(self, working_dir: str):
         initialize_file(Path(working_dir) / constants.STATS_FILE_PATH)
@@ -170,3 +180,5 @@ class Stats:
             f.write(f"\nNumber of objects: {self.number_of_objects}")
             f.write(f"\nNumber of successes: {self.number_of_successes}")
             f.write(f"\nNumber of failures: {self.number_of_failures}")
+            f.write("\n=================OBJECTS BUCKET=======================\n")
+            f.write(str(self.objects_bucket))
