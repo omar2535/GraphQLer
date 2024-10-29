@@ -37,7 +37,7 @@ MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower
 """For the linker"""
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
 
-"""General Graphql definitions: https://spec.graphql.org/June2018/"""
+"""General Graphql definitions: https://spec.graphql.org/October2021/"""
 BUILT_IN_TYPES = ["ID", "Int", "Float", "String", "Boolean"]
 BUILT_IN_TYPE_KINDS = ["SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM", "INPUT_OBJECT", "LIST", "NON_NULL"]
 
@@ -54,6 +54,7 @@ IDOR_LOG_FILE_PATH = "logs/idor.log"
 
 """For stats"""
 STATS_FILE_PATH = "stats.txt"
+OBJECTS_BUCKET_FILE_PATH = "objects_bucket.txt"
 
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket

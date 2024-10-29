@@ -6,6 +6,7 @@ from .singleton import singleton
 from .file_utils import initialize_file
 
 from graphqler import constants
+from typing import Optional
 import pprint
 import json
 import time
@@ -14,7 +15,8 @@ import time
 @singleton
 class Stats:
     ### PUT THE STATS YOU WANT HERE
-    file_path = "/tmp/stats.txt"  # This gets overriden on startup
+    file_path = "/tmp/stats.txt"  # This gets overriden by the set_file_path function
+    objects_bucket_file_path = "/tmp/objects_bucket.txt"  # This gets overriden by the set_file_path function
     start_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
@@ -25,7 +27,7 @@ class Stats:
     number_of_objects: int = 0
     number_of_successes: int = 0
     number_of_failures: int = 0
-    objects_bucket: ObjectsBucket = None
+    objects_bucket: Optional[ObjectsBucket]  = None
 
     # Detection stats
     is_introspection_available: bool = False
@@ -69,7 +71,7 @@ class Stats:
             status_code (int): The status code
         """
         status_code_str = str(status_code)
-        if status_code in self.http_status_codes.keys():
+        if status_code_str in self.http_status_codes.keys():
             if payload_name in self.http_status_codes[status_code_str]:
                 self.http_status_codes[status_code_str][payload_name] += 1
             else:
@@ -89,6 +91,7 @@ class Stats:
     def set_file_path(self, working_dir: str):
         initialize_file(Path(working_dir) / constants.STATS_FILE_PATH)
         self.file_path = Path(working_dir) / constants.STATS_FILE_PATH
+        self.objects_bucket_file_path = Path(working_dir) / constants.OBJECTS_BUCKET_FILE_PATH
 
     def print_running_stats(self):
         """Function to print stats during runtime (not saved to file)"""
@@ -180,5 +183,9 @@ class Stats:
             f.write(f"\nNumber of objects: {self.number_of_objects}")
             f.write(f"\nNumber of successes: {self.number_of_successes}")
             f.write(f"\nNumber of failures: {self.number_of_failures}")
-            f.write("\n=================OBJECTS BUCKET=======================\n")
-            f.write(str(self.objects_bucket))
+
+        with open(self.objects_bucket_file_path, "w") as f:
+            if self.objects_bucket:
+                f.write(str(self.objects_bucket))
+            else:
+                f.write("Objects bucket is empty")

@@ -32,9 +32,10 @@ class ObjectsBucket:
 
     def __str__(self):
         """Returns a string representation of the objects bucket"""
-        built_str = "\n------------------- OBJECTS BUCKET -------------------\n"
+        built_str = "------------------- OBJECTS BUCKET -------------------\n"
         built_str += pprint.pformat(self.objects)
 
+        built_str += "\n\n"
         built_str += "\n------------------- SCALARS BUCKET -------------------\n"
         built_str += pprint.pformat(self.scalars)
 
