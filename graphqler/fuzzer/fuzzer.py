@@ -63,6 +63,8 @@ class Fuzzer(object):
             p = threading.Thread(target=self.__run_steps, args=(queue,))
         else:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
+            # TODO: Figure this out why multiprocessing won't work with the pickled object in the queue
+            #       What ends up happening is that the process hangs and never returns (lock is kept by the subprocess)
             # p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
         p.join(constants.MAX_TIME)
