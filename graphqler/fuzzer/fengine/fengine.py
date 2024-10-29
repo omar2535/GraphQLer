@@ -131,11 +131,11 @@ class FEngine(object):
         try:
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
-            self.logger.info(f"[{mutation_name}] Objects bucket: {objects_bucket}")
+            self.logger.debug(f"[{mutation_name}] Objects bucket: {objects_bucket}")
             mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
 
             # Step 2: Send the request & handle response
-            self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
+            self.logger.debug(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
             graphql_response, request_response = send_graphql_request(self.api.url, mutation_payload_string)
             status_code = request_response.status_code
 
@@ -209,11 +209,11 @@ class FEngine(object):
         try:
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
-            self.logger.info(f"[{query_name}] Objects bucket: {objects_bucket}")
+            self.logger.debug(f"[{query_name}] Objects bucket: {objects_bucket}")
             query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
 
             # Step 2
-            self.logger.info(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
+            self.logger.debug(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
             graphql_response, request_response = send_graphql_request(self.api.url, query_payload_string)
             status_code = request_response.status_code
 

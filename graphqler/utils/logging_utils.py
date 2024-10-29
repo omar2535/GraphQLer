@@ -50,6 +50,8 @@ class Logger:
         Returns:
             logging.Logger: The fuzzer logger
         """
+        if not self.fuzzer_logger:
+            self.fuzzer_logger = self._get_logger("fuzzer", self.fuzzer_log_path)
         return self.fuzzer_logger
 
     def get_compiler_logger(self) -> logging.Logger:
@@ -58,6 +60,8 @@ class Logger:
         Returns:
             logging.Logger: The compiler logger
         """
+        if not self.compiler_logger:
+            self.compiler_logger = self._get_logger("compiler", self.compiler_log_path)
         return self.compiler_logger
 
     def get_idor_logger(self) -> logging.Logger:
@@ -66,9 +70,11 @@ class Logger:
         Returns:
             logging.Logger: The IDOR logger
         """
+        if not self.idor_logger:
+            self.idor_logger = self._get_logger("idor", self.idor_log_path)
         return self.idor_logger
 
-    def _get_logger(self, name: str, file_path: str) -> logging.Logger:
+    def _get_logger(self, name: str, file_path: str | Path) -> logging.Logger:
         """Gets a logger with the given name, file path, and level. Creates any required directories
 
         Args:
@@ -84,7 +90,10 @@ class Logger:
         handler.setFormatter(formatter)
 
         logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
+        if constants.DEBUG:
+            logger.setLevel(logging.DEBUG)
+        else:
+            logger.setLevel(logging.INFO)
         logger.addHandler(handler)
 
         return logger

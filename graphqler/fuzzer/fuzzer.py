@@ -62,7 +62,8 @@ class Fuzzer(object):
         if constants.DEBUG:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
         else:
-            p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
+            p = threading.Thread(target=self.__run_steps, args=(queue,))
+            # p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
         p.join(constants.MAX_TIME)
 
@@ -155,6 +156,7 @@ class Fuzzer(object):
         # Step 6: Finish
         self.logger.info("Completed fuzzing")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
+        self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
         queue.put(cloudpickle.dumps(self.objects_bucket))
@@ -259,7 +261,6 @@ class Fuzzer(object):
         """
         neighboring_nodes = self._get_neighboring_nodes(node)
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
-        self.logger.info(self.objects_bucket)
 
         if node.graphql_type == "Object":
             if self.objects_bucket.is_object_in_bucket(node.name):
