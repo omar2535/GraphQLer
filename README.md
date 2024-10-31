@@ -23,13 +23,13 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
 
 ## Key features
 
-- Request generation: Automatically generate valid queries and mutations based on the schema (supports fragments, unions, interfaces, enums)!
-- Dependency awareness: Run queries and mutations based on their natural dependencies
-- Resource tracking: Keep track of any objects seen in the API for future use and reconnaisance
-- Error correction: Try and fix requests so that the GraphQL API accepts them
-- Statistics collection: Shows your results in a easy-to-read file
-- Ease of use: All you need is the endpoint and the authentication token if needed
-- Customizability: Change the configuration file to suit your needs, proxy requests through Burp or ZAP if you want
+- **Request generation**: Automatically generate valid queries and mutations based on the schema *(supports fragments, unions, interfaces, and enums based on the latest [GraphQL-spec](https://spec.graphql.org/October2021/#sec-ID))*
+- **Dependency awareness**: Run queries and mutations based on their natural dependencies
+- **Resource tracking**: Keep track of any objects seen in the API for future use and reconnaisance
+- **Error correction**: Try and fix requests so that the GraphQL API accepts them
+- **Statistics collection**: Shows your results in a easy-to-read file
+- **Ease of use**: All you need is the endpoint and the authentication token if needed
+- **Customizability**: Change the configuration file to suit your needs, proxy requests through Burp or ZAP if you want
 
 ## Getting started
 
@@ -74,6 +74,8 @@ Below will be the steps on how you can use this program to test your GraphQL API
 - **Fuzzing mode**: This mode is responsible for traversing the dependency graph and sending test requests to the API
 
 A third mode is also included for ease of use, called **run** mode. this mode compiles both the compilation and fuzzing mode into one single command.
+
+A mode in development right now is known as the IDOR mode, which will look for re-used objects that are accessible using another access token.
 
 ### Compile mode
 

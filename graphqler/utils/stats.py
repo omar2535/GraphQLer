@@ -27,7 +27,7 @@ class Stats:
     number_of_objects: int = 0
     number_of_successes: int = 0
     number_of_failures: int = 0
-    objects_bucket: Optional[ObjectsBucket]  = None
+    objects_bucket: Optional[ObjectsBucket] = None
 
     # Detection stats
     is_introspection_available: bool = False
