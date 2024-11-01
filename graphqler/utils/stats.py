@@ -160,6 +160,9 @@ class Stats:
         print(f"(RESULTS): Number of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
         print(f"(RESULTS): Number of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
         print(f"(RESULTS): Please check {self.file_path} for more information regarding the run")
+        if self.objects_bucket:
+            print(f"(RESULTS): Number of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
+            print(f"(RESULTS): Number of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
         print("------------------------------------------------------")
 
     def save(self):
@@ -183,6 +186,9 @@ class Stats:
             f.write(f"\nNumber of objects: {self.number_of_objects}")
             f.write(f"\nNumber of successes: {self.number_of_successes}")
             f.write(f"\nNumber of failures: {self.number_of_failures}")
+            if self.objects_bucket:
+                f.write(f"\nNumber of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
+                f.write(f"\nNumber of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
 
         with open(self.objects_bucket_file_path, "w") as f:
             if self.objects_bucket:

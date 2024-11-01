@@ -50,6 +50,28 @@ class ObjectsBucket:
         self.__dict__.update(state)
 
     # ------------------- GETTERS -------------------
+    def get_num_objects(self) -> int:
+        """Returns the number of objects in the bucket
+
+        Returns:
+            int: The number of objects in the bucket
+        """
+        sum = 0
+        for object_name, object_info in self.objects.items():
+            sum += len(object_info)
+        return sum
+
+    def get_num_scalars(self) -> int:
+        """Returns the number of scalars in the bucket
+
+        Returns:
+            int: The number of scalars in the bucket
+        """
+        sum = 0
+        for scalar_name, scalar_info in self.scalars.items():
+            sum += len(scalar_info["values"])
+        return sum
+
     def get_random_object(self, object_name: str) -> dict:
         """Returns a random object from the bucket
 
