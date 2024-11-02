@@ -9,7 +9,7 @@ from graphqler.utils.logging_utils import Logger
 from graphqler.utils.parser_utils import get_base_oftype
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.api import API
-from graphqler import constants
+from graphqler import config
 
 
 class Materializer:
@@ -68,7 +68,7 @@ class Materializer:
                 max_depth=max_depth,
                 current_depth=0
             )
-            if max_depth > constants.HARD_CUTOFF_DEPTH:
+            if max_depth > config.HARD_CUTOFF_DEPTH:
                 break
             max_depth += 1
         cleaned_output_selectors = clean_output_selectors(output_selectors)
@@ -190,7 +190,7 @@ class Materializer:
 
         # If we've seen this object more than the max object cycles, don't use it again
         # But only do this check while we aren't only materializing non-null fields
-        if used_objects.count(object_name) >= constants.MAX_OBJECT_CYCLES:
+        if used_objects.count(object_name) >= config.MAX_OBJECT_CYCLES:
             return built_str
 
         # If we're at max depth, materialize only scalar fields

@@ -6,7 +6,7 @@ while methods such as queries / mutations will be related to objects
 based on either output type or semantic understanding
 """
 
-from graphqler.constants import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
+from graphqler.config import BUILT_IN_TYPES, BUILT_IN_TYPE_KINDS
 
 
 class ObjectDependencyResolver:

@@ -5,7 +5,7 @@ from os import path
 
 from graphqler.__main__ import run_compile_mode, run_fuzz_mode
 
-from graphqler import constants
+from graphqler import config
 import multiprocessing
 
 
@@ -27,9 +27,9 @@ APIS_TO__TEST = [
 MAX_TIMES = [5, 10, 20, 30, 60]
 
 # Set the constants
-constants.USE_OBJECTS_BUCKET = True
-constants.USE_DEPENDENCY_GRAPH = True
-constants.NO_DATA_COUNT_AS_SUCCESS = True
+config.USE_OBJECTS_BUCKET = True
+config.USE_DEPENDENCY_GRAPH = True
+config.NO_DATA_COUNT_AS_SUCCESS = True
 
 
 # Run the command multiple times
@@ -37,7 +37,7 @@ def run_api(api_to_test):
     for max_time in MAX_TIMES:
         output_path = f"{api_to_test[1]}/{max_time}/"
         print(f"Running the API {api_to_test[0]} with path {output_path} and max time {max_time}")
-        constants.MAX_TIME = max_time
+        config.MAX_TIME = max_time
         run_compile_mode(output_path, api_to_test[0])
         run_fuzz_mode(output_path, api_to_test[0])
 

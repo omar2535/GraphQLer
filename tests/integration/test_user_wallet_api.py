@@ -1,6 +1,6 @@
 import unittest
 from graphqler import __main__
-from graphqler import constants
+from graphqler import config
 from tests.integration.utils.stats import get_percent_query_mutation_success
 from tests.integration.utils.run_api import run_node_project, wait_for_server
 import os
@@ -23,7 +23,7 @@ class TestUserWalletApi(unittest.TestCase):
 
         # Parse the config
         config = __main__.parse_config(cls.CONFIG_PATH)
-        __main__.set_constants_with_config(config)
+        __main__.set_config(config)
 
         # Wait for the server to to respond
         wait_for_server(cls.URL, timeout=30)
@@ -38,7 +38,7 @@ class TestUserWalletApi(unittest.TestCase):
     def test_run_compile_mode_generates_valid_introspection_file(self):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
-        introspection_path = os.path.join(self.PATH, constants.INTROSPECTION_RESULT_FILE_NAME)
+        introspection_path = os.path.join(self.PATH, config.INTROSPECTION_RESULT_FILE_NAME)
         self.assertTrue(os.path.exists(introspection_path))
         self.assertGreater(os.path.getsize(introspection_path), 0)
 
@@ -46,7 +46,7 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
-        stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
@@ -54,7 +54,7 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_single_mode(self.PATH, self.URL, "getCurrentRate")
-        stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
@@ -62,6 +62,6 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
-        stats_path = os.path.join(self.PATH, constants.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
         percentage = get_percent_query_mutation_success(stats_path)
         self.assertTrue(percentage >= 80)

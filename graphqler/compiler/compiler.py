@@ -11,7 +11,7 @@ from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
-from graphqler import constants
+from graphqler import config
 from clairvoyance.cli import blind_introspection
 
 import asyncio
@@ -28,18 +28,18 @@ class Compiler:
             url (str): URL for graphql introspection query to hit
         """
         self.save_path = save_path
-        self.introspection_result_save_path = Path(save_path) / Path(constants.INTROSPECTION_RESULT_FILE_NAME)
-        self.object_list_save_path = Path(save_path) / constants.OBJECT_LIST_FILE_NAME
-        self.input_object_list_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
-        self.mutation_parameter_save_path = Path(save_path) / constants.MUTATION_PARAMETER_FILE_NAME
-        self.query_parameter_save_path = Path(save_path) / constants.QUERY_PARAMETER_FILE_NAME
-        self.enum_list_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
-        self.union_list_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
-        self.interface_list_save_path = Path(save_path) / constants.INTERFACE_LIST_FILE_NAME
+        self.introspection_result_save_path = Path(save_path) / Path(config.INTROSPECTION_RESULT_FILE_NAME)
+        self.object_list_save_path = Path(save_path) / config.OBJECT_LIST_FILE_NAME
+        self.input_object_list_save_path = Path(save_path) / config.INPUT_OBJECT_LIST_FILE_NAME
+        self.mutation_parameter_save_path = Path(save_path) / config.MUTATION_PARAMETER_FILE_NAME
+        self.query_parameter_save_path = Path(save_path) / config.QUERY_PARAMETER_FILE_NAME
+        self.enum_list_save_path = Path(save_path) / config.ENUM_LIST_FILE_NAME
+        self.union_list_save_path = Path(save_path) / config.UNION_LIST_FILE_NAME
+        self.interface_list_save_path = Path(save_path) / config.INTERFACE_LIST_FILE_NAME
 
-        self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
-        self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
+        self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
         self.url = url
 
         # Initialize the parsers we will use
@@ -112,8 +112,8 @@ class Compiler:
             dict: The introspection result using clairvoyance
         """
         wordlist = []
-        if constants.WORDLIST_PATH != "":
-            with open(constants.WORDLIST_PATH, "r") as file:
+        if config.WORDLIST_PATH != "":
+            with open(config.WORDLIST_PATH, "r") as file:
                 wordlist = file.read().splitlines()
 
         schema_str = asyncio.run(

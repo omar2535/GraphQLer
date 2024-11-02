@@ -11,6 +11,7 @@ PROXY = None  # Don't use this, this will be overriten by argparse
 AUTHORIZATION = None  # Don't use this, this will be overriten by argparse
 
 """For the compiler / parser"""
+OUTPUT_DIRECTORY = "graphqler-output"
 EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
 

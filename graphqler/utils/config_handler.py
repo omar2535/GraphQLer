@@ -1,4 +1,4 @@
-from graphqler import constants
+from graphqler import config
 import tomllib
 
 
@@ -17,14 +17,14 @@ def parse_config(config_file: str) -> dict:
     return config
 
 
-def set_constants_with_config(config: dict):
-    """Sets constants to the config file using reflection on the constants module
+def set_config(new_config: dict):
+    """Sets config to the new file using reflection on the constants module
 
     Args:
-        config (dict): The configuration dictionary
+        new_config (dict): The configuration dictionary
     """
-    for k, v in config.items():
-        if hasattr(constants, k):
-            setattr(constants, k, v)
+    for k, v in new_config.items():
+        if hasattr(config, k):
+            setattr(config, k, v)
         else:
             print(f"(!) Unknown configuration {k}, skipping it")

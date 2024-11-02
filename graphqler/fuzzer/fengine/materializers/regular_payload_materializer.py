@@ -5,7 +5,7 @@ Materializes a mutation that is ready to be sent off
 from .materializer import Materializer
 from .utils.materialization_utils import prettify_graphql_payload
 from .getter import Getter
-from graphqler.constants import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
+from graphqler.config import MAX_OUTPUT_SELECTOR_DEPTH, MAX_INPUT_DEPTH
 from graphqler.utils.api import API
 from graphqler.utils.objects_bucket import ObjectsBucket
 

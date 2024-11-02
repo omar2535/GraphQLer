@@ -16,7 +16,7 @@ import time
 import cloudpickle
 import networkx
 
-from graphqler import constants
+from graphqler import config
 from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
@@ -59,7 +59,7 @@ class Fuzzer(object):
         """
         # Create a separate process
         queue = multiprocessing.Queue()
-        if constants.DEBUG:
+        if config.DEBUG:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
         else:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
@@ -67,11 +67,11 @@ class Fuzzer(object):
             #       What ends up happening is that the process hangs and never returns (lock is kept by the subprocess)
             # p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
-        p.join(constants.MAX_TIME)
+        p.join(config.MAX_TIME)
 
         # Terminate the thread if it's still alive after the max time
         if p.is_alive():
-            print(f"(+) Terminating the fuzzer process - reached max time {constants.MAX_TIME}s")
+            print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
             p.terminate()  # type: ignore -- we have to ignore since thread has no terminate method
         p.join()
 
@@ -288,15 +288,15 @@ class Fuzzer(object):
         if node.graphql_type not in ["Query", "Mutation"]:
             return
         # DOS Query / Mutation
-        if not constants.SKIP_DOS_ATTACKS and constants.MAX_FUZZING_ITERATIONS != 0:
-            random_numbers = [random.randint(1, min(constants.HARD_CUTOFF_DEPTH, constants.MAX_INPUT_DEPTH)) for _ in range(0, constants.MAX_FUZZING_ITERATIONS)]
+        if not config.SKIP_DOS_ATTACKS and config.MAX_FUZZING_ITERATIONS != 0:
+            random_numbers = [random.randint(1, min(config.HARD_CUTOFF_DEPTH, config.MAX_INPUT_DEPTH)) for _ in range(0, config.MAX_FUZZING_ITERATIONS)]
             random_number = random.choice(random_numbers)
             self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
             results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
             for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
-        if not constants.SKIP_INJECTION_ATTACKS:
+        if not config.SKIP_INJECTION_ATTACKS:
             self.logger.info(f"Running injection {node.graphql_type}: {node.name}")
             results = self.fengine.run_injection_payloads(node.name, self.objects_bucket, node.graphql_type)
             for _graphql_response, res in results:

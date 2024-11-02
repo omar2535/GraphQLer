@@ -1,5 +1,5 @@
 from enum import Enum
-from graphqler.constants import NO_DATA_COUNT_AS_SUCCESS
+from graphqler.config import NO_DATA_COUNT_AS_SUCCESS
 
 
 # Class to define the type of failure

@@ -3,7 +3,7 @@
 """
 
 from pathlib import Path
-from graphqler import constants
+from graphqler import config
 from graphqler.utils.file_utils import read_yaml_to_dict
 
 
@@ -19,13 +19,13 @@ class API:
     interfaces = {}
 
     def __init__(self, url: str = "http://localhost:4000/graphql", save_path: Path | str = "output/"):
-        self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
-        self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
-        self.extracted_enums_save_path = Path(save_path) / constants.ENUM_LIST_FILE_NAME
-        self.extracted_input_objects_save_path = Path(save_path) / constants.INPUT_OBJECT_LIST_FILE_NAME
-        self.extracted_unions_save_path = Path(save_path) / constants.UNION_LIST_FILE_NAME
-        self.extracted_interfaces_save_path = Path(save_path) / constants.INTERFACE_LIST_FILE_NAME
+        self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
+        self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
+        self.extracted_enums_save_path = Path(save_path) / config.ENUM_LIST_FILE_NAME
+        self.extracted_input_objects_save_path = Path(save_path) / config.INPUT_OBJECT_LIST_FILE_NAME
+        self.extracted_unions_save_path = Path(save_path) / config.UNION_LIST_FILE_NAME
+        self.extracted_interfaces_save_path = Path(save_path) / config.INTERFACE_LIST_FILE_NAME
 
         self.url = url
         self.queries = read_yaml_to_dict(self.compiled_queries_save_path)

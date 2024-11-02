@@ -10,7 +10,7 @@ The linker does the following:
 
 from pathlib import Path
 from graphqler.utils.file_utils import read_yaml_to_dict
-from graphqler import constants
+from graphqler import config
 from .node import Node
 from .utils import draw_graph
 
@@ -20,10 +20,10 @@ import networkx
 class GraphGenerator:
     def __init__(self, save_path: str):
         self.save_path = save_path
-        self.compiled_queries_save_path = Path(save_path) / constants.COMPILED_QUERIES_FILE_NAME
-        self.compiled_objects_save_path = Path(save_path) / constants.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutations_save_path = Path(save_path) / constants.COMPILED_MUTATIONS_FILE_NAME
-        self.dependency_graph_visualization_save_path = Path(save_path) / constants.GRAPH_VISUALIZATION_OUTPUT
+        self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
+        self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
+        self.dependency_graph_visualization_save_path = Path(save_path) / config.GRAPH_VISUALIZATION_OUTPUT
 
         self.compiled_queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.compiled_objects = read_yaml_to_dict(self.compiled_objects_save_path)

@@ -6,7 +6,7 @@ Note: The run_regular_mutation and run_regular_query functions are very similar,
 import bdb
 import traceback
 
-from graphqler import constants
+from graphqler import config
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
@@ -173,7 +173,7 @@ class FEngine(object):
                 elif mutation_type == "UPDATE":
                     # TODO: Implement this
                     pass  # updates don't generally do anything to the objects bucket
-                elif mutation_type == "DELETE" and constants.ALLOW_DELETION_OF_OBJECTS:
+                elif mutation_type == "DELETE" and config.ALLOW_DELETION_OF_OBJECTS:
                     if mutation_output_type in used_objects:
                         # TODO: Implement new version of this
                         # used_object_value = used_objects[mutation_output_type]
@@ -236,7 +236,7 @@ class FEngine(object):
             if graphql_response["data"][query_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, we mark it as fail
                 self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
-                if constants.NO_DATA_COUNT_AS_SUCCESS:
+                if config.NO_DATA_COUNT_AS_SUCCESS:
                     return (graphql_response, Result.NO_DATA_SUCCESS)
                 else:
                     return (graphql_response, Result.EXTERNAL_FAILURE)

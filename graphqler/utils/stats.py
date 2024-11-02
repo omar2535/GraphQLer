@@ -5,7 +5,7 @@ from graphqler.utils.objects_bucket import ObjectsBucket
 from .singleton import singleton
 from .file_utils import initialize_file
 
-from graphqler import constants
+from graphqler import config
 from typing import Optional
 import pprint
 import json
@@ -89,9 +89,9 @@ class Stats:
         self.objects_bucket = objects_bucket
 
     def set_file_path(self, working_dir: str):
-        initialize_file(Path(working_dir) / constants.STATS_FILE_PATH)
-        self.file_path = Path(working_dir) / constants.STATS_FILE_PATH
-        self.objects_bucket_file_path = Path(working_dir) / constants.OBJECTS_BUCKET_FILE_PATH
+        initialize_file(Path(working_dir) / config.STATS_FILE_PATH)
+        self.file_path = Path(working_dir) / config.STATS_FILE_PATH
+        self.objects_bucket_file_path = Path(working_dir) / config.OBJECTS_BUCKET_FILE_PATH
 
     def print_running_stats(self):
         """Function to print stats during runtime (not saved to file)"""

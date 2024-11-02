@@ -14,8 +14,8 @@ from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
 from graphqler.utils.logging_utils import Logger
-from graphqler.utils.config_handler import parse_config, set_constants_with_config
-from graphqler import constants
+from graphqler.utils.config_handler import parse_config, set_config
+from graphqler import config
 
 
 def run_compile_mode(path: str, url: str):
@@ -58,10 +58,10 @@ def run_fuzz_mode(path: str, url: str):
     stats.set_file_path(path)
 
     print("(F) Starting fuzzer")
-    if not constants.USE_OBJECTS_BUCKET:
+    if not config.USE_OBJECTS_BUCKET:
         print("(F) Not using Objects Bucket")
 
-    if constants.USE_DEPENDENCY_GRAPH:
+    if config.USE_DEPENDENCY_GRAPH:
         print("(F) Running in dependency graph mode")
         objects_bucket = Fuzzer(path, url).run()
     else:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="remote host URL", required=True)
-    parser.add_argument("--path", help="directory location for files to be saved-to/used-from", required=True)
+    parser.add_argument("--path", help=f"directory location for files to be saved-to/used-from. Defaults to {config.OUTPUT_DIRECTORY}", required=False)
     parser.add_argument("--config", help="configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
@@ -121,9 +121,13 @@ if __name__ == "__main__":
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
+    # Set the path if provided
+    if args.path:
+        config.OUTPUT_DIRECTORY = args.path
+
     # Set proxy if provided
     if args.proxy:
-        constants.PROXY = args.proxy
+        config.PROXY = args.proxy
 
     # Set auth token if provided
     if args.auth:
@@ -131,19 +135,19 @@ if __name__ == "__main__":
 
     # Parse config if provided
     if args.config:
-        config = parse_config(args.config)
-        set_constants_with_config(config)
+        new_config = parse_config(args.config)
+        set_config(new_config)
 
     # Run either compilation or fuzzing mode
     if args.mode == "compile":
-        run_compile_mode(args.path, args.url)
+        run_compile_mode(config.OUTPUT_DIRECTORY, args.url)
     elif args.mode == "fuzz":
-        run_fuzz_mode(args.path, args.url)
+        run_fuzz_mode(config.OUTPUT_DIRECTORY, args.url)
     elif args.mode == "run":
-        run_compile_mode(args.path, args.url)
-        run_fuzz_mode(args.path, args.url)
+        run_compile_mode(config.OUTPUT_DIRECTORY, args.url)
+        run_fuzz_mode(config.OUTPUT_DIRECTORY, args.url)
     elif args.mode == "idor":
-        run_idor_mode(args.path, args.url)
+        run_idor_mode(config.OUTPUT_DIRECTORY, args.url)
     elif args.mode == "single":
         if not args.node:
             print("Please provide a node to run in single mode")

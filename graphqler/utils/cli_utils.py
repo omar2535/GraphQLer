@@ -1,4 +1,4 @@
-from graphqler import constants
+from graphqler import config
 from pathlib import Path
 
 
@@ -10,9 +10,9 @@ def set_auth_token_constant(auth_argument: str) -> None:
         auth_token (str): The auth token argument
     """
     if len(auth_argument.split(" ")) >= 2:
-        constants.AUTHORIZATION = auth_argument
+        config.AUTHORIZATION = auth_argument
     else:
-        constants.AUTHORIZATION = f"Bearer {auth_argument}"
+        config.AUTHORIZATION = f"Bearer {auth_argument}"
 
 
 def is_compiled(path: str) -> bool:
@@ -26,9 +26,9 @@ def is_compiled(path: str) -> bool:
     """
     path = Path(path)
     return (
-        (path / constants.COMPILED_DIR_NAME).exists()
-        and (path / constants.COMPILED_OBJECTS_FILE_NAME).exists()
-        and (path / constants.COMPILED_QUERIES_FILE_NAME).exists()
-        and (path / constants.COMPILED_MUTATIONS_FILE_NAME).exists()
-        and (path / constants.INTROSPECTION_RESULT_FILE_NAME).exists()
+        (path / config.COMPILED_DIR_NAME).exists()
+        and (path / config.COMPILED_OBJECTS_FILE_NAME).exists()
+        and (path / config.COMPILED_QUERIES_FILE_NAME).exists()
+        and (path / config.COMPILED_MUTATIONS_FILE_NAME).exists()
+        and (path / config.INTROSPECTION_RESULT_FILE_NAME).exists()
     )

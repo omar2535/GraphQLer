@@ -10,7 +10,7 @@ The class should have two functionalities
 3. Be able to return objects from the bucket if given a type and the object name
 """
 
-from graphqler.constants import USE_OBJECTS_BUCKET
+from graphqler.config import USE_OBJECTS_BUCKET
 from .singleton import singleton
 from graphqler.utils.api import API
 from graphqler.utils.parser_utils import get_output_type_from_details

@@ -1,5 +1,5 @@
 import logging
-from graphqler import constants
+from graphqler import config
 from pathlib import Path
 from graphqler.utils.singleton import singleton
 from graphqler.utils.file_utils import initialize_file
@@ -22,9 +22,9 @@ class Logger:
             mode (str): Mode of run
             save_path (str): Save path
         """
-        self.fuzzer_log_path = Path(save_path) / constants.FUZZER_LOG_FILE_PATH
-        self.compiler_log_path = Path(save_path) / constants.COMPILER_LOG_FILE_PATH
-        self.idor_log_path = Path(save_path) / constants.IDOR_LOG_FILE_PATH
+        self.fuzzer_log_path = Path(save_path) / config.FUZZER_LOG_FILE_PATH
+        self.compiler_log_path = Path(save_path) / config.COMPILER_LOG_FILE_PATH
+        self.idor_log_path = Path(save_path) / config.IDOR_LOG_FILE_PATH
         if mode == "fuzz":
             self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
             initialize_file(self.fuzzer_log_path)
@@ -90,7 +90,7 @@ class Logger:
         handler.setFormatter(formatter)
 
         logger = logging.getLogger(name)
-        if constants.DEBUG:
+        if config.DEBUG:
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.INFO)

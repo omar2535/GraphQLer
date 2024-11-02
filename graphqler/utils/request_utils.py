@@ -1,7 +1,7 @@
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from typing import Callable
-from graphqler import constants
+from graphqler import config
 
 import time
 import requests
@@ -20,11 +20,11 @@ def get_headers() -> dict:
         dict: The headers for the request
     """
     headers = {"Content-Type": "application/json"}
-    if constants.AUTHORIZATION:
-        headers["Authorization"] = f"{constants.AUTHORIZATION}"
+    if config.AUTHORIZATION:
+        headers["Authorization"] = f"{config.AUTHORIZATION}"
 
-    if constants.CUSTOM_HEADERS:
-        headers.update(constants.CUSTOM_HEADERS)
+    if config.CUSTOM_HEADERS:
+        headers.update(config.CUSTOM_HEADERS)
     return headers
 
 
@@ -34,12 +34,12 @@ def get_proxies() -> dict:
     Returns:
         dict: The proxies for the request
     """
-    if constants.PROXY and "http:" in constants.PROXY:
-        return {"http": constants.PROXY}
-    elif constants.PROXY and "https:" in constants.PROXY:
-        return {"https": constants.PROXY}
-    elif constants.PROXY:
-        return {"http": constants.PROXY, "https": constants.PROXY}
+    if config.PROXY and "http:" in config.PROXY:
+        return {"http": config.PROXY}
+    elif config.PROXY and "https:" in config.PROXY:
+        return {"https": config.PROXY}
+    elif config.PROXY:
+        return {"http": config.PROXY, "https": config.PROXY}
     else:
         return {}
 
@@ -66,15 +66,15 @@ def send_graphql_request(url: str, payload: str | dict | list, next: Callable[[d
 
     # If the last request was made recently, wait for a bit
     time_since_last_request = time.time() - last_request_time
-    if time_since_last_request < constants.TIME_BETWEEN_REQUESTS:
-        time.sleep(constants.TIME_BETWEEN_REQUESTS - time_since_last_request)
+    if time_since_last_request < config.TIME_BETWEEN_REQUESTS:
+        time.sleep(config.TIME_BETWEEN_REQUESTS - time_since_last_request)
 
     # Make the request and set the last request time
     session = get_or_create_session()
     response = session.post(
         url=url,
         json=body,
-        timeout=constants.REQUEST_TIMEOUT,
+        timeout=config.REQUEST_TIMEOUT,
     )
     last_request_time = time.time()
 
@@ -129,7 +129,7 @@ def create_new_session() -> requests.Session:
     session.headers.update(get_headers())
 
     # Set proxy if available
-    if constants.PROXY:
+    if config.PROXY:
         session.proxies.update(get_proxies())
         disable_warnings(InsecureRequestWarning)
         session.verify = False
