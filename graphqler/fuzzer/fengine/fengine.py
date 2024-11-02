@@ -192,7 +192,8 @@ class FEngine(object):
             raise exc
         except Exception as e:
             # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
-            self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}: {e}, {traceback.format_exc()}")
+            self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}")
+            self.logger.debug(f"[{mutation_name}] {e}, {traceback.format_exc()}")
             return ({}, Result.INTERNAL_FAILURE)
 
     def __run_query(self, query_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:

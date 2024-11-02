@@ -43,7 +43,7 @@ class Retrier:
             locations = error["locations"]
             for location in locations:
                 payload = self.get_new_payload_for_retry_non_null(payload, location)
-            self.logger.info(f"Retrying with new payload:\n {payload}")
+            self.logger.debug(f"Retrying with new payload:\n {payload}")
             gql_response, request_response = send_graphql_request(url, payload)
             self.logger.info(f"Response: {gql_response}")
             if "errors" in gql_response:
