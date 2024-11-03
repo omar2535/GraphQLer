@@ -260,6 +260,8 @@ class Fuzzer(object):
         Returns:
             tuple[list[list[Node]], Result]: The results of the positive node evaluation
         """
+        if node.name in config.SKIP_NODES:
+            return ([], Result.GENERAL_SUCCESS)
         new_paths_to_evaluate, res = self.__evaluate(node, visit_path)  # For positive testing (normal run)
         self.__fuzz(node, visit_path)                                   # For negative testing (fuzzing)
         self.__detect_vulnerabilities_on_node(node)                     # For negative testing (Detect vulnerabilities)

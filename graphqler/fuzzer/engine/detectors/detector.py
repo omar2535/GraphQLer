@@ -50,21 +50,28 @@ class Detector(ABC):
         self.graphql_type = graphql_type
         self.detector_logger = Logger().get_detector_logger()
         self.fuzzer_logger = Logger().get_fuzzer_logger()
-        self.stats = Stats()
+        self.confirmed_vulnerable = False
+        self.potentially_vulnerable = False
 
-    def detect(self):
-        """Main function to be ran to detect the vulnerability"""
+    def detect(self) -> bool:
+        """Main function to run to detect the vulnerability.
+
+        Returns:
+            bool: True if the vulnerability is detected, False otherwise
+        """
         payload = self._get_payload()
         self.fuzzer_logger.debug(f"[Fuzzer] Payload: {payload}")
         self.detector_logger.info(f"[Detector] Payload: {payload}")
 
         graphql_response, request_response = send_graphql_request(self.api.url, payload)
-        self.stats.add_http_status_code(self.name, request_response.status_code)
+        Stats().add_http_status_code(self.name, request_response.status_code)
 
         self.detector_logger.info(f"[{request_response.status_code}]Response: {request_response.text}")
         self.fuzzer_logger.info(f"[{request_response.status_code}]Response: {graphql_response}")
 
         self._parse_response(graphql_response, request_response)
+        Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
+        return self.confirmed_vulnerable
 
     def _get_payload(self) -> str:
         """Gets the materialized payload to be sent to the API"""
@@ -80,9 +87,11 @@ class Detector(ABC):
         """Parses the response and checks for vulnerability"""
         if "errors" in graphql_response:
             self.detector_logger.info(f"Got errors: {graphql_response['errors']}")
+            self.potentially_vulnerable = True
         if self._is_vulnerable(graphql_response, request_response):
             self.detector_logger.info(f"Vulnerable to {self.DETECTION_NAME}")
-            self.stats.add_vulnerability(self.DETECTION_NAME, True)
+            self.confirmed_vulnerable = True
+            self.potentially_vulnerable = True
 
     @abstractmethod
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:

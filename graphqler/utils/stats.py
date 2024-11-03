@@ -28,7 +28,7 @@ class Stats:
     number_of_successes: int = 0
     number_of_failures: int = 0
     objects_bucket: Optional[ObjectsBucket] = None
-    vulnerabilities: dict[str, bool] = {}  # Key value of the vulnerability and whether it was detected or not
+    vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potentiall or confirmed vulnerability
 
     # Detection stats
     is_introspection_available: bool = False
@@ -101,15 +101,43 @@ class Stats:
         print(f"Number of failures: {self.number_of_failures}", end="")
         print("\r", end="", flush=True)
 
-    def add_vulnerability(self, vulnerability_name: str, detected: bool):
+    def add_vulnerability(self, vulnerability_name: str, node_name: str, is_vulnerable: bool, potentially_vulnerable: bool = False):
         """Whether a detection was detected or not -- if already detected, it will stay detected
 
         Args:
             detection_name (str): name of the detection
             detected (bool): whether the detection was detected or not
         """
-        if vulnerability_name in self.vulnerabilities:
-            self.vulnerabilities[vulnerability_name] = self.vulnerabilities[vulnerability_name] or detected
+        if vulnerability_name not in self.vulnerabilities:
+            self.vulnerabilities[vulnerability_name] = {}
+
+        if node_name in self.vulnerabilities[vulnerability_name]:
+            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable | self.vulnerabilities[vulnerability_name]['potentially_vulnerable']
+            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable | self.vulnerabilities[vulnerability_name]['is_vulnerable']
+        else:
+            self.vulnerabilities[vulnerability_name][node_name] = {}
+            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable
+            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable
+
+    def get_formatted_vulnerabilites(self) -> str:
+        """Returns the formatted vulnerabilities
+
+        Returns:
+            str: The formatted vulnerabilities
+        """
+        formatted_vulnerabilities = ""
+        for vulnerability_name, nodes in self.vulnerabilities.items():
+            vulnerable_nodes = ""
+            for node_name, vulnerability in nodes.items():
+                if vulnerability['is_vulnerable'] or vulnerability['potentially_vulnerable']:
+                    if vulnerability['is_vulnerable']:
+                        vulnerable_nodes += f"  ❗'{node_name}'  - Is vulnerable\n"
+                    else:
+                        vulnerable_nodes += f"  🔍'{node_name}'  - Is potentially vulnerable \n"
+            if vulnerable_nodes != "":
+                formatted_vulnerabilities += f"\n{vulnerability_name}:\n"
+                formatted_vulnerabilities += vulnerable_nodes
+        return formatted_vulnerabilities
 
     def update_stats_from_result(self, node, result: Result) -> None:
         """Parses the result and adds it to the stats
@@ -176,7 +204,7 @@ class Stats:
             print(f"(RESULTS): Number of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
         if len(self.vulnerabilities) > 0:
             print("----------------------DETECTED VULNS-------------------------")
-            pprint.pprint(self.vulnerabilities)
+            print(self.get_formatted_vulnerabilites())
         print("---------------------------------------------------------")
 
     def save(self):
