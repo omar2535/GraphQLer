@@ -1,6 +1,6 @@
 import unittest
 
-from graphqler.fuzzer.fengine.materializers.utils.materialization_utils import is_valid_object_materialization, remove_consecutive_characters
+from graphqler.fuzzer.engine.materializers.utils.materialization_utils import is_valid_object_materialization, remove_consecutive_characters
 
 
 class TestOutputUtils(unittest.TestCase):

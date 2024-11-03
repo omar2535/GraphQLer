@@ -21,15 +21,18 @@ class OSCommandInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
+        random_str = ""
         if input_name.lower() == "host":
-            return "localhost"
+            random_str = "localhost"
         elif input_name.lower() == "port":
-            return "80"
+            random_str = "80"
         elif input_name.lower() == "path":
-            return "/; uname -a"
+            random_str = "/ ; cat /etc/passwd"
         elif input_name.lower() == "scheme":
-            return "http"
+            random_str = "http"
         elif input_name.lower() == "cmd":
-            return "id; ls -la"
+            random_str = "cat /etc/passwd"
         else:
-            return "cat /etc/passwd"
+            return super().get_random_string(input_name)
+
+        return f"\"{random_str}\""

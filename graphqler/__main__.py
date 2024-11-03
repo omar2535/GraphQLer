@@ -52,6 +52,8 @@ def run_fuzz_mode(path: str, url: str):
     print("(F) Initializing log files")
     logger = Logger()
     logger.initialize_loggers("fuzz", path)
+    logger.initialize_loggers("detector", path)
+    logger.initialize_loggers("idor", path)
 
     print("(F) Initializing stats file")
     stats = Stats()

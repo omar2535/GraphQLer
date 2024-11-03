@@ -13,7 +13,7 @@ from graphqler import config
 
 
 class Materializer:
-    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, getter: Getter = Getter()):
+    def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True, max_depth: int = 5, getter: Getter = Getter()):
         """Default constructor for a regular materializer
 
         Args:
@@ -25,9 +25,10 @@ class Materializer:
         self.logger = Logger().get_fuzzer_logger().getChild(__name__)  # Get a child logger
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.used_objects = {}
+        self.max_depth = max_depth
         self.getter = getter
 
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str | list | dict, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
 
         Args:
@@ -292,7 +293,7 @@ class Materializer:
                     built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
         elif check_deps and input_field["name"] in soft_dependencies:
             soft_depedency_name = soft_dependencies[input_field["name"]]
-            if soft_depedency_name in objects_bucket:
+            if objects_bucket.is_object_in_bucket(soft_depedency_name):
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
                 randomly_chosen_dependency_val = objects_bucket.get_random_object_field_value(soft_depedency_name, input_field["name"])
                 self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
