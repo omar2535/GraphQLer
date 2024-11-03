@@ -135,3 +135,4 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | DEBUG | Debug mode | Boolean | False |
 | Custom Headers | Custom headers to be sent along with each request | Object | `Accept = "application/json"` |
 | SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks | Boolean | False |
+| SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
