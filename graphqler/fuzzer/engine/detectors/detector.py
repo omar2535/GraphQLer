@@ -60,8 +60,8 @@ class Detector(ABC):
             bool: True if the vulnerability is detected, False otherwise
         """
         payload = self._get_payload()
-        self.fuzzer_logger.debug(f"[Fuzzer] Payload: {payload}")
-        self.detector_logger.info(f"[Detector] Payload: {payload}")
+        self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{payload}")
+        self.detector_logger.info(f"[Detector] Payload:\n{payload}")
 
         graphql_response, request_response = send_graphql_request(self.api.url, payload)
         Stats().add_http_status_code(self.name, request_response.status_code)
@@ -91,11 +91,21 @@ class Detector(ABC):
         if self._is_vulnerable(graphql_response, request_response):
             self.detector_logger.info(f"Vulnerable to {self.DETECTION_NAME}")
             self.confirmed_vulnerable = True
+        if self._is_potentially_vulnerable(graphql_response, request_response):
+            self.detector_logger.info(f"Potentially vulnerable to {self.DETECTION_NAME}")
             self.potentially_vulnerable = True
 
     @abstractmethod
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         """Checks if the response indicates a vulnerability.
+
+        Must be implemented by subclasses.
+        """
+        pass
+
+    @abstractmethod
+    def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        """Checks if the response indicates a potential vulnerability.
 
         Must be implemented by subclasses.
         """

@@ -127,7 +127,8 @@ class Fuzzer(object):
         3. 2nd Pass: Perform DFS, allow UPDATE as well as CREATE and also query nodes
         4. 3rd Pass: Perform DFS, allow DELETE and UNKNOWN
         5. Get all nodes that still haven't been ran, run them (these are the nodes that may be in islands of the graph - very rare)
-        6. Clean up
+        6. Run detections on the API
+        7. Finish
 
         Args:
             queue (multiprocessing.Queue): The queue to send the objects bucket to
@@ -157,7 +158,11 @@ class Fuzzer(object):
         self.__run_nodes(nodes_to_run)
         self.logger.info("Completed running all nodes that haven't been ran yet")
 
-        # Step 6: Finish
+        # Step 6
+        self.dengine.run_detections_on_api()
+        self.logger.info("Completed running detections on the overall API")
+
+        # Step 7: Finish
         self.logger.info("Completed fuzzing")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
         self.stats.set_objects_bucket(self.objects_bucket)
