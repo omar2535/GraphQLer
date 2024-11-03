@@ -2,11 +2,11 @@ from typing import Type
 
 import requests
 
-from .os_command_injection_materializer import OSCommandInjectionMaterializer
+from .introspection_materializer import IntrospectionMaterializer
 from ..detector import Detector
 
 
-class OSCommandInjectionDetector(Detector):
+class IntrospectionDetector(Detector):
     """OSCommandInjectionDetector
     Will have two main functions:
     first will be the materializer to use
@@ -15,22 +15,22 @@ class OSCommandInjectionDetector(Detector):
     """
     @property
     def DETECTION_NAME(self) -> str:
-        return "OS Command Injection"
+        return "Introspection Enabled"
 
     @property
     def detect_only_once_for_api(self) -> bool:
-        return False
+        return True
 
     @property
     def detect_only_once_for_node(self) -> bool:
         return True
 
     @property
-    def materializer(self) -> Type[OSCommandInjectionMaterializer]:
-        return OSCommandInjectionMaterializer
+    def materializer(self) -> Type[IntrospectionMaterializer]:
+        return IntrospectionMaterializer
 
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
-        return "root:x:0:0:root:" in request_response.text or "root:x:0:0:root:" in str(graphql_response['data'])
+        return "__schema" in graphql_response['data'] and request_response.status_code == 200
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         return self._is_vulnerable(graphql_response, request_response)

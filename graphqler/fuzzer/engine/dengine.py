@@ -1,4 +1,5 @@
 from .detectors import injection_detectors
+from .detectors import api_detectors
 from .detectors.detector import Detector
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
@@ -23,9 +24,16 @@ class DEngine:
         self.nodes_ran: dict[str, dict[str, bool]] = {}  # {node_name: {detection_name: True/False}}
 
     def run_detections_on_api(self):
-        """TODO: - API-wide detection (IE. introspection query available, type hinting available)
+        """Run detections on the API
+           - Uses API as the key for nodes_ran marking
         """
-        pass
+        for api_detector in api_detectors:
+            detector = api_detector(api=self.api, name=self.api.url, objects_bucket=ObjectsBucket(self.api), graphql_type="")
+            if not self.__should_run_detection(detector, self.api.url):
+                continue
+            is_vulnerable = detector.detect()
+            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable}")
+            self.__add_ran_node(self.api.url, detector.DETECTION_NAME)
 
     def run_detections_on_graphql_object(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs all detectors on a specific GraphQL object (either QUERY or MUTATION)
