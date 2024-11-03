@@ -23,8 +23,9 @@ from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.stats import Stats
 
-from .fengine.fengine import FEngine
-from .fengine.types import Result
+from .engine.fengine import FEngine
+from .engine.dengine import DEngine
+from .engine.types import Result
 
 
 class Fuzzer(object):
@@ -43,6 +44,7 @@ class Fuzzer(object):
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
         self.fengine = FEngine(self.api)
+        self.dengine = DEngine(self.api)
         self.objects_bucket = ObjectsBucket(self.api)
 
         # Stats about the run
@@ -214,6 +216,7 @@ class Fuzzer(object):
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
                 new_paths_to_evaluate, res = self.__evaluate(current_node, current_visit_path)  # For positive testing (normal run)
                 self.__fuzz(current_node, current_visit_path)  # For negative testing (fuzzing)
+                self.__detect_vulnerabilities_on_node(current_node)  # Detect vulnerabilities (detections)
                 self.stats.update_stats_from_result(current_node, res)  # Update the stats
 
                 # If it's not successful:
@@ -301,6 +304,10 @@ class Fuzzer(object):
             results = self.fengine.run_injection_payloads(node.name, self.objects_bucket, node.graphql_type)
             for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
+
+    def __detect_vulnerabilities_on_node(self, node: Node):
+        if node.graphql_type in ["Query", "Mutation"]:
+            self.dengine.run_detections_on_graphql_object(node.name, self.objects_bucket, node.graphql_type)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node

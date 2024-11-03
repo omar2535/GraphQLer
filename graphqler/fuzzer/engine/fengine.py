@@ -54,7 +54,7 @@ class FEngine(object):
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
     def run_dos_payloads(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, max_depth: int = 20) -> list[tuple[dict, Result]]:
-        """Runs the DOS payload (either Query or Mutation), and returns a new objects bucket
+        """Runs all DOS payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
             name (str): The name of the node
@@ -73,7 +73,7 @@ class FEngine(object):
         return results
 
     def run_injection_payloads(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, max_depth: int = 20) -> list[tuple[dict, Result]]:
-        """Runs the injection payload (either Query or Mutation), and returns a new objects bucket
+        """Runs all injection payloads on the GraphQL object (either Query or Mutation), and returns a new objects bucket
 
         Args:
             name (str): The name of the node
@@ -132,11 +132,11 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
             self.logger.debug(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            mutation_payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
+            payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
 
             # Step 2: Send the request & handle response
-            self.logger.debug(f"[{mutation_name}] Sending mutation payload string:\n {mutation_payload_string}")
-            graphql_response, request_response = send_graphql_request(self.api.url, mutation_payload_string)
+            self.logger.debug(f"[{mutation_name}] Sending mutation payload string:\n {payload_string}")
+            graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
             # Stats tracking stuff
@@ -149,7 +149,7 @@ class FEngine(object):
             if "errors" in graphql_response:
                 self.logger.info(f"[{mutation_name}] Mutation failed: {graphql_response['errors'][0]}")
                 self.logger.info(f"[{mutation_name}] Retrying ---")
-                graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, mutation_payload_string, graphql_response, 0)
+                graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, payload_string, graphql_response, 0)
                 if not retry_success:
                     return (graphql_response, Result.EXTERNAL_FAILURE)
             if "data" not in graphql_response:
@@ -211,11 +211,11 @@ class FEngine(object):
             # Step 1
             self.logger.info(f"[{query_name}] Running query: {query_name}")
             self.logger.debug(f"[{query_name}] Objects bucket: {objects_bucket}")
-            query_payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
+            payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
 
             # Step 2
-            self.logger.debug(f"[{query_name}] Sending query payload string:\n {query_payload_string}")
-            graphql_response, request_response = send_graphql_request(self.api.url, query_payload_string)
+            self.logger.debug(f"[{query_name}] Sending query payload string:\n {payload_string}")
+            graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
             # Stats tracking stuff
@@ -228,7 +228,7 @@ class FEngine(object):
             if "errors" in graphql_response:
                 self.logger.info(f"[{query_name}] Query failed: {graphql_response['errors'][0]}")
                 self.logger.info(f"[{query_name}] Retrying ---")
-                graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, query_payload_string, graphql_response, 0)
+                graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, payload_string, graphql_response, 0)
                 if not retry_success:
                     return (graphql_response, Result.EXTERNAL_FAILURE)
             if "data" not in graphql_response:

@@ -37,3 +37,6 @@ TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 # Put custom headers here
 [CUSTOM_HEADERS]
 Accept = "application/json"
+
+# For custom skipping specific nodes"""
+SKIP_NODES = []

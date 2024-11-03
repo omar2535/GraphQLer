@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Patch
 from pathlib import Path
 
+
+# Switch to Agg backend to avoid GUI dependencies (e.g. Tkinter)
+plt.switch_backend('agg')
+
+
 def draw_graph(graph: networkx.DiGraph, save_path: Path):
     """Draws a graph with nodes as rounded rectangles and labels inside them,
     using professional colors suitable for academic publications, and adds a legend describing the colors.
@@ -24,7 +29,7 @@ def draw_graph(graph: networkx.DiGraph, save_path: Path):
             color = '#2ca02c'  # Green
         else:
             color = '#7f7f7f'  # Gray
-            node_type = 'Other'  # To group all other types under 'Other'
+            node_type = 'Object'  # To group all other types under 'Object'
         color_map[node[0]] = color
         type_color[node_type] = color  # Map node type to color
 

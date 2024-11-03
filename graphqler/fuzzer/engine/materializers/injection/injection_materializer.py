@@ -9,7 +9,7 @@ from typing import override
 
 class InjectionMaterializer(Materializer):
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = False, max_depth: int = 20, injection_getter: Getter = Getter()):
-        super().__init__(api, fail_on_hard_dependency_not_met, injection_getter)
+        super().__init__(api, fail_on_hard_dependency_not_met, max_depth, injection_getter)
         self.max_depth = max_depth
         self.getter = injection_getter
         self.api = api

@@ -4,7 +4,7 @@ from graphqler.fuzzer.fuzzer import Fuzzer
 from graphqler.graph import Node
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler.fuzzer.fengine.types.result import Result
+from graphqler.fuzzer.engine.types.result import Result
 
 
 class IDORFuzzer(Fuzzer):

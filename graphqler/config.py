@@ -51,6 +51,7 @@ MAX_INPUT_DEPTH = 20
 """For loggers"""
 FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
+DETECTOR_LOG_FILE_PATH = "logs/detector.log"
 IDOR_LOG_FILE_PATH = "logs/idor.log"
 
 """For stats"""
@@ -75,3 +76,6 @@ TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 
 """For custom headers"""
 CUSTOM_HEADERS = {}
+
+"""For custom skipping nodes"""
+SKIP_NODES = []

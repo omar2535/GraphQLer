@@ -1,6 +1,6 @@
 from pathlib import Path
 from graphqler.graph import Node
-from graphqler.fuzzer.fengine.types import Result
+from graphqler.fuzzer.engine.types import Result
 from graphqler.utils.objects_bucket import ObjectsBucket
 from .singleton import singleton
 from .file_utils import initialize_file
@@ -28,6 +28,7 @@ class Stats:
     number_of_successes: int = 0
     number_of_failures: int = 0
     objects_bucket: Optional[ObjectsBucket] = None
+    vulnerabilities: dict[str, bool] = {}  # Key value of the vulnerability and whether it was detected or not
 
     # Detection stats
     is_introspection_available: bool = False
@@ -100,6 +101,16 @@ class Stats:
         print(f"Number of failures: {self.number_of_failures}", end="")
         print("\r", end="", flush=True)
 
+    def add_vulnerability(self, vulnerability_name: str, detected: bool):
+        """Whether a detection was detected or not -- if already detected, it will stay detected
+
+        Args:
+            detection_name (str): name of the detection
+            detected (bool): whether the detection was detected or not
+        """
+        if vulnerability_name in self.vulnerabilities:
+            self.vulnerabilities[vulnerability_name] = self.vulnerabilities[vulnerability_name] or detected
+
     def update_stats_from_result(self, node, result: Result) -> None:
         """Parses the result and adds it to the stats
 
@@ -163,7 +174,10 @@ class Stats:
         if self.objects_bucket:
             print(f"(RESULTS): Number of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
             print(f"(RESULTS): Number of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
-        print("------------------------------------------------------")
+        if len(self.vulnerabilities) > 0:
+            print("----------------------DETECTED VULNS-------------------------")
+            pprint.pprint(self.vulnerabilities)
+        print("---------------------------------------------------------")
 
     def save(self):
         number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
@@ -189,6 +203,9 @@ class Stats:
             if self.objects_bucket:
                 f.write(f"\nNumber of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
                 f.write(f"\nNumber of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
+            if len(self.vulnerabilities) > 0:
+                f.write("\n===================Detected Vulnerabilities===================\n")
+                f.write(json.dumps(self.vulnerabilities, indent=4))
 
         with open(self.objects_bucket_file_path, "w") as f:
             if self.objects_bucket:
