@@ -60,7 +60,7 @@ class Detector(ABC):
         Returns:
             tuple[bool, bool]: (confirmed_vulnerable, potentially_vulnerable)
         """
-        self.payload = self._get_payload()
+        self.payload = self.get_payload()
         self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{self.payload}")
         self.detector_logger.info(f"[Detector] Payload:\n{self.payload}")
 
@@ -74,7 +74,7 @@ class Detector(ABC):
         Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
-    def _get_payload(self) -> str:
+    def get_payload(self) -> str:
         """Gets the materialized payload to be sent to the API"""
         materializer_instance = self.materializer(
             api=self.api,

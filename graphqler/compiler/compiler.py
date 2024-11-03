@@ -76,12 +76,11 @@ class Compiler:
         4. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
         introspection_result = self.get_introspection_query_results()
-
-        if introspection_result is None:
+        if introspection_result is None or introspection_result == {}:
             print("(C) Introspection query failed, trying clairvoyance")
             introspection_result = self.get_clairvoyance_results()
 
-        if introspection_result is None:
+        if introspection_result is None or introspection_result == {}:
             raise SystemExit("(E) Couldn't get schema of the API. Exiting")
 
         self.run_parsers_and_save(introspection_result)
@@ -95,6 +94,9 @@ class Compiler:
         """
         result, response = send_graphql_request(self.url, introspection_query)
         if "introspection is not allowed" in response.text.lower():
+            self.logger.warning("GraphQL Introspection is not allowed")
+            return {}
+        elif "is not allowed" in response.text.lower():
             self.logger.warning("GraphQL Introspection is not allowed")
             return {}
         elif response.status_code != 200:
