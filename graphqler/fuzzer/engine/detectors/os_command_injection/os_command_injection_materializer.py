@@ -1,6 +1,6 @@
-from .injection_materializer import InjectionMaterializer
+from ...materializers.injection_materializer import InjectionMaterializer
 from graphqler.utils.api import API
-from ..getter import Getter
+from ...materializers.getter import Getter
 
 from typing import override
 
