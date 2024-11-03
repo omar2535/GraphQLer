@@ -74,8 +74,8 @@ SKIP_INJECTION_ATTACKS = False  # This mode is for when we want to skip the inje
 REQUEST_TIMEOUT = 120  # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 
-"""For custom headers"""
-CUSTOM_HEADERS = {}
-
 """For custom skipping nodes"""
 SKIP_NODES = []
+
+"""For custom headers"""
+CUSTOM_HEADERS = {}

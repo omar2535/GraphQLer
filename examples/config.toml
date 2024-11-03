@@ -34,9 +34,9 @@ SKIP_INJECTION_ATTACKS = false # This mode is for when we want to skip the injec
 REQUEST_TIMEOUT = 120  # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 
+# For custom skipping specific nodes"""
+SKIP_NODES = []
+
 # Put custom headers here
 [CUSTOM_HEADERS]
 Accept = "application/json"
-
-# For custom skipping specific nodes"""
-SKIP_NODES = []
