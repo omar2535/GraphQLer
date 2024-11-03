@@ -31,8 +31,8 @@ class DEngine:
             detector = api_detector(api=self.api, name=self.api.url, objects_bucket=ObjectsBucket(self.api), graphql_type="")
             if not self.__should_run_detection(detector, self.api.url):
                 continue
-            is_vulnerable = detector.detect()
-            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable}")
+            is_vulnerable, potentially_vulnerable = detector.detect()
+            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
             self.__add_ran_node(self.api.url, detector.DETECTION_NAME)
 
     def run_detections_on_graphql_object(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
@@ -58,8 +58,8 @@ class DEngine:
             detector = injection_detector(api=self.api, name=name, objects_bucket=objects_bucket, graphql_type=graphql_type)
             if not self.__should_run_detection(detector, name):
                 continue
-            is_vulnerable = detector.detect()
-            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable}")
+            is_vulnerable, potentially_vulnerable = detector.detect()
+            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
             self.__add_ran_node(name, detector.DETECTION_NAME)
 
     def __add_ran_node(self, name: str, detection_name: str):
