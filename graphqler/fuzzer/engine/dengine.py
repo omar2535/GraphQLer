@@ -39,6 +39,13 @@ class DEngine:
             self.__run_injection_detections(name, objects_bucket, graphql_type)
 
     def __run_injection_detections(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+        """Runs injection detections
+
+        Args:
+            name (str): The name of the node
+            objects_bucket (ObjectsBucket): The objects bucket
+            graphql_type (str): The type of the GraphQL operation
+        """
         for injection_detector in injection_detectors:
             detector = injection_detector(api=self.api, name=name, objects_bucket=objects_bucket, graphql_type=graphql_type)
             if not self.__should_run_detection(detector, name):

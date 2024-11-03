@@ -19,8 +19,7 @@ from .exceptions import HardDependencyNotMetException
 from .materializers import (
     Materializer,
     RegularPayloadMaterializer,
-    dos_materializers,
-    injection_materializers,
+    dos_materializers
 )
 from .retrier import Retrier
 from .types import Result
@@ -69,25 +68,6 @@ class FEngine(object):
         for dos_materializer in dos_materializers:
             self.logger.info(f"Running DOS materializer: {dos_materializer.__name__} on {name}")
             materializer = dos_materializer(self.api, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
-            results += [self.__run_payload(name, objects_bucket, materializer, graphql_type)]
-        return results
-
-    def run_injection_payloads(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, max_depth: int = 20) -> list[tuple[dict, Result]]:
-        """Runs all injection payloads on the GraphQL object (either Query or Mutation), and returns a new objects bucket
-
-        Args:
-            name (str): The name of the node
-            objects_bucket (dict): The objects bucket
-            graphql_type (str): The GraphQL type (either query or mutation)
-            max_depth (int, optional): The maximum recursion depth. Defaults to 20.
-
-        Returns:
-            list[tuple[Response, Result]]: A list of results of (The response dict, and the result of the query)
-        """
-        results = []
-        for injection_materializer in injection_materializers:
-            self.logger.info(f"Running injection materializer: {injection_materializer.__name__} on {name}")
-            materializer = injection_materializer(self.api, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
             results += [self.__run_payload(name, objects_bucket, materializer, graphql_type)]
         return results
 

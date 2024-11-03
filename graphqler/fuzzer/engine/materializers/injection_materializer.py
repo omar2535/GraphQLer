@@ -1,8 +1,8 @@
-from ..materializer import Materializer
-from ..utils.materialization_utils import prettify_graphql_payload
+from .materializer import Materializer
+from .utils.materialization_utils import prettify_graphql_payload
 from graphqler.utils.api import API
 from graphqler.utils.objects_bucket import ObjectsBucket
-from ..getter import Getter
+from .getter import Getter
 
 from typing import override
 

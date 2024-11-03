@@ -177,8 +177,7 @@ class Fuzzer(object):
         for current_node in nodes:
             self.stats.print_running_stats()
             self.logger.info(f"Running node: {current_node}")
-            _next_visit_path, result = self.__evaluate(current_node, [current_node], check_hard_depends_on=False)
-            self.__fuzz(current_node, [current_node])
+            _next_visit_path, result = self.__run_node(current_node, [current_node], check_hard_depends_on=False)
 
             # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
@@ -214,9 +213,7 @@ class Fuzzer(object):
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                new_paths_to_evaluate, res = self.__evaluate(current_node, current_visit_path)  # For positive testing (normal run)
-                self.__fuzz(current_node, current_visit_path)  # For negative testing (fuzzing)
-                self.__detect_vulnerabilities_on_node(current_node)  # Detect vulnerabilities (detections)
+                new_paths_to_evaluate, res = self.__run_node(current_node, current_visit_path)
                 self.stats.update_stats_from_result(current_node, res)  # Update the stats
 
                 # If it's not successful:
@@ -249,6 +246,24 @@ class Fuzzer(object):
             if run_times >= max_run_times:
                 self.logger.info("Hit max run times. Ending DFS")
                 break
+
+    def __run_node(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
+        """Runs the node, evaluating it and return the next visit paths.
+           - The return will be based on the positive testing of the node
+           - The side effects will be the fuzzed node and the detection of any vulnerabilities on the node
+
+        Args:
+            node (Node): The node
+            visit_path (list[Node]): The visit path
+            check_hard_depends_on (bool, optional): Whether to check the dependencies. Defaults to True.
+
+        Returns:
+            tuple[list[list[Node]], Result]: The results of the positive node evaluation
+        """
+        new_paths_to_evaluate, res = self.__evaluate(node, visit_path)  # For positive testing (normal run)
+        self.__fuzz(node, visit_path)                                   # For negative testing (fuzzing)
+        self.__detect_vulnerabilities_on_node(node)                     # For negative testing (Detect vulnerabilities)
+        return (new_paths_to_evaluate, res)
 
     def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
         """Evaluates the path, performing the following based on the type of node:
@@ -296,12 +311,6 @@ class Fuzzer(object):
             random_number = random.choice(random_numbers)
             self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
             results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
-            for _graphql_response, res in results:
-                self.stats.update_stats_from_result(node, res)
-
-        if not config.SKIP_INJECTION_ATTACKS:
-            self.logger.info(f"Running injection {node.graphql_type}: {node.name}")
-            results = self.fengine.run_injection_payloads(node.name, self.objects_bucket, node.graphql_type)
             for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 

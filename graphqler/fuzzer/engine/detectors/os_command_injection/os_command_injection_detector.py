@@ -2,8 +2,8 @@ from typing import Type
 
 import requests
 
-from ..materializers.injection import OSCommandInjectionMaterializer
-from .detector import Detector
+from .os_command_injection_materializer import OSCommandInjectionMaterializer
+from ..detector import Detector
 
 
 class OSCommandInjectionDetector(Detector):
