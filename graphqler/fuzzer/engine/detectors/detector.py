@@ -50,20 +50,21 @@ class Detector(ABC):
         self.graphql_type = graphql_type
         self.detector_logger = Logger().get_detector_logger()
         self.fuzzer_logger = Logger().get_fuzzer_logger()
+        self.payload = ""
         self.confirmed_vulnerable = False
         self.potentially_vulnerable = False
 
-    def detect(self) -> bool:
+    def detect(self) -> tuple[bool, bool]:
         """Main function to run to detect the vulnerability.
 
         Returns:
-            bool: True if the vulnerability is detected, False otherwise
+            tuple[bool, bool]: (confirmed_vulnerable, potentially_vulnerable)
         """
-        payload = self._get_payload()
-        self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{payload}")
-        self.detector_logger.info(f"[Detector] Payload:\n{payload}")
+        self.payload = self._get_payload()
+        self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{self.payload}")
+        self.detector_logger.info(f"[Detector] Payload:\n{self.payload}")
 
-        graphql_response, request_response = send_graphql_request(self.api.url, payload)
+        graphql_response, request_response = send_graphql_request(self.api.url, self.payload)
         Stats().add_http_status_code(self.name, request_response.status_code)
 
         self.detector_logger.info(f"[{request_response.status_code}]Response: {request_response.text}")
@@ -71,7 +72,7 @@ class Detector(ABC):
 
         self._parse_response(graphql_response, request_response)
         Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
-        return self.confirmed_vulnerable
+        return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
     def _get_payload(self) -> str:
         """Gets the materialized payload to be sent to the API"""
