@@ -58,6 +58,9 @@ class SQLInjectionDetector(Detector):
         return False
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        # Initial check to see if the response is empty
+        if graphql_response is None or 'data' not in graphql_response or graphql_response['data'] is None:
+            return False
         if request_response.status_code == 200 and graphql_response['data'] and any(keyword in self.payload for keyword in SQL_INJECTION_STRINGS):
             return True
         else:
