@@ -30,6 +30,8 @@ class OSCommandInjectionDetector(Detector):
         return OSCommandInjectionMaterializer
 
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        if graphql_response is None or 'data' not in graphql_response or graphql_response['data'] is None:
+            return False
         return "root:x:0:0:root:" in request_response.text or "root:x:0:0:root:" in str(graphql_response['data'])
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:

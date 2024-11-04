@@ -27,4 +27,10 @@ class XSSInjectionDetector(Detector):
         return False
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        if graphql_response is None:
+            return False
+        if 'data' not in graphql_response:
+            return False
+        if graphql_response['data'] is None:
+            return False
         return "<script>alert(1)</script>" in graphql_response['data'] and request_response.status_code == 200

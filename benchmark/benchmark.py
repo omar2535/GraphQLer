@@ -22,6 +22,12 @@ APIS_TO__TEST = [
     # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
     # ("https://api.spacex.land/graphql/", "spacex-test/"),
     # ("https://api.tcgdex.net/v2/graphql", "tcgdex-test/"),
+    # ('http://localhost:4000/graphql', 'benchmark-tests/user-wallet-test/'),
+    # ('http://localhost:4000/graphql', 'benchmark-tests/food-delivery-test/')
+    ('https://graphql.anilist.co/', 'benchmark-tests/anilist-test/'),
+    ('https://www.universe.com/graphql', 'benchmark-tests/universe-test/'),
+    ('https://beta.pokeapi.co/graphql/v1beta', 'benchmark-tests/pokeapi-test/'),
+    ('http://localhost:3000/', 'benchmark-tests/json-graphql-server/'),
 ]
 
 MAX_TIMES = [5, 10, 20, 30, 60]

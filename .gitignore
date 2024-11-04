@@ -28,6 +28,7 @@ dist/
 omar-test*/
 anilist-test/
 finland-test/
+benchmark-tests/
 *-test/
 *-test-1/
 ci-test-*
