@@ -112,8 +112,8 @@ class Stats:
             self.vulnerabilities[vulnerability_name] = {}
 
         if node_name in self.vulnerabilities[vulnerability_name]:
-            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable | self.vulnerabilities[vulnerability_name]['potentially_vulnerable']
-            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable | self.vulnerabilities[vulnerability_name]['is_vulnerable']
+            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable | self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable']
+            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable | self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable']
         else:
             self.vulnerabilities[vulnerability_name][node_name] = {}
             self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable

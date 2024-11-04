@@ -110,6 +110,7 @@ class QueryDenyBypassDetector(Detector):
                 or non_aliased_request_response.status_code == 400):
             if aliased_request_response.status_code == 200 and aliased_graphql_response['data']:
                 self.confirmed_vulnerable = True
+                self.potentially_vulnerable = True
         else:
             self.potentially_vulnerable = False
             self.confirmed_vulnerable = False
