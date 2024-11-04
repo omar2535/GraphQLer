@@ -64,7 +64,7 @@ options:
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
-  --node NODE           node to run (only used in single mode)
+  --node NODE           node to run (only used in *single* mode)
   --version             display version
 ```
 
@@ -134,5 +134,7 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | TIME_BETWEEN_REQUESTS | Max time to wait between requests in seconds | Integer | 0.001 |
 | DEBUG | Debug mode | Boolean | False |
 | Custom Headers | Custom headers to be sent along with each request | Object | `Accept = "application/json"` |
-| SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks | Boolean | False |
+| SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks(defaults to true to not DOS the service) | Boolean | True |
+| SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
+| SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
