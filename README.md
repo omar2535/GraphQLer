@@ -18,8 +18,9 @@
 GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with a focus on awareness. It offers a range of sophisticated features that streamline the testing process and ensure robust analysis of GraphQL APIs such as being able to automatically read a schema and run tests against an API using the schema. Furthermore, GraphQLer is aware of dependencies between objects queries and mutations which is then used to perform security tests against APIs.
 
 <div align="center">
-  <video src='https://github.com/user-attachments/assets/2da045c2-82ef-4e06-ab38-7b9ce0f6e5e5' controls="controls"></video>
+  <video src='https://github.com/user-attachments/assets/0c0595a7-d0d9-4554-998a-98d6ebd1fbc2' controls="controls"></video>
 </div>
+
 
 ## Key features
 
