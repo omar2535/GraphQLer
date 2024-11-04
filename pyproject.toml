@@ -3,7 +3,7 @@ line-length = 180
 
 [tool.poetry]
 name = "GraphQLer"
-version = "2.2.22"
+version = "2.2.3"
 description = "A dependency-aware GraphQL API fuzzing tool"
 authors = ["Omar2535 <omar2535@alumni.ubc.ca>"]
 license = "MIT"
