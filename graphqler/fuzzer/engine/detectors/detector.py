@@ -88,7 +88,7 @@ class Detector(ABC):
         """Parses the response and checks for vulnerability"""
         if "errors" in graphql_response:
             self.detector_logger.info(f"Got errors: {graphql_response['errors']}")
-            self.potentially_vulnerable = True
+            # self.potentially_vulnerable = True
         if self._is_vulnerable(graphql_response, request_response):
             self.detector_logger.info(f"Vulnerable to {self.DETECTION_NAME}")
             self.confirmed_vulnerable = True

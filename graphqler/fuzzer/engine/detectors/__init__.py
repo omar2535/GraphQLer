@@ -2,6 +2,7 @@ from .os_command_injection.os_command_injection_detector import OSCommandInjecti
 from .xss_injection.xss_injection_detector import XSSInjectionDetector
 from .ssrf_injection.ssrf_injection_detector import SSRFInjectionDetector
 from .sql_injection.sql_injection_detector import SQLInjectionDetector
+from .query_deny_bypass.query_deny_bypass_detector import QueryDenyBypassDetector
 
 from .introspection.introspection_detector import IntrospectionDetector
 from .field_suggestion.field_suggestion_detector import FieldSuggestionsDetector
@@ -12,6 +13,10 @@ injection_detectors = [
     XSSInjectionDetector,
     SSRFInjectionDetector,
     SQLInjectionDetector
+]
+
+misc_detectors = [
+    QueryDenyBypassDetector
 ]
 
 api_detectors = [
