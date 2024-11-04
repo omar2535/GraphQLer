@@ -15,6 +15,6 @@ authors:
 - family-names: "Huang"
   given-names: "Lejing"
 title: "GraphQLer"
-version: 2.0.4
-date-released: 2023-10-22
+version: 2.2.3
+date-released: 2024-11-03
 url: "https://github.com/omar2535/GraphQLer"
