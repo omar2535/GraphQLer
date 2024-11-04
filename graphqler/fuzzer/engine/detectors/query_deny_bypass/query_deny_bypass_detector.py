@@ -22,26 +22,45 @@ class QueryDenyBypassMaterializer(RegularPayloadMaterializer):
     def get_non_aliased_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         if graphql_type == "Query":
             return self._get_query_payload(name, objects_bucket)
+        if graphql_type == "Mutation":
+            return self._get_mutation_payload(name, objects_bucket)
         else:
             return "", {}
 
     def get_aliased_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
-        if graphql_type != "Query":
+        if graphql_type not in ["Query", "Mutation"]:
             return "", {}
-        query_name = name
-        query_info = self.api.queries[name]
-        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=3)
-        query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=3)
+        info = self.api.queries[name] if graphql_type == "Query" else self.api.mutations[name]
+        inputs = self.materialize_inputs(info, info["inputs"], objects_bucket, max_depth=3)
+        output = self.materialize_output(info, info["output"], objects_bucket, max_depth=3)
 
-        if query_inputs != "":
-            query_inputs = f"({query_inputs})"
+        if graphql_type == "Query":
+            if inputs != "":
+                inputs = f"({inputs})"
 
-        payload = f"""
-        query {{
-            s: {query_name} {query_inputs}
-            {query_output}
-        }}
-        """
+            payload = f"""
+            query {{
+                s: {name} {inputs}
+                {output}
+            }}
+            """
+        else:
+            if inputs.strip() == "":
+                payload = f"""
+                mutation {{
+                    {name}
+                    {output}
+                }}
+                """
+            else:
+                payload = f"""
+                mutation {{
+                    {name} (
+                        {inputs}
+                    )
+                    {output}
+                }}
+                """
         pretty_payload = prettify_graphql_payload(payload)
         return pretty_payload, {}
 
