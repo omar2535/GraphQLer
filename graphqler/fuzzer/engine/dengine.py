@@ -1,5 +1,6 @@
 from .detectors import injection_detectors
 from .detectors import api_detectors
+from .detectors import misc_detectors
 from .detectors.detector import Detector
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
@@ -45,6 +46,25 @@ class DEngine:
         """
         if not config.SKIP_INJECTION_ATTACKS:
             self.__run_injection_detections(name, objects_bucket, graphql_type)
+
+        if not config.SKIP_MISC_ATTACKS:
+            self.__run_misc_detections(name, objects_bucket, graphql_type)
+
+    def __run_misc_detections(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+        """Runs miscellaneous detections
+
+        Args:
+            name (str): The name of the node
+            objects_bucket (ObjectsBucket): The objects bucket
+            graphql_type (str): The type of the GraphQL operation
+        """
+        for misc_detector in misc_detectors:
+            detector = misc_detector(api=self.api, name=name, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            if not self.__should_run_detection(detector, name):
+                continue
+            is_vulnerable, potentially_vulnerable = detector.detect()
+            self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
+            self.__add_ran_node(name, detector.DETECTION_NAME)
 
     def __run_injection_detections(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs injection detections

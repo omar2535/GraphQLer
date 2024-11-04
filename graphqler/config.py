@@ -69,6 +69,7 @@ MAX_FUZZING_ITERATIONS = 5
 MAX_TIME = 3600  # in seconds
 SKIP_DOS_ATTACKS = False  # This mode is for when we want to skip the DoS check
 SKIP_INJECTION_ATTACKS = False  # This mode is for when we want to skip the injection check
+SKIP_MISC_ATTACKS = False  # This mode is for when we want to skip the miscellaneous attacks
 
 """For each request"""
 REQUEST_TIMEOUT = 120  # in seconds
