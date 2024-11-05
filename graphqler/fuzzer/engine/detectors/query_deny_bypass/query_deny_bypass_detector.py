@@ -108,7 +108,7 @@ class QueryDenyBypassDetector(Detector):
 
         if (("400" in non_aliased_request_response.text and 'errors' in non_aliased_graphql_response)
                 or non_aliased_request_response.status_code == 400):
-            if aliased_request_response.status_code == 200 and aliased_graphql_response['data']:
+            if aliased_request_response.status_code == 200 and 'data' in aliased_graphql_response and aliased_graphql_response['data']:
                 self.confirmed_vulnerable = True
                 self.potentially_vulnerable = True
         else:
@@ -120,7 +120,9 @@ class QueryDenyBypassDetector(Detector):
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        # Intentionally left blank -- as detect is overriden
         raise NotImplementedError()
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
+        # Intentionally left blank -- as detect is overriden
         raise NotImplementedError()
