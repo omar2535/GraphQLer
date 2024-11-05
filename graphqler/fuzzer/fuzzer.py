@@ -116,6 +116,7 @@ class Fuzzer(object):
         nodes_to_run = list(self.dependency_graph.nodes)
         self.__run_nodes(nodes_to_run)
         self.logger.info("Completed fuzzing")
+        self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
         return cloudpickle.dumps(self.objects_bucket)

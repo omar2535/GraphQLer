@@ -10,13 +10,14 @@ The class should have two functionalities
 3. Be able to return objects from the bucket if given a type and the object name
 """
 
+import pprint
+import random
+
 from graphqler.config import USE_OBJECTS_BUCKET
-from .singleton import singleton
 from graphqler.utils.api import API
 from graphqler.utils.parser_utils import get_output_type_from_details
-import pprint
 
-import random
+from .singleton import singleton
 
 
 @singleton
@@ -87,7 +88,8 @@ class ObjectsBucket:
         return next(iter(self.objects[object_name]))
 
     def get_random_object_field_value(self, object_name: str, field_name: str) -> str | int | float | bool | None:
-        """Returns a random field from an object
+        """Returns a random field from an object.
+           Retries up to 5 times to find a field value
 
         Args:
             object_name (str): The object name
@@ -99,13 +101,21 @@ class ObjectsBucket:
         if object_name not in self.objects:
             raise Exception("Object not found in bucket")
 
-        random_index = random.randint(0, len(self.objects[object_name]) - 1)
-        object_to_use = self.objects[object_name][random_index]
-        found_key, found_value = self.find_key_in_dict(object_to_use, field_name)
+        max_retries = 5
+        num_retries = 0
+        used_indices = []
+        while num_retries < max_retries:
+            length_of_objects = len(self.objects[object_name])
+            random_index = random.choice([i for i in range(length_of_objects) if i not in used_indices])
+            object_to_use = self.objects[object_name][random_index]
+            found_key, found_value = self.find_key_in_dict(object_to_use, field_name)
 
-        if found_value is None:
-            return None
-        return found_value
+            if found_value is not None:
+                return found_value
+            else:
+                num_retries += 1
+                used_indices.append(random_index)
+        return None
 
     # ------------------- SETTERS -------------------
     def put_in_bucket(self, response_data: dict) -> bool:
@@ -117,10 +127,6 @@ class ObjectsBucket:
         Returns:
             bool: True if the object was added, False otherwise
         """
-        # If we're not using the objects bucket, just return an empty dict
-        if not USE_OBJECTS_BUCKET:
-            return False
-
         # If no data, just return
         if not response_data:
             return False
@@ -237,6 +243,8 @@ class ObjectsBucket:
         Returns:
             bool: True if the object is in the bucket, False otherwise
         """
+        if not USE_OBJECTS_BUCKET:
+            return False
         return object_name in self.objects and len(self.objects[object_name]) > 0
 
     def find_key_in_dict(self, dictionary: dict, key: str) -> tuple[str, str | int | float | bool | None]:
@@ -250,6 +258,8 @@ class ObjectsBucket:
             tuple[str, str | int | float | bool | None]: The key and value
 
         """
+        if not USE_OBJECTS_BUCKET:
+            return ("", None)
         for k, v in dictionary.items():
             if k == key:
                 return k, v
@@ -268,6 +278,8 @@ class ObjectsBucket:
         Returns:
             str | int | float | bool: The scalar value
         """
+        if not USE_OBJECTS_BUCKET:
+            return ""
         for scalar_name, scalar in self.scalars.items():
             if scalar["type"] == scalar_type:
                 return random.choice(list(scalar["values"]))
@@ -282,6 +294,8 @@ class ObjectsBucket:
         Returns:
             str | int | float | bool: The scalar value
         """
+        if not USE_OBJECTS_BUCKET:
+            return ""
         if scalar_name not in self.scalars:
             return ""
 
