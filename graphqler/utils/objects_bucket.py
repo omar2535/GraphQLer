@@ -89,7 +89,7 @@ class ObjectsBucket:
 
     def get_random_object_field_value(self, object_name: str, field_name: str) -> str | int | float | bool | None:
         """Returns a random field from an object.
-           Retries up to 5 times to find a field value
+           Retries up to 5 times to find a field value that isn't None
 
         Args:
             object_name (str): The object name
@@ -106,6 +106,8 @@ class ObjectsBucket:
         used_indices = []
         while num_retries < max_retries:
             length_of_objects = len(self.objects[object_name])
+            if len(used_indices) == length_of_objects:
+                return None
             random_index = random.choice([i for i in range(length_of_objects) if i not in used_indices])
             object_to_use = self.objects[object_name][random_index]
             found_key, found_value = self.find_key_in_dict(object_to_use, field_name)
