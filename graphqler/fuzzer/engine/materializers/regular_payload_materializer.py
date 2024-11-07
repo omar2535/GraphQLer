@@ -15,7 +15,7 @@ class RegularPayloadMaterializer(Materializer):
         self.getters = Getter()
         self.api = api
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
-        super().__init__(self.api, self.fail_on_hard_dependency_not_met, self.getters)
+        super().__init__(self.api, self.fail_on_hard_dependency_not_met, max_depth=MAX_OUTPUT_SELECTOR_DEPTH, getter=self.getters)
 
     def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         """Materializes the mutation with parameters filled in
@@ -32,9 +32,9 @@ class RegularPayloadMaterializer(Materializer):
         """
         self.used_objects = {}  # Reset the used_objects list per run (from parent class)
         if graphql_type == "Query":
-            return self._get_query_payload(name, objects_bucket)
+            return self._get_query_payload(name, objects_bucket, max_input_depth=MAX_INPUT_DEPTH, max_output_depth=MAX_OUTPUT_SELECTOR_DEPTH)
         elif graphql_type == "Mutation":
-            return self._get_mutation_payload(name, objects_bucket)
+            return self._get_mutation_payload(name, objects_bucket, max_input_depth=MAX_INPUT_DEPTH, max_output_depth=MAX_OUTPUT_SELECTOR_DEPTH)
         else:
             raise ValueError("Invalid graphql_type provided")
 
