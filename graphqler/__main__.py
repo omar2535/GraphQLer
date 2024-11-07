@@ -36,9 +36,10 @@ def run_compile_mode(path: str, url: str):
 
     print("(C) Finished compiling, starting graph generator")
     graph_generator = GraphGenerator(path)
-    graph_generator.get_dependency_graph()
+    graph = graph_generator.get_dependency_graph()
     graph_generator.draw_dependency_graph()
 
+    print("(C) Found", len(graph.nodes), "nodes and", len(graph.edges), "edges")
     print("(C) Complete compilation phase")
 
 

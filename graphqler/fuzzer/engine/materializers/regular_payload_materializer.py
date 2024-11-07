@@ -38,10 +38,10 @@ class RegularPayloadMaterializer(Materializer):
         else:
             raise ValueError("Invalid graphql_type provided")
 
-    def _get_query_payload(self, query_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
+    def _get_query_payload(self, query_name: str, objects_bucket: ObjectsBucket, max_input_depth=MAX_INPUT_DEPTH, max_output_depth=MAX_OUTPUT_SELECTOR_DEPTH) -> tuple[str, dict]:
         query_info = self.api.queries[query_name]
-        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        query_inputs = self.materialize_inputs(query_info, query_info["inputs"], objects_bucket, max_depth=max_input_depth)
+        query_output = self.materialize_output(query_info, query_info["output"], objects_bucket, max_depth=max_output_depth)
 
         if query_inputs != "":
             query_inputs = f"({query_inputs})"
@@ -55,10 +55,10 @@ class RegularPayloadMaterializer(Materializer):
         pretty_payload = prettify_graphql_payload(payload)
         return pretty_payload, self.used_objects
 
-    def _get_mutation_payload(self, mutation_name: str, objects_bucket: ObjectsBucket) -> tuple[str, dict]:
+    def _get_mutation_payload(self, mutation_name: str, objects_bucket: ObjectsBucket, max_input_depth: int = MAX_INPUT_DEPTH, max_output_depth: int = MAX_OUTPUT_SELECTOR_DEPTH) -> tuple[str, dict]:
         mutation_info = self.api.mutations[mutation_name]
-        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=MAX_INPUT_DEPTH)
-        mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=MAX_OUTPUT_SELECTOR_DEPTH)
+        mutation_inputs = self.materialize_inputs(mutation_info, mutation_info["inputs"], objects_bucket, max_depth=max_input_depth)
+        mutation_output = self.materialize_output(mutation_info, mutation_info["output"], objects_bucket, max_depth=max_output_depth)
 
         if mutation_inputs.strip() == "":
             mutation_payload = f"""

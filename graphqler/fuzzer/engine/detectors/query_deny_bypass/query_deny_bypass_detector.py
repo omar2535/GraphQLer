@@ -21,9 +21,9 @@ class QueryDenyBypassMaterializer(RegularPayloadMaterializer):
 
     def get_non_aliased_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         if graphql_type == "Query":
-            return self._get_query_payload(name, objects_bucket)
+            return self._get_query_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3)
         if graphql_type == "Mutation":
-            return self._get_mutation_payload(name, objects_bucket)
+            return self._get_mutation_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3)
         else:
             return "", {}
 
@@ -100,17 +100,25 @@ class QueryDenyBypassDetector(Detector):
         self.fuzzer_logger.debug(f"Non-aliased Payload:\n{non_aliased_payload}")
         self.detector_logger.info(f"Non-aliased Payload:\n{non_aliased_payload}")
         non_aliased_graphql_response, non_aliased_request_response = send_graphql_request(self.api.url, non_aliased_payload)
+        self.fuzzer_logger.debug(f"[{non_aliased_request_response.status_code}]Non-aliased Response: {non_aliased_graphql_response}")
+        self.detector_logger.info(f"[{non_aliased_request_response.status_code}]Non-aliased Response: {non_aliased_request_response.text}")
 
         aliased_payload, _ = materializer_instance.get_aliased_payload(self.name, self.objects_bucket, self.graphql_type)
         self.fuzzer_logger.debug(f"Aliased Payload:\n{aliased_payload}")
         self.detector_logger.info(f"Aliased Payload:\n{aliased_payload}")
         aliased_graphql_response, aliased_request_response = send_graphql_request(self.api.url, aliased_payload)
+        self.fuzzer_logger.debug(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_graphql_response}")
+        self.detector_logger.info(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_request_response.text}")
 
         if (("400" in non_aliased_request_response.text and 'errors' in non_aliased_graphql_response)
                 or non_aliased_request_response.status_code == 400):
-            if aliased_request_response.status_code == 200 and 'data' in aliased_graphql_response and aliased_graphql_response['data']:
-                self.confirmed_vulnerable = True
-                self.potentially_vulnerable = True
+            if (aliased_request_response.status_code == 200 and 'data' in aliased_graphql_response and aliased_graphql_response['data']):
+                if 'errors' in aliased_graphql_response and aliased_graphql_response['errors'] and len(aliased_graphql_response) != 0:
+                    self.potentially_vulnerable = True
+                    self.confirmed_vulnerable = False
+                else:
+                    self.confirmed_vulnerable = True
+                    self.potentially_vulnerable = True
         else:
             self.potentially_vulnerable = False
             self.confirmed_vulnerable = False
