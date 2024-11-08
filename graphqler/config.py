@@ -58,6 +58,9 @@ IDOR_LOG_FILE_PATH = "logs/idor.log"
 STATS_FILE_PATH = "stats.txt"
 OBJECTS_BUCKET_FILE_PATH = "objects_bucket.txt"
 
+"""For plugins"""
+PLUGINS_PATH = f"{OUTPUT_DIRECTORY}/plugins"
+
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket
 USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through the dependency graph

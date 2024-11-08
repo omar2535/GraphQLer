@@ -15,6 +15,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.config_handler import parse_config, set_config
+from graphqler.utils.plugins_handler import PluginsHandler
 from graphqler import config
 
 
@@ -116,6 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
+    parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
     parser.add_argument("--version", help="display version", action="store_true")
     args = parser.parse_args()
 
@@ -140,6 +142,12 @@ if __name__ == "__main__":
     if args.config:
         new_config = parse_config(args.config)
         set_config(new_config)
+
+    # Parse plugins if defined
+    if args.plugins_path:
+        config.PLUGINS_PATH = args.plugins_path
+        print(f"(P) Using plugins from {config.PLUGINS_PATH}")
+        PluginsHandler(config.PLUGINS_PATH).set_plugins()
 
     # Run either compilation or fuzzing mode
     if args.mode == "compile":
