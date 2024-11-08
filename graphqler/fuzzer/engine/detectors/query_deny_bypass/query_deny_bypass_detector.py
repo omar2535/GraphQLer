@@ -21,9 +21,9 @@ class QueryDenyBypassMaterializer(RegularPayloadMaterializer):
 
     def get_non_aliased_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
         if graphql_type == "Query":
-            return self._get_query_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3)
+            return self._get_query_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3, minimal_materialization=True)
         if graphql_type == "Mutation":
-            return self._get_mutation_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3)
+            return self._get_mutation_payload(name, objects_bucket, max_input_depth=3, max_output_depth=3, minimal_materialization=True)
         else:
             return "", {}
 

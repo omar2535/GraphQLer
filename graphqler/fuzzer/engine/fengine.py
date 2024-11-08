@@ -19,6 +19,7 @@ from .exceptions import HardDependencyNotMetException
 from .materializers import (
     Materializer,
     RegularPayloadMaterializer,
+    MaximalPayloadMaterializer,
     dos_materializers
 )
 from .retrier import Retrier
@@ -50,6 +51,21 @@ class FEngine(object):
             tuple[Response, Result]: The response dict, and the result of the query
         """
         materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
+        return self.__run_payload(name, objects_bucket, materializer, graphql_type)
+
+    def run_maximal_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
+        """Runs the maximal payload (either Query or Mutation), and returns a new objects bucket
+
+        Args:
+            name (str): The name of the query or mutation
+            objects_bucket (dict): The objects bucket
+            graphql_type (str): The GraphQL type (either query or mutation)
+            check_hard_depends_on (bool): Whether to check the hard depends on of the query's input - if it's not met, we fail. Defaults to True
+
+        Returns:
+            tuple[Response, Result]: The response dict, and the result of the query
+        """
+        materializer = MaximalPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
     def run_dos_payloads(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, max_depth: int = 20) -> list[tuple[dict, Result]]:

@@ -268,9 +268,9 @@ class Fuzzer(object):
         """
         if node.name in config.SKIP_NODES:
             return ([], Result.GENERAL_SUCCESS)
-        new_paths_to_evaluate, res = self.__evaluate(node, visit_path)  # For positive testing (normal run)
-        self.__fuzz(node, visit_path)                                   # For negative testing (fuzzing)
-        self.__detect_vulnerabilities_on_node(node)                     # For negative testing (Detect vulnerabilities)
+        new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)  # For positive testing (normal run)
+        self.__fuzz(node, visit_path)                                                                                # For negative testing (fuzzing)
+        self.__detect_vulnerabilities_on_node(node)                                                                  # For negative testing (Detect vulnerabilities)
         return (new_paths_to_evaluate, res)
 
     def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
@@ -321,6 +321,10 @@ class Fuzzer(object):
             results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
             for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
+
+        # Run the maximal payloads as part of the fuzz (always runs because this is just the maximal output in queries / mutations)
+        if not config.SKIP_MAXIMAL_PAYLOADS:
+            self.fengine.run_maximal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
 
     def __detect_vulnerabilities_on_node(self, node: Node):
         if node.graphql_type in ["Query", "Mutation"]:

@@ -16,7 +16,7 @@ class InjectionMaterializer(Materializer):
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
 
     @override
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str = "") -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str = "", minimal_materialization: bool = False) -> tuple[str, dict]:
         """Materializes the payload with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
@@ -25,6 +25,7 @@ class InjectionMaterializer(Materializer):
             name (str): The payload name of the Query or Mutation
             objects_bucket (dict): The bucket of objects that have already been created
             graphql_type (str): The type of the graphql operation (Query or Mutation)
+            minimal_materialization (bool): Whether to minimize the materialization
 
         Returns:
             tuple[str, dict]: The string of the payload, and the used objects list

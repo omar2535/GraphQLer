@@ -59,3 +59,22 @@ def get_output_type_from_details(operation_details: dict) -> str:
         return type_to_parse["type"]
     else:
         return type_to_parse["name"]
+
+
+def is_simple_scalar(output_field: dict) -> bool:
+    """Determines if the output_field is a simple scalar. Useful for getting a minimal response
+       Check the following:
+         - The kind is SCALAR
+         - Has no inpputs
+         - Has no ofType
+
+    Args:
+        output_field (dict): The output field
+
+    Returns:
+        bool: True if it's a simple scalar, False otherwise
+    """
+    base_oftype = get_base_oftype(output_field)
+    has_inputs = ('inputs' in base_oftype and len(base_oftype["inputs"]) > 0
+                  or 'inputs' in output_field and len(output_field["inputs"]) > 0)
+    return base_oftype["kind"] == "SCALAR" and base_oftype["ofType"] is None and not has_inputs

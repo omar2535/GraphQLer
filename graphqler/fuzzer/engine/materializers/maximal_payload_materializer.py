@@ -1,3 +1,4 @@
+
 """Regular mutation materializer:
 Materializes a mutation that is ready to be sent off
 """
@@ -10,7 +11,7 @@ from graphqler.utils.api import API
 from graphqler.utils.objects_bucket import ObjectsBucket
 
 
-class RegularPayloadMaterializer(Materializer):
+class MaximalPayloadMaterializer(Materializer):
     def __init__(self, api: API, fail_on_hard_dependency_not_met: bool = True):
         self.getters = Getter()
         self.api = api
@@ -36,13 +37,13 @@ class RegularPayloadMaterializer(Materializer):
                                            objects_bucket,
                                            max_input_depth=MAX_INPUT_DEPTH,
                                            max_output_depth=MAX_OUTPUT_SELECTOR_DEPTH,
-                                           minimal_materialization=True)
+                                           minimal_materialization=False)
         elif graphql_type == "Mutation":
             return self._get_mutation_payload(name,
                                               objects_bucket,
                                               max_input_depth=MAX_INPUT_DEPTH,
                                               max_output_depth=MAX_OUTPUT_SELECTOR_DEPTH,
-                                              minimal_materialization=True)
+                                              minimal_materialization=False)
         else:
             raise ValueError("Invalid graphql_type provided")
 
