@@ -131,7 +131,7 @@ class FEngine(object):
             payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
 
             # Step 2: Send the request & handle response
-            self.logger.debug(f"[{mutation_name}] Sending mutation payload string:\n {payload_string}")
+            self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {payload_string}")
             graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
@@ -189,7 +189,8 @@ class FEngine(object):
         except Exception as e:
             # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
             self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}")
-            self.logger.debug(f"[{mutation_name}] {e}, {traceback.format_exc()}")
+            self.logger.info(f"[{mutation_name}] {e}")
+            self.logger.debug(f"[{mutation_name}] {traceback.format_exc()}")
             return ({}, Result.INTERNAL_FAILURE)
 
     def __run_query(self, query_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
@@ -210,7 +211,7 @@ class FEngine(object):
             payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
 
             # Step 2
-            self.logger.debug(f"[{query_name}] Sending query payload string:\n {payload_string}")
+            self.logger.info(f"[{query_name}] Sending query payload string:\n {payload_string}")
             graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 

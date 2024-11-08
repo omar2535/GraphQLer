@@ -118,7 +118,7 @@ class Getter:
             elif scalar_type.lower() == "json":
                 return self.get_random_json(input_name)
             else:
-                raise Exception(f"This custom scalar is supported at this time: {input_name}:{scalar_type}")
+                raise Exception(f"This custom scalar is not supported at this time: {input_name}:{scalar_type}")
 
     def get_random_enum_value(self, enum_values: list[dict]) -> str:
         """Gets a random enum from the enumValue list
