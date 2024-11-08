@@ -203,6 +203,17 @@ class Materializer:
         if used_objects.count(object_name) >= config.MAX_OBJECT_CYCLES:
             return built_str
 
+        # Check has any scalar at root level, if it does then we can filter out the rest
+        # We have to do this because sometimes root level might only be an object that outputs another object
+        if minimal_materialization and current_depth == 0:
+            has_scalar = False
+            for field in fields_to_materialize:
+                if is_simple_scalar(field):
+                    has_scalar = True
+                    break
+            if has_scalar:
+                fields_to_materialize = [field for field in fields_to_materialize if is_simple_scalar(field)]
+
         # If we're materializing only minimal fields, then we should only materialize scalar fields as long as we're not at the highest depth
         if minimal_materialization and current_depth != 0:
             fields_to_materialize = [field for field in fields_to_materialize if is_simple_scalar(field)]

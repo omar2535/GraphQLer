@@ -38,7 +38,7 @@ class FEngine(object):
         self.api = api
         self.logger = Logger().get_fuzzer_logger()
 
-    def run_regular_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
+    def run_minimal_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
         """Runs the regular payload (either Query or Mutation), and returns a new objects bucket
 
         Args:
@@ -50,6 +50,7 @@ class FEngine(object):
         Returns:
             tuple[Response, Result]: The response dict, and the result of the query
         """
+        self.logger.info(f"Running minimal payload: {name}")
         materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
@@ -65,6 +66,7 @@ class FEngine(object):
         Returns:
             tuple[Response, Result]: The response dict, and the result of the query
         """
+        self.logger.info(f"Running maximal payload: {name}")
         materializer = MaximalPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 

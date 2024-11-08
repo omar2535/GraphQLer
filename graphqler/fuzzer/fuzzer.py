@@ -296,7 +296,7 @@ class Fuzzer(object):
             else:
                 return ([], Result.INTERNAL_FAILURE)
         else:
-            _graphql_response, res = self.fengine.run_regular_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
+            _graphql_response, res = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
             if res == Result.GENERAL_SUCCESS:
                 return (new_visit_paths, res)
             else:
