@@ -37,6 +37,14 @@ Here is a sample vscode debug configuration:
 }
 ```
 
+### Building the sphinx-docs
+
+```sh
+sphinx-apidoc -o sphinx/docs graphqler
+cd sphinx && make html
+```
+
+
 ## Running tests
 
 To run integration tests, you will have to first set up the sample APIs by running the following:
