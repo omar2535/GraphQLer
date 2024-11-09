@@ -117,7 +117,8 @@ pytest-cov = "4.1.0"
 pytest-mock = "*"
 flake8 = "6.1.0"
 pre-commit = "3.8.0"
-ruff = "^0.6.9"
+ruff = "^0.7.3"
+mkdocs = "^1.6.1"
 
 [build-system]
 requires = ["poetry-core"]

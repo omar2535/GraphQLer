@@ -16,6 +16,7 @@ EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
+OBJECTS_BUCKET_PICKLE_FILE_PATH = "objects_bucket.pkl"
 
 QUERY_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/query_parameter_list.yml"
 MUTATION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/mutation_parameter_list.yml"
@@ -56,7 +57,7 @@ IDOR_LOG_FILE_PATH = "logs/idor.log"
 
 """For stats"""
 STATS_FILE_PATH = "stats.txt"
-OBJECTS_BUCKET_FILE_PATH = "objects_bucket.txt"
+OBJECTS_BUCKET_TEXT_FILE_PATH = "objects_bucket.txt"
 
 """For plugins"""
 PLUGINS_PATH = f"{OUTPUT_DIRECTORY}/plugins"

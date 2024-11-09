@@ -53,7 +53,7 @@ class Fuzzer(object):
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
 
-    def run(self) -> ObjectsBucket:
+    def run(self):
         """Runs the fuzzer
 
         Returns:
@@ -77,37 +77,32 @@ class Fuzzer(object):
             p.terminate()  # type: ignore -- we have to ignore since thread has no terminate method
         p.join()
 
-        # Get results from objects bucket
+        # Get results from the process
         if not queue.empty():
-            new_objects_bucket = cloudpickle.loads(queue.get())
-            return new_objects_bucket
-        else:
-            return self.objects_bucket
+            _ = queue.get()
 
-    def run_single(self, node_name: str) -> bytes:
+    def run_single(self, node_name: str):
         """Runs a single node
 
         Args:
             node_name (str): The name of the node
-
-        Returns:
-            dict: The objects bucket
         """
         node = [n for n in self.dependency_graph.nodes if n.name == node_name]
         if len(node) == 0:
             print(f"(F) Node `{node_name}` not found")
             self.logger.error(f"Node `{node_name}` not found")
-            return cloudpickle.dumps(self.objects_bucket)
+            return
 
         self.stats.start_time = time.time()
         self.__run_nodes(node)
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()
+        self.objects_bucket.save()
 
         return cloudpickle.dumps(self.objects_bucket)
 
-    def run_no_dfs(self) -> bytes:
+    def run_no_dfs(self):
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
 
         Returns:
@@ -119,7 +114,7 @@ class Fuzzer(object):
         self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
-        return cloudpickle.dumps(self.objects_bucket)
+        self.objects_bucket.save()
 
     def __run_steps(self, queue: multiprocessing.Queue):
         """Runs the fuzzer. Performs steps as follows:
@@ -169,7 +164,7 @@ class Fuzzer(object):
         self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
-        queue.put(cloudpickle.dumps(self.objects_bucket))
+        self.objects_bucket.save()
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -269,8 +264,8 @@ class Fuzzer(object):
         if node.name in config.SKIP_NODES:
             return ([], Result.GENERAL_SUCCESS)
         new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)  # For positive testing (normal run)
-        self.__fuzz(node, visit_path)                                                                                # For negative testing (fuzzing)
-        self.__detect_vulnerabilities_on_node(node)                                                                  # For negative testing (Detect vulnerabilities)
+        self.__fuzz(node, visit_path)  # For negative testing (fuzzing)
+        self.__detect_vulnerabilities_on_node(node)  # For negative testing (Detect vulnerabilities)
         return (new_paths_to_evaluate, res)
 
     def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:

@@ -92,7 +92,7 @@ class Stats:
     def set_file_path(self, working_dir: str):
         initialize_file(Path(working_dir) / config.STATS_FILE_PATH)
         self.file_path = Path(working_dir) / config.STATS_FILE_PATH
-        self.objects_bucket_file_path = Path(working_dir) / config.OBJECTS_BUCKET_FILE_PATH
+        self.objects_bucket_file_path = Path(working_dir) / config.OBJECTS_BUCKET_TEXT_FILE_PATH
 
     def print_running_stats(self):
         """Function to print stats during runtime (not saved to file)"""
@@ -112,12 +112,14 @@ class Stats:
             self.vulnerabilities[vulnerability_name] = {}
 
         if node_name in self.vulnerabilities[vulnerability_name]:
-            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable | self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable']
-            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable | self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable']
+            self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"] = (
+                potentially_vulnerable | self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"]
+            )
+            self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"] = is_vulnerable | self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"]
         else:
             self.vulnerabilities[vulnerability_name][node_name] = {}
-            self.vulnerabilities[vulnerability_name][node_name]['potentially_vulnerable'] = potentially_vulnerable
-            self.vulnerabilities[vulnerability_name][node_name]['is_vulnerable'] = is_vulnerable
+            self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"] = potentially_vulnerable
+            self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"] = is_vulnerable
 
     def get_formatted_vulnerabilites(self) -> str:
         """Returns the formatted vulnerabilities
@@ -129,8 +131,8 @@ class Stats:
         for vulnerability_name, nodes in self.vulnerabilities.items():
             vulnerable_nodes = ""
             for node_name, vulnerability in nodes.items():
-                if vulnerability['is_vulnerable'] or vulnerability['potentially_vulnerable']:
-                    if vulnerability['is_vulnerable']:
+                if vulnerability["is_vulnerable"] or vulnerability["potentially_vulnerable"]:
+                    if vulnerability["is_vulnerable"]:
                         vulnerable_nodes += f"  ❗'{node_name}'  - Is vulnerable\n"
                     else:
                         vulnerable_nodes += f"  🔍'{node_name}'  - Is potentially vulnerable \n"

@@ -6,7 +6,7 @@ import sys
 import argparse
 import pprint
 import importlib.metadata
-import cloudpickle
+import cloudpickle as pickle
 
 from graphqler.compiler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer, IDORFuzzer
@@ -66,14 +66,10 @@ def run_fuzz_mode(path: str, url: str):
 
     if config.USE_DEPENDENCY_GRAPH:
         print("(F) Running in dependency graph mode")
-        objects_bucket = Fuzzer(path, url).run()
+        Fuzzer(path, url).run()
     else:
         print("(F) Not using dependency graph")
-        objects_bucket = Fuzzer(path, url).run_no_dfs()
-
-    print("(F) Saving objects bucket")
-    with open(f"{path}/objects_bucket.pkl", "wb") as f:
-        cloudpickle.dump(objects_bucket, f)
+        Fuzzer(path, url).run_no_dfs()
 
     print("(F) Complete fuzzing phase")
 
@@ -83,8 +79,8 @@ def run_idor_mode(path: str, url: str):
     logger = Logger()
     logger.initialize_loggers("idor", path)
     try:
-        with open(f"{path}/objects_bucket.pkl", "rb") as f:
-            objects_bucket = cloudpickle.load(f)
+        with open(f"{path}/{config.OBJECTS_BUCKET_PICKLE_FILE_PATH}", "rb") as f:
+            objects_bucket = pickle.load(f)
             possible_idor_nodes = IDORFuzzer(path, url, objects_bucket).run()
             print("Possible IDOR nodes:")
             pprint.pprint(possible_idor_nodes)

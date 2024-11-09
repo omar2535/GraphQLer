@@ -23,7 +23,7 @@ class IDORFuzzer(Fuzzer):
         self.logger = Logger().get_idor_logger()
         self.fengine.logger = self.logger
 
-    def run(self) -> ObjectsBucket:
+    def run(self):
         """Runs the fuzzer
 
         Returns:
@@ -39,7 +39,7 @@ class IDORFuzzer(Fuzzer):
                 possible_idor_nodes.append(node)
 
         self.logger.info(f"Possible IDOR nodes: {possible_idor_nodes}")
-        return self.objects_bucket
+        self.objects_bucket.save()
 
     def check_node(self, node: Node) -> bool:
         """Checks if a node has a possible IDOR vulnerability, if it does, return True, else False

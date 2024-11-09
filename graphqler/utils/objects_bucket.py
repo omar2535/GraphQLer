@@ -12,8 +12,10 @@ The class should have two functionalities
 
 import pprint
 import random
+import cloudpickle as pickle
+import pathlib
 
-from graphqler.config import USE_OBJECTS_BUCKET
+from graphqler import config
 from graphqler.utils.api import API
 from graphqler.utils.parser_utils import get_output_type_from_details
 
@@ -42,6 +44,7 @@ class ObjectsBucket:
 
         return built_str
 
+    # ------------------- Pickle -------------------
     def __getstate__(self):
         # Return a dictionary of the attributes to pickle
         return self.__dict__
@@ -49,6 +52,20 @@ class ObjectsBucket:
     def __setstate__(self, state):
         # Restore the state from the pickled attributes
         self.__dict__.update(state)
+
+    def save(self):
+        """Saves the objects bucket as a pickle file"""
+        save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
+        with open(save_path, "wb") as file:
+            pickle.dump(self, file)
+
+    def load(self):
+        """Loads the objects bucket from a pickle file"""
+        save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
+        with open(save_path, "rb") as file:
+            loaded_bucket = pickle.load(file)
+            self.objects = loaded_bucket.objects
+            self.scalars = loaded_bucket.scalars
 
     # ------------------- GETTERS -------------------
     def get_num_objects(self) -> int:
@@ -245,7 +262,7 @@ class ObjectsBucket:
         Returns:
             bool: True if the object is in the bucket, False otherwise
         """
-        if not USE_OBJECTS_BUCKET:
+        if not config.USE_OBJECTS_BUCKET:
             return False
         return object_name in self.objects and len(self.objects[object_name]) > 0
 
@@ -260,7 +277,7 @@ class ObjectsBucket:
             tuple[str, str | int | float | bool | None]: The key and value
 
         """
-        if not USE_OBJECTS_BUCKET:
+        if not config.USE_OBJECTS_BUCKET:
             return ("", None)
         for k, v in dictionary.items():
             if k == key:
@@ -280,7 +297,7 @@ class ObjectsBucket:
         Returns:
             str | int | float | bool: The scalar value
         """
-        if not USE_OBJECTS_BUCKET:
+        if not config.USE_OBJECTS_BUCKET:
             return ""
         for scalar_name, scalar in self.scalars.items():
             if scalar["type"] == scalar_type:
@@ -296,7 +313,7 @@ class ObjectsBucket:
         Returns:
             str | int | float | bool: The scalar value
         """
-        if not USE_OBJECTS_BUCKET:
+        if not config.USE_OBJECTS_BUCKET:
             return ""
         if scalar_name not in self.scalars:
             return ""
