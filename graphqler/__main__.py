@@ -15,7 +15,6 @@ from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.config_handler import parse_config, set_config
-from graphqler.utils import plugins_handler
 from graphqler import config
 
 
