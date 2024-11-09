@@ -17,7 +17,7 @@ APIS_TO_TEST = [
     # ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
     # ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
     # ("https://graphql.anilist.co/", "anilist-test"),
-    # ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
+    ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
     # ("https://www.universe.com/graphql", "universe-test"),
     # ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
     # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
@@ -27,18 +27,24 @@ APIS_TO_TEST = [
     # ('http://localhost:4000/graphql', 'benchmark-tests/food-delivery-test/')
     # ('https://graphql.anilist.co/', 'benchmark-tests/anilist-test/'),
     # ('https://www.universe.com/graphql', 'benchmark-tests/universe-test/'),
-    ('https://beta.pokeapi.co/graphql/v1beta', 'benchmark-tests/pokeapi-test/'),
+    # ('https://beta.pokeapi.co/graphql/v1beta', 'benchmark-tests/pokeapi-test/'),
     # ('http://localhost:3000/', 'benchmark-tests/json-graphql-server/'),
 ]
 
 MAX_TIMES = [5, 10, 20, 30, 60]
-NUM_RETRIES = 3
+NUM_RETRIES = 1
 
 # Set the constants
-config.USE_OBJECTS_BUCKET = False
-config.USE_DEPENDENCY_GRAPH = False
+config.USE_OBJECTS_BUCKET = True
+config.USE_DEPENDENCY_GRAPH = True
 config.NO_DATA_COUNT_AS_SUCCESS = True
+config.SKIP_DOS_ATTACKS = True
+config.SKIP_MISC_ATTACKS = True
+config.SKIP_INJECTION_ATTACKS = True
+config.SKIP_MAXIMAL_PAYLOADS = True
+config.DEBUG = False
 # config.TIME_BETWEEN_REQUESTS = 0.5
+
 
 # Run the command multiple times
 def run_api(api_to_test):
@@ -56,12 +62,15 @@ def run_api(api_to_test):
                 run_fuzz_mode(output_path, api_url)
                 is_success = True
             except Exception as e:
+                print(e)
                 num_tries += 1
                 config.TIME_BETWEEN_REQUESTS = 0.1 * num_tries
                 time.sleep(10 * num_tries)
         if is_success is False:
             # Getting here means the API failed to run through retries
             print(f"Error running the API {api_name} with path {output_path} and max time {max_time}")
+
+
 # Run each of the APIs in parallel
 if __name__ == "__main__":
     processes = []

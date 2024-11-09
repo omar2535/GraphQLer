@@ -59,28 +59,21 @@ class Fuzzer(object):
         self.stats.number_of_objects = self.api.get_num_objects()
 
     def run(self):
-        """Runs the fuzzer
-
-        Returns:
-            dict: The objects bucket
-        """
-        # Create a separate process
+        """Main function to run the fuzzer"""
+        # Create a separate thread / process so that we can kill it if it takes too long / times out
         queue = multiprocessing.Queue()
         if config.DEBUG:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
+            p.daemon = True
         else:
-            # p = threading.Thread(target=self.__run_steps, args=(queue,))
-            # TODO: Figure this out why multiprocessing sometimes won't work with the pickled object in the queue
-            #       What ends up happening is that the process hangs and never returns (lock is kept by the subprocess)
             p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
         p.start()
         p.join(config.MAX_TIME)
 
-        # Terminate the thread if it's still alive after the max time
-        if p.is_alive():
+        # Terminate the process if it's still alive after the max time
+        if p.is_alive() and isinstance(p, multiprocessing.Process):
             print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
-            p.terminate()  # type: ignore -- we have to ignore since thread has no terminate method
-        p.join()
+            p.terminate()
 
         # Get results from the process
         if not queue.empty():
