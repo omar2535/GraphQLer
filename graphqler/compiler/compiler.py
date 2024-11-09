@@ -5,7 +5,7 @@
 """
 
 from pathlib import Path
-from graphqler.utils.request_utils import send_graphql_request, get_headers
+from graphqler.utils import plugins_handler
 from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
@@ -54,6 +54,9 @@ class Compiler:
         # Initialize the logger
         self.logger = Logger().get_compiler_logger()
 
+        # Initialize the plugins handler to get request utils
+        self.request_utils = plugins_handler.get_request_utils()
+
         # Create empty files for these files
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
         initialize_file(self.introspection_result_save_path)
@@ -92,7 +95,7 @@ class Compiler:
         Returns:
             dict: Dictionary of the resulting JSON from the introspection query
         """
-        result, response = send_graphql_request(self.url, introspection_query)
+        result, response = self.request_utils.send_graphql_request(self.url, introspection_query)
         if "introspection is not allowed" in response.text.lower():
             self.logger.warning("GraphQL Introspection is not allowed")
             return {}
@@ -123,7 +126,7 @@ class Compiler:
                 url=self.url,
                 logger=self.logger,
                 wordlist=wordlist,
-                headers=get_headers(),
+                headers=self.request_utils.get_headers(),
                 input_document=None,
                 input_schema_path=None,
                 output_path=str(self.introspection_result_save_path),

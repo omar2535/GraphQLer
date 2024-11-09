@@ -7,7 +7,7 @@ rather, it's responsible for modifying the query / mutation to make it work. Sce
 """
 
 from graphqler.fuzzer.engine.retrier.utils import find_block_end, remove_lines_within_range
-from graphqler.utils.request_utils import send_graphql_request
+from graphqler.utils import plugins_handler
 import logging
 
 
@@ -44,7 +44,7 @@ class Retrier:
             for location in locations:
                 payload = self.get_new_payload_for_retry_non_null(payload, location)
             self.logger.debug(f"Retrying with new payload:\n {payload}")
-            gql_response, request_response = send_graphql_request(url, payload)
+            gql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(url, payload)
             self.logger.info(f"Response: {gql_response}")
             if "errors" in gql_response:
                 if retry_count < self.max_retries:

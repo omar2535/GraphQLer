@@ -7,9 +7,9 @@ from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.detectors.detector import Detector
 from graphqler.fuzzer.engine.materializers.utils.materialization_utils import prettify_graphql_payload
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
-from graphqler.utils.request_utils import send_graphql_request
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.stats import Stats
+from graphqler.utils import plugins_handler
 
 
 class QueryDenyBypassMaterializer(RegularPayloadMaterializer):
@@ -99,14 +99,14 @@ class QueryDenyBypassDetector(Detector):
         non_aliased_payload, _ = materializer_instance.get_non_aliased_payload(self.name, self.objects_bucket, self.graphql_type)
         self.fuzzer_logger.debug(f"Non-aliased Payload:\n{non_aliased_payload}")
         self.detector_logger.info(f"Non-aliased Payload:\n{non_aliased_payload}")
-        non_aliased_graphql_response, non_aliased_request_response = send_graphql_request(self.api.url, non_aliased_payload)
+        non_aliased_graphql_response, non_aliased_request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, non_aliased_payload)
         self.fuzzer_logger.debug(f"[{non_aliased_request_response.status_code}]Non-aliased Response: {non_aliased_graphql_response}")
         self.detector_logger.info(f"[{non_aliased_request_response.status_code}]Non-aliased Response: {non_aliased_request_response.text}")
 
         aliased_payload, _ = materializer_instance.get_aliased_payload(self.name, self.objects_bucket, self.graphql_type)
         self.fuzzer_logger.debug(f"Aliased Payload:\n{aliased_payload}")
         self.detector_logger.info(f"Aliased Payload:\n{aliased_payload}")
-        aliased_graphql_response, aliased_request_response = send_graphql_request(self.api.url, aliased_payload)
+        aliased_graphql_response, aliased_request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, aliased_payload)
         self.fuzzer_logger.debug(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_graphql_response}")
         self.detector_logger.info(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_request_response.text}")
 

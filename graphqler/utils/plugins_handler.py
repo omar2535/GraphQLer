@@ -1,83 +1,81 @@
-from graphqler.config import PLUGINS_PATH
-from graphqler.utils import request_utils
-
+import importlib
 import importlib.util
+import inspect
 import pathlib
-import sys
-import string
-import secrets
 
+from graphqler import config
+from graphqler.utils import request_utils
+from graphqler.utils.protocols.request_utils_protocol import RequestUtilsProtocol
 
 # The possible plugins and their map to the original module in GraphQLer
 POSSIBLE_PLUGINS = {
-    "request_utils.py" : request_utils
+    "request_utils.py": request_utils
 }
 
 
-class PluginsHandler:
-    def __init__(self, path: pathlib.Path = pathlib.Path(PLUGINS_PATH)):
-        self.plugins_path = pathlib.Path(path)
+def get_plugin_path(plugin_name: str) -> pathlib.Path:
+    """Gets the plugin path
 
-    def set_plugins(self):
-        for plugin_name, module in POSSIBLE_PLUGINS.items():
-            if self.does_plugin_exist(plugin_name):
-                plugin_path = self.get_plugin_path(plugin_name)
-                new_module = self.__load_module(plugin_path, plugin_name)
-                for attr in dir(new_module):
-                    if callable(getattr(new_module, attr)):
-                        setattr(module, attr, getattr(new_module, attr))
+    Args:
+        plugin_name (str): The plugin name
 
-    def does_plugin_exist(self, plugin_name) -> bool:
-        if not self.plugins_path.exists():
-            return False
+    Returns:
+        pathlib.Path: The plugin path
+    """
+    return config.PLUGINS_PATH / pathlib.Path(plugin_name)
 
-        plugin_file_path = self.get_plugin_path(plugin_name)
 
-        if not plugin_file_path.is_file():
-            return False
+def does_plugin_exist(plugin_name: str) -> bool:
+    """Checks if the plugin exists
 
-        return True
+    Args:
+        plugin_name (str): The name of the plugin
 
-    def get_dynamic_headers_module(self):
-        if not self.does_plugin_exist("dynamic_headers.py"):
-            return request_utils
+    Returns:
+        bool: Whether the plugin exists
+    """
+    plugins_path = get_plugin_path(plugin_name)
+    if not plugins_path.exists():
+        return False
+
+    plugin_file_path = get_plugin_path(plugin_name)
+    return plugin_file_path.is_file()
+
+
+def get_plugin(plugin_name: str):
+    if does_plugin_exist(plugin_name):
+        plugin_path = get_plugin_path(plugin_name)
+        spec = importlib.util.spec_from_file_location(plugin_name.split('.')[0], plugin_path)
+        if spec:
+            module = importlib.util.module_from_spec(spec)
+            if module and spec.loader:
+                spec.loader.exec_module(module)
+                return module
+            else:
+                return POSSIBLE_PLUGINS[plugin_name]
         else:
-            plugin_path = self.get_plugin_path("dynamic_headers.py")
-            return self.__load_module(plugin_path, "dynamic_headers")
+            return POSSIBLE_PLUGINS[plugin_name]
+    else:
+        return POSSIBLE_PLUGINS[plugin_name]
 
-    def get_plugin_path(self, plugin_name) -> pathlib.Path:
-        return self.plugins_path / plugin_name
 
-    def __gensym(self, length=32, prefix="gensym_"):
-        """
-        generates a fairly unique symbol, used to make a module name,
-        used as a helper function for load_module
+def get_request_utils() -> RequestUtilsProtocol:
+    """Gets the request utils plugin (if it exists) and ensures it conforms to the protocol
 
-        :return: generated symbol
-        """
-        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
-        symbol = "".join([secrets.choice(alphabet) for i in range(length)])
+    Returns:
+        RequestUtilsProtocol: The request utils protocol
+    """
+    plugin_name = "request_utils.py"
+    original_module = POSSIBLE_PLUGINS[plugin_name]
+    new_module = get_plugin(plugin_name)
 
-        return prefix + symbol
+    original_functions = inspect.getmembers(original_module, inspect.isfunction)
 
-    def __load_module(self, source, module_name=None):
-        """
-        reads file source and loads it as a module
+    for name, func in original_functions:
+        if not hasattr(new_module, name):
+            setattr(new_module, name, func)
 
-        :param source: file to load
-        :param module_name: name of module to register in sys.modules
-        :return: loaded module
-        """
+    # Ensure new_module conforms to the protocol
+    assert isinstance(new_module, RequestUtilsProtocol), f"Module {plugin_name} does not match expected interface"
 
-        if module_name is None:
-            module_name = self.__gensym()
-
-        spec = importlib.util.spec_from_file_location(module_name, source)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"Cannot load module {module_name} from {source}")
-
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
-
-        return module
+    return new_module

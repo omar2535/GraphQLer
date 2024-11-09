@@ -6,8 +6,8 @@ import requests
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler.utils.request_utils import send_graphql_request
 from graphqler.utils.stats import Stats
+from graphqler.utils import plugins_handler
 
 from ..materializers.materializer import Materializer
 
@@ -64,7 +64,7 @@ class Detector(ABC):
         self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{self.payload}")
         self.detector_logger.info(f"[Detector] Payload:\n{self.payload}")
 
-        graphql_response, request_response = send_graphql_request(self.api.url, self.payload)
+        graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, self.payload)
         Stats().add_http_status_code(self.name, request_response.status_code)
 
         self.detector_logger.info(f"[{request_response.status_code}]Response: {request_response.text}")

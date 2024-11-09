@@ -1,3 +1,10 @@
+# Plugins
+
+To use plugins in GraphQLer, you can use the `--plugins-path` flag. A general use case would be to do token refreshing, for example
+on the [Saleor](https://docs.saleor.io/api-reference/) API. In this case, the authentication token expires very quickly, requiring the a custom refresh token -> access token checker on each request. We can override the requests sent like so:
+
+```py
+# my-output-dir/request_utils.py
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from typing import Callable
@@ -14,8 +21,7 @@ session = None
 
 
 def get_headers() -> dict:
-    """Get the headers for the request.
-      Authorization will be used from the AUTHORIZATION variable first, then from the CUSTOM_HEADERS variable.
+    """Get the headers for the request
 
     Returns:
         dict: The headers for the request
@@ -28,22 +34,6 @@ def get_headers() -> dict:
         headers["Authorization"] = f"{config.AUTHORIZATION}"
 
     return headers
-
-
-def get_proxies() -> dict:
-    """Get the proxies for the request
-
-    Returns:
-        dict: The proxies for the request
-    """
-    if config.PROXY and "http:" in config.PROXY:
-        return {"http": config.PROXY}
-    elif config.PROXY and "https:" in config.PROXY:
-        return {"https": config.PROXY}
-    elif config.PROXY:
-        return {"http": config.PROXY, "https": config.PROXY}
-    else:
-        return {}
 
 
 def send_graphql_request(url: str, payload: str | dict | list, next: Callable[[dict], dict] | None = None) -> tuple[dict, requests.Response]:
@@ -82,6 +72,35 @@ def send_graphql_request(url: str, payload: str | dict | list, next: Callable[[d
 
     if response.status_code != 200:
         return parse_response(response.text), response
+
+    parsed_response = parse_response(response.text)
+    if 'errors' in parsed_response and 'Signature has expired' in parsed_response['errors'][0]['message']:
+        print("(!) Signature has expired, getting a new token")
+        refresh_token_payload = {
+            "query": """
+            mutation {
+              tokenRefresh(refreshToken: "%s") {
+                token
+              }
+            }
+            """ % config.CUSTOM_HEADERS['Cookie'].split('=')[-1]
+        }
+
+        refresh_response = session.post(
+            url=url,
+            json=refresh_token_payload,
+            timeout=config.REQUEST_TIMEOUT,
+        )
+
+        if refresh_response.status_code == 200:
+            new_token = parse_response(refresh_response.text)['data']['tokenRefresh']['token']
+            config.AUTHORIZATION = f"Bearer {new_token}"
+            session.headers.update(get_headers())
+            response = session.post(
+                url=url,
+                json=body,
+                timeout=config.REQUEST_TIMEOUT,
+            )
 
     # if next:
     #     return next(json.loads(response.text))
@@ -136,3 +155,5 @@ def create_new_session() -> requests.Session:
         disable_warnings(InsecureRequestWarning)
         session.verify = False
     return session
+
+```

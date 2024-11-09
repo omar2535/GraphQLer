@@ -15,7 +15,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.config_handler import parse_config, set_config
-from graphqler.utils.plugins_handler import PluginsHandler
+from graphqler.utils import plugins_handler
 from graphqler import config
 
 
@@ -147,7 +147,6 @@ if __name__ == "__main__":
     if args.plugins_path:
         config.PLUGINS_PATH = args.plugins_path
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
-        PluginsHandler(config.PLUGINS_PATH).set_plugins()
 
     # Run either compilation or fuzzing mode
     if args.mode == "compile":

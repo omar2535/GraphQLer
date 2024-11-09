@@ -54,19 +54,21 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] --url URL --path PATH [--config CONFIG] --mode {compile,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--version]
+usage: __main__.py [-h] --url URL [--path PATH] [--config CONFIG] --mode {compile,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--version]
 
 options:
   -h, --help            show this help message and exit
   --url URL             remote host URL
-  --path PATH           directory location for files to be saved-to/used-from
+  --path PATH           directory location for files to be saved-to/used-from. Defaults to graphqler-output
   --config CONFIG       configuration file for the program
   --mode {compile,fuzz,idor,run,single}
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
-  --node NODE           node to run (only used in *single* mode)
-  --version             display version
+  --node NODE           node to run (only used in single mode)
+  --plugins-path PLUGINS_PATH
+                        path to plugins directory
+  --version             display versionn
 ```
 
 Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.
@@ -135,7 +137,10 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | TIME_BETWEEN_REQUESTS | Max time to wait between requests in seconds | Integer | 0.001 |
 | DEBUG | Debug mode | Boolean | False |
 | Custom Headers | Custom headers to be sent along with each request | Object | `Accept = "application/json"` |
+| SKIP_MAXIMAL_PAYLOADS | Whether or not to send a payload with all the possible outputs | Boolean | False |
 | SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks(defaults to true to not DOS the service) | Boolean | True |
 | SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
 | SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
+
+Furthermore, you can implement your own plugins for custom authentication. See more in the docs.

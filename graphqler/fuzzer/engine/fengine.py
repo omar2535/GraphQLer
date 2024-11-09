@@ -11,7 +11,7 @@ from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.parser_utils import get_output_type
-from graphqler.utils.request_utils import send_graphql_request
+from graphqler.utils import plugins_handler
 from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
 
@@ -134,7 +134,8 @@ class FEngine(object):
 
             # Step 2: Send the request & handle response
             self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {payload_string}")
-            graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
+            request_utils = plugins_handler.get_request_utils()
+            graphql_response, request_response = request_utils.send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
             # Stats tracking stuff
@@ -214,7 +215,8 @@ class FEngine(object):
 
             # Step 2
             self.logger.info(f"[{query_name}] Sending query payload string:\n {payload_string}")
-            graphql_response, request_response = send_graphql_request(self.api.url, payload_string)
+            request_utils = plugins_handler.get_request_utils()
+            graphql_response, request_response = request_utils.send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
             # Stats tracking stuff
