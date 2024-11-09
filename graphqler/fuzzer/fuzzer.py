@@ -15,6 +15,7 @@ import time
 
 import cloudpickle
 import networkx
+import typing
 
 from graphqler import config
 from graphqler.graph import GraphGenerator, Node
@@ -29,7 +30,7 @@ from .engine.types import Result
 
 
 class Fuzzer(object):
-    def __init__(self, save_path: str, url: str):
+    def __init__(self, save_path: str, url: str, objects_bucket: typing.Optional[ObjectsBucket] = None):
         """Initializes the fuzzer, reading information from the compiled files
 
         Args:
@@ -45,7 +46,11 @@ class Fuzzer(object):
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
-        self.objects_bucket = ObjectsBucket(self.api)
+
+        if objects_bucket:
+            self.objects_bucket = objects_bucket
+        else:
+            self.objects_bucket = ObjectsBucket(self.api)
 
         # Stats about the run
         self.dfs_ran_nodes: set[Node] = set()
