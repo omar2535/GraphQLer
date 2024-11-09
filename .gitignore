@@ -23,6 +23,7 @@ env/
 
 # Compilation
 dist/
+_build/
 
 ## Omar's personal testing
 omar-test*/
