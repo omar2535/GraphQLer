@@ -109,7 +109,6 @@ class Fuzzer(object):
         nodes_to_run = list(self.dependency_graph.nodes)
         self.__run_nodes(nodes_to_run)
         self.logger.info("Completed fuzzing")
-        self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
         self.objects_bucket.save()
@@ -159,7 +158,6 @@ class Fuzzer(object):
         # Step 7: Finish
         self.logger.info("Completed fuzzing")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
-        self.stats.set_objects_bucket(self.objects_bucket)
         self.stats.print_results()
         self.stats.save()
         self.objects_bucket.save()

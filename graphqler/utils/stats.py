@@ -1,12 +1,10 @@
 from pathlib import Path
 from graphqler.graph import Node
 from graphqler.fuzzer.engine.types import Result
-from graphqler.utils.objects_bucket import ObjectsBucket
 from .singleton import singleton
 from .file_utils import initialize_file
 
 from graphqler import config
-from typing import Optional
 import pprint
 import json
 import time
@@ -27,7 +25,6 @@ class Stats:
     number_of_objects: int = 0
     number_of_successes: int = 0
     number_of_failures: int = 0
-    objects_bucket: Optional[ObjectsBucket] = None
     vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potentiall or confirmed vulnerability
 
     # Detection stats
@@ -81,18 +78,9 @@ class Stats:
             self.http_status_codes[status_code_str] = {payload_name: 1}
         self.save()
 
-    def set_objects_bucket(self, objects_bucket: ObjectsBucket):
-        """Sets the objects bucket
-
-        Args:
-            objects_bucket (dict): The objects bucket
-        """
-        self.objects_bucket = objects_bucket
-
     def set_file_path(self, working_dir: str):
         initialize_file(Path(working_dir) / config.STATS_FILE_PATH)
         self.file_path = Path(working_dir) / config.STATS_FILE_PATH
-        self.objects_bucket_file_path = Path(working_dir) / config.OBJECTS_BUCKET_TEXT_FILE_PATH
 
     def print_running_stats(self):
         """Function to print stats during runtime (not saved to file)"""
@@ -201,9 +189,6 @@ class Stats:
         print(f"(RESULTS): Number of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
         print(f"(RESULTS): Number of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
         print(f"(RESULTS): Please check {self.file_path} for more information regarding the run")
-        if self.objects_bucket:
-            print(f"(RESULTS): Number of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
-            print(f"(RESULTS): Number of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
         if len(self.vulnerabilities) > 0:
             print("----------------------DETECTED VULNS-------------------------")
             print(self.get_formatted_vulnerabilites())
@@ -230,15 +215,6 @@ class Stats:
             f.write(f"\nNumber of objects: {self.number_of_objects}")
             f.write(f"\nNumber of successes: {self.number_of_successes}")
             f.write(f"\nNumber of failures: {self.number_of_failures}")
-            if self.objects_bucket:
-                f.write(f"\nNumber of objects in objects bucket: {self.objects_bucket.get_num_objects()}")
-                f.write(f"\nNumber of scalars in objects bucket: {self.objects_bucket.get_num_scalars()}")
             if len(self.vulnerabilities) > 0:
                 f.write("\n===================Detected Vulnerabilities===================\n")
                 f.write(json.dumps(self.vulnerabilities, indent=4))
-
-        with open(self.objects_bucket_file_path, "w") as f:
-            if self.objects_bucket:
-                f.write(str(self.objects_bucket))
-            else:
-                f.write("Objects bucket is empty")

@@ -54,10 +54,16 @@ class ObjectsBucket:
         self.__dict__.update(state)
 
     def save(self):
-        """Saves the objects bucket as a pickle file"""
-        save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
-        with open(save_path, "wb") as file:
+        """Saves the objects bucket as a pickle file and as a text file"""
+        pickle_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
+        with open(pickle_save_path, "wb") as file:
             pickle.dump(self, file)
+
+        text_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_TEXT_FILE_PATH
+        with open(text_save_path, "w") as file:
+            file.write(f"Number of objects: {self.get_num_objects()}\n")
+            file.write(f"Number of scalars: {self.get_num_scalars()}\n")
+            file.write(str(self))
 
     def load(self):
         """Loads the objects bucket from a pickle file"""
