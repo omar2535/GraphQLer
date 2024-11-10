@@ -21,8 +21,24 @@ class Result(Enum):
         "status_code": None,
         "raw_response_text": None,
     }
-    GENERAL_SUCCESS = {"type": "general_success", "reason": "General success", "success": True, "errors": None, "data": None, "status_code": None, "raw_response_text": None}
-    HAS_DATA_SUCCESS = {"type": "has_data_success", "reason": "Success and has data", "success": True, "errors": None, "data": None, "status_code": None, "raw_response_text": None}
+    GENERAL_SUCCESS = {
+        "type": "general_success",
+        "reason": "General success",
+        "success": True,
+        "errors": None,
+        "data": None,
+        "status_code": None,
+        "raw_response_text": None
+    }
+    HAS_DATA_SUCCESS = {
+        "type": "has_data_success",
+        "reason": "Success and has data",
+        "success": True,
+        "errors": None,
+        "data": None,
+        "status_code": None,
+        "raw_response_text": None
+    }
     NO_DATA_SUCCESS = {
         "type": "no_data_success",
         "reason": "Success and has no data",
