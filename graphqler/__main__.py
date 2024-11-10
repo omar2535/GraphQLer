@@ -96,6 +96,56 @@ def run_single_mode(path: str, url: str, name: str):
     Fuzzer(path, url).run_single(name)
 
 
+def main(args: dict):
+    # Run either compilation or fuzzing mode
+    if 'mode' not in args or not args['mode']:
+        print("Please provide a mode to run the program in")
+        sys.exit(1)
+
+    # If not compile mode, check if compiled directory exists
+    if args['mode'] not in ["compile", "run", "single", "idor"] and (not is_compiled(args['path']) or not is_compiled(config.OUTPUT_DIRECTORY)):
+        print("(!) Compiled directory does not exist, please run in compile mode first")
+        sys.exit(1)
+
+    # Set the path if provided
+    if 'path' in args and args['path']:
+        config.OUTPUT_DIRECTORY = args['path']
+
+    # Set proxy if provided
+    if 'proxy' in args and args['proxy']:
+        config.PROXY = args['proxy']
+
+    # Set auth token if provided
+    if 'auth' in args and args['auth']:
+        set_auth_token_constant(args['auth'])
+
+    # Parse config if provided
+    if args['config'] and args['config']:
+        new_config = parse_config(args['config'])
+        set_config(new_config)
+
+    # Parse plugins if defined
+    if 'plugins_path' in args and args['plugins_path']:
+        config.PLUGINS_PATH = args['plugins_path']
+        print(f"(P) Using plugins from {config.PLUGINS_PATH}")
+
+    if args['mode'] == "compile":
+        run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "fuzz":
+        run_fuzz_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "run":
+        run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
+        run_fuzz_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "idor":
+        run_idor_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "single":
+        if 'node' not in args or not args['node']:
+            print("Please provide a node to run in single mode")
+            sys.exit(1)
+        run_single_mode(args['path'], args['url'], args['node'])
+
+
+# If running as a CLI
 if __name__ == "__main__":
     # If version, display version and exit
     if "--version" in sys.argv:
@@ -114,47 +164,11 @@ if __name__ == "__main__":
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
     parser.add_argument("--version", help="display version", action="store_true")
+
     args = parser.parse_args()
+    args_as_dict = vars(args)
 
-    # If not compile mode, check if compiled directory exists
-    if args.mode not in ["compile", "run"] and not is_compiled(args.path):
-        print("(!) Compiled directory does not exist, please run in compile mode first")
-        sys.exit(1)
-
-    # Set the path if provided
-    if args.path:
-        config.OUTPUT_DIRECTORY = args.path
-
-    # Set proxy if provided
-    if args.proxy:
-        config.PROXY = args.proxy
-
-    # Set auth token if provided
-    if args.auth:
-        set_auth_token_constant(args.auth)
-
-    # Parse config if provided
-    if args.config:
-        new_config = parse_config(args.config)
-        set_config(new_config)
-
-    # Parse plugins if defined
-    if args.plugins_path:
-        config.PLUGINS_PATH = args.plugins_path
-        print(f"(P) Using plugins from {config.PLUGINS_PATH}")
-
-    # Run either compilation or fuzzing mode
-    if args.mode == "compile":
-        run_compile_mode(config.OUTPUT_DIRECTORY, args.url)
-    elif args.mode == "fuzz":
-        run_fuzz_mode(config.OUTPUT_DIRECTORY, args.url)
-    elif args.mode == "run":
-        run_compile_mode(config.OUTPUT_DIRECTORY, args.url)
-        run_fuzz_mode(config.OUTPUT_DIRECTORY, args.url)
-    elif args.mode == "idor":
-        run_idor_mode(config.OUTPUT_DIRECTORY, args.url)
-    elif args.mode == "single":
-        if not args.node:
-            print("Please provide a node to run in single mode")
-            sys.exit(1)
-        run_single_mode(args.path, args.url, args.node)
+    # Some massaging
+    if args_as_dict['path'] is None:
+        args_as_dict['path'] = config.OUTPUT_DIRECTORY
+    main(args_as_dict)

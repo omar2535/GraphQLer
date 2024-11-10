@@ -15,7 +15,7 @@ def set_auth_token_constant(auth_argument: str) -> None:
         config.AUTHORIZATION = f"Bearer {auth_argument}"
 
 
-def is_compiled(path: str) -> bool:
+def is_compiled(path: str | Path) -> bool:
     """Checks if the compiled directory exists
 
     Args:
@@ -24,6 +24,8 @@ def is_compiled(path: str) -> bool:
     Returns:
         bool: True if the compiled directory exists, False otherwise
     """
+    if path is None:
+        return False
     path = Path(path)
     return (
         (path / config.COMPILED_DIR_NAME).exists()

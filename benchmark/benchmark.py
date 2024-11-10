@@ -17,7 +17,7 @@ APIS_TO_TEST = [
     # ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
     # ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
     # ("https://graphql.anilist.co/", "anilist-test"),
-    ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
+    # ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
     # ("https://www.universe.com/graphql", "universe-test"),
     # ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
     # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
@@ -26,7 +26,7 @@ APIS_TO_TEST = [
     # ('http://localhost:4000/graphql', 'benchmark-tests/user-wallet-test/'),
     # ('http://localhost:4000/graphql', 'benchmark-tests/food-delivery-test/')
     # ('https://graphql.anilist.co/', 'benchmark-tests/anilist-test/'),
-    # ('https://www.universe.com/graphql', 'benchmark-tests/universe-test/'),
+    ('https://www.universe.com/graphql', 'benchmark-tests/universe-test/'),
     # ('https://beta.pokeapi.co/graphql/v1beta', 'benchmark-tests/pokeapi-test/'),
     # ('http://localhost:3000/', 'benchmark-tests/json-graphql-server/'),
 ]
@@ -35,9 +35,9 @@ MAX_TIMES = [5, 10, 20, 30, 60]
 NUM_RETRIES = 1
 
 # Set the constants
-config.USE_OBJECTS_BUCKET = True
-config.USE_DEPENDENCY_GRAPH = True
-config.NO_DATA_COUNT_AS_SUCCESS = True
+config.USE_OBJECTS_BUCKET = False
+config.USE_DEPENDENCY_GRAPH = False
+config.NO_DATA_COUNT_AS_SUCCESS = False
 config.SKIP_DOS_ATTACKS = True
 config.SKIP_MISC_ATTACKS = True
 config.SKIP_INJECTION_ATTACKS = True

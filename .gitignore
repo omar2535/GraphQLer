@@ -24,11 +24,8 @@ env/
 # Compilation
 dist/
 
-## Omar's personal testing
-omar-test*/
-anilist-test/
-finland-test/
-benchmark-tests/
+## testing
 *-test/
-*-test-1/
-ci-test-*
+*-tests/
+benchmark/
+graphqler-output/
