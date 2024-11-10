@@ -135,8 +135,8 @@ class Stats:
         Args:
             result (Result): the result
         """
-        result_status = result.get_success()
-        result_type = result.get_type()
+        result_status = result.success
+        result_type = result.type
 
         # Update success / fail stats first
         if result_status:

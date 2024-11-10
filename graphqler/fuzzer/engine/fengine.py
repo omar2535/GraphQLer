@@ -16,12 +16,7 @@ from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import (
-    Materializer,
-    RegularPayloadMaterializer,
-    MaximalPayloadMaterializer,
-    dos_materializers
-)
+from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, dos_materializers
 from .retrier import Retrier
 from .types import Result
 from .utils import check_is_data_empty
@@ -157,7 +152,10 @@ class FEngine(object):
             if graphql_response["data"][mutation_name] is None or check_is_data_empty(graphql_response["data"]):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
                 self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
-                return (graphql_response, Result.NO_DATA_SUCCESS)
+                if config.NO_DATA_COUNT_AS_SUCCESS:
+                    return (graphql_response, Result.NO_DATA_SUCCESS)
+                else:
+                    return (graphql_response, Result.EXTERNAL_FAILURE)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")

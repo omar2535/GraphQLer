@@ -180,7 +180,7 @@ class Fuzzer(object):
             self.stats.update_stats_from_result(current_node, result)
 
             # If it was a success, then update the objects bucket
-            if result.get_success():
+            if result.success:
                 self.logger.info(f"Node was successful: {current_node}")
 
     def __perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
@@ -216,7 +216,7 @@ class Fuzzer(object):
                 # If it's not successful:
                 # then we check if it's exceeded the max retries
                 # If it is, then we dont re-queue the node
-                if not res.get_success():
+                if not res.success:
                     self.logger.info(f"[{current_node}]Node was not successful")
                     if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
                         continue  # Stop counting failures, already max retries reached
