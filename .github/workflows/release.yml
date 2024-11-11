@@ -29,8 +29,9 @@ jobs:
       env:
         PYPI_TOKEN: ${{ secrets.GRAPHQLER_PYPI_REPO_SECRET }}
       run: |
+        poetry config pypi-token.pypi $PYPI_TOKEN
         poetry build
-        poetry publish -u **token** -p $PYPI_TOKEN
+        poetry publish
 
     - name: Publish to Docker Hub
       uses: docker/build-push-action@v2
