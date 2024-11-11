@@ -3,11 +3,13 @@ from typing import Type
 
 import requests
 
+from graphqler.graph.node import Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.stats import Stats
 from graphqler.utils import plugins_handler
+from graphqler.fuzzer.engine.types import ResultEnum, Result
 
 from ..materializers.materializer import Materializer
 
@@ -43,9 +45,10 @@ class Detector(ABC):
         """Materializer class to be used for payload generation"""
         pass
 
-    def __init__(self, api: API, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+    def __init__(self, api: API, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
         self.api = api
-        self.name = name
+        self.node = node
+        self.name = node.name
         self.objects_bucket = objects_bucket
         self.graphql_type = graphql_type
         self.detector_logger = Logger().get_detector_logger()
@@ -64,8 +67,17 @@ class Detector(ABC):
         self.fuzzer_logger.debug(f"[Fuzzer] Payload:\n{self.payload}")
         self.detector_logger.info(f"[Detector] Payload:\n{self.payload}")
 
+        # Send the GraphQL request
         graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, self.payload)
+        result = Result(
+            result_enum=ResultEnum.GENERAL_SUCCESS,
+            payload_string=self.payload,
+            status_code=request_response.status_code,
+            graphql_response=graphql_response,
+            raw_response_text=request_response.text
+        )
         Stats().add_http_status_code(self.name, request_response.status_code)
+        Stats().update_stats_from_result(self.node, result)
 
         self.detector_logger.info(f"[{request_response.status_code}]Response: {request_response.text}")
         self.fuzzer_logger.info(f"[{request_response.status_code}]Response: {graphql_response}")

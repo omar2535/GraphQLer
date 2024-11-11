@@ -2,6 +2,7 @@ from typing import Type, override
 
 import requests
 
+from graphqler.fuzzer.engine.types import Result, ResultEnum
 from graphqler.utils.api import API
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.detectors.detector import Detector
@@ -122,8 +123,22 @@ class QueryDenyBypassDetector(Detector):
         else:
             self.potentially_vulnerable = False
             self.confirmed_vulnerable = False
+
+        non_aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
+                                    payload_string=non_aliased_payload,
+                                    status_code=non_aliased_request_response.status_code,
+                                    graphql_response=non_aliased_graphql_response,
+                                    raw_response_text=non_aliased_request_response.text)
+        aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
+                                payload_string=aliased_payload,
+                                status_code=aliased_request_response.status_code,
+                                graphql_response=aliased_graphql_response,
+                                raw_response_text=aliased_request_response.text)
+
         Stats().add_http_status_code(self.name, non_aliased_request_response.status_code)
         Stats().add_http_status_code(self.name, aliased_request_response.status_code)
+        Stats().update_stats_from_result(self.node, non_aliased_result)
+        Stats().update_stats_from_result(self.node, aliased_result)
         Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 

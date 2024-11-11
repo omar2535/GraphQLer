@@ -244,6 +244,8 @@ class Stats :
         unique_results = {}
         # Filter out for only unique results
         for node_name, results in self.results.items():
+            # If the node name has slashes, replace them with underscores
+            node_name = node_name.replace("/", "_")
             for result in results:
                 result_type = "success" if result.success else "failure"
                 result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / f"{result.status_code}"

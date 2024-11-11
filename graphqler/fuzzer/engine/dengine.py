@@ -1,12 +1,11 @@
-from .detectors import injection_detectors
-from .detectors import api_detectors
-from .detectors import misc_detectors
-from .detectors.detector import Detector
+import graphqler.config as config
+from graphqler.graph.node import Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 
-import graphqler.config as config
+from .detectors import api_detectors, injection_detectors, misc_detectors
+from .detectors.detector import Detector
 
 
 class DEngine:
@@ -29,7 +28,8 @@ class DEngine:
            - Uses API as the key for nodes_ran marking
         """
         for api_detector in api_detectors:
-            detector = api_detector(api=self.api, name=self.api.url, objects_bucket=ObjectsBucket(self.api), graphql_type="")
+            node = Node(graphql_type='misc', name=self.api.url, body={})  # Create a dummy node object for the API
+            detector = api_detector(api=self.api, node=node, objects_bucket=ObjectsBucket(self.api), graphql_type="")
             if not self.__should_run_detection(detector, self.api.url):
                 continue
             try:
@@ -39,55 +39,55 @@ class DEngine:
             except Exception as e:
                 self.logger.error(f"Detector {detector.DETECTION_NAME} failed with error: {e}")
 
-    def run_detections_on_graphql_object(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+    def run_detections_on_graphql_object(self, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs all detectors on a specific GraphQL object (either QUERY or MUTATION)
 
         Args:
-            name (str): Name of the query or mutation
+            node (Node): The node object
             objects_bucket (ObjectsBucket): The objects bucket
             graphql_type (str): The GraphQL type
         """
         if not config.SKIP_INJECTION_ATTACKS:
-            self.__run_injection_detections(name, objects_bucket, graphql_type)
+            self.__run_injection_detections(node, objects_bucket, graphql_type)
 
         if not config.SKIP_MISC_ATTACKS:
-            self.__run_misc_detections(name, objects_bucket, graphql_type)
+            self.__run_misc_detections(node, objects_bucket, graphql_type)
 
-    def __run_misc_detections(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+    def __run_misc_detections(self, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs miscellaneous detections
 
         Args:
-            name (str): The name of the node
+            node (Node): The node object
             objects_bucket (ObjectsBucket): The objects bucket
             graphql_type (str): The type of the GraphQL operation
         """
         for misc_detector in misc_detectors:
-            detector = misc_detector(api=self.api, name=name, objects_bucket=objects_bucket, graphql_type=graphql_type)
-            if not self.__should_run_detection(detector, name):
+            detector = misc_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            if not self.__should_run_detection(detector, node.name):
                 continue
             try:
                 is_vulnerable, potentially_vulnerable = detector.detect()
                 self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
-                self.__add_ran_node(name, detector.DETECTION_NAME)
+                self.__add_ran_node(node.name, detector.DETECTION_NAME)
             except Exception as e:
                 self.logger.error(f"Detector {detector.DETECTION_NAME} failed with error: {e}")
 
-    def __run_injection_detections(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str):
+    def __run_injection_detections(self, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs injection detections
 
         Args:
-            name (str): The name of the node
+            node (Node): The node object
             objects_bucket (ObjectsBucket): The objects bucket
             graphql_type (str): The type of the GraphQL operation
         """
         for injection_detector in injection_detectors:
-            detector = injection_detector(api=self.api, name=name, objects_bucket=objects_bucket, graphql_type=graphql_type)
-            if not self.__should_run_detection(detector, name):
+            detector = injection_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            if not self.__should_run_detection(detector, node.name):
                 continue
             try:
                 is_vulnerable, potentially_vulnerable = detector.detect()
                 self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
-                self.__add_ran_node(name, detector.DETECTION_NAME)
+                self.__add_ran_node(node.name, detector.DETECTION_NAME)
             except Exception as e:
                 self.logger.error(f"Detector {detector.DETECTION_NAME} failed with error: {e}")
 

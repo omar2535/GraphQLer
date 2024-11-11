@@ -319,7 +319,7 @@ class Fuzzer(object):
 
     def __detect_vulnerabilities_on_node(self, node: Node):
         if node.graphql_type in ["Query", "Mutation"]:
-            self.dengine.run_detections_on_graphql_object(node.name, self.objects_bucket, node.graphql_type)
+            self.dengine.run_detections_on_graphql_object(node, self.objects_bucket, node.graphql_type)
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node
