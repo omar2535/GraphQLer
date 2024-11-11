@@ -49,8 +49,3 @@ jobs:
         registry: ghcr.io
         repository: omar2535/GraphQLer
         tags: latest
-
-    - name: Create GitHub Release
-      uses: release-drafter/release-drafter@v5
-      env:
-        GITHUB_TOKEN: ${{ secrets.GRAPHQLER_GITHUB_TOKEN }}
