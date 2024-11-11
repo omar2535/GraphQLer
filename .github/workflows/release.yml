@@ -9,7 +9,7 @@ on:
 jobs:
 
   release:
-    if: startsWith(github.event.pull_request.title, '[RELEASE]') && github.event.pull_request.merge_commit_sha
+    if: startsWith(github.event.pull_request.title, '[RELEASE]') && github.event.pull_request.merged
     runs-on: ubuntu-latest
 
     steps:
