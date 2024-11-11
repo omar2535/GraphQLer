@@ -1,4 +1,4 @@
-name: Release
+name: Release to PyPI
 
 on:
   pull_request:
@@ -32,20 +32,3 @@ jobs:
         poetry config pypi-token.pypi $PYPI_TOKEN
         poetry build
         poetry publish
-
-    - name: Publish to Docker Hub
-      uses: docker/build-push-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-        repository: omar2535/graphqler
-        tags: latest
-
-    - name: Publish to GitHub Container Registry
-      uses: docker/build-push-action@v2
-      with:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GRAPHQLER_GITHUB_TOKEN }}
-        registry: ghcr.io
-        repository: omar2535/GraphQLer
-        tags: latest
