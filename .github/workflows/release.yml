@@ -25,21 +25,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
 
-    - name: Check if pyproject.toml version was updated
-      id: version_check
-      run: |
-        # Read the current version from pyproject.toml
-        current_version=$(poetry version -s)
-
-        # Check if the version has changed between the current commit and the previous commit
-        if git diff HEAD^ HEAD pyproject.toml | grep -q "version = \"$current_version\""; then
-          echo "updated=true" >> $GITHUB_ENV
-        else
-          echo "updated=false" >> $GITHUB_ENV
-        fi
-
     - name: Publish to PyPI
-      if: env.updated == 'true'
       env:
         PYPI_TOKEN: ${{ secrets.GRAPHQLER_PYPI_REPO_SECRET }}
       run: |
@@ -47,7 +33,6 @@ jobs:
         poetry publish -u **token** -p $PYPI_TOKEN
 
     - name: Publish to Docker Hub
-      if: env.updated == 'true'
       uses: docker/build-push-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -56,7 +41,6 @@ jobs:
         tags: latest
 
     - name: Publish to GitHub Container Registry
-      if: env.updated == 'true'
       uses: docker/build-push-action@v2
       with:
         username: ${{ github.actor }}
@@ -66,7 +50,6 @@ jobs:
         tags: latest
 
     - name: Create GitHub Release
-      if: env.updated == 'true'
       uses: release-drafter/release-drafter@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GRAPHQLER_GITHUB_TOKEN }}
