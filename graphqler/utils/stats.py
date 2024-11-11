@@ -2,24 +2,25 @@ from pathlib import Path
 from graphqler.graph import Node
 from graphqler.fuzzer.engine.types import Result
 from .singleton import singleton
-from .file_utils import initialize_file
+from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path
 
 from graphqler import config
 import pprint
 import json
 import time
 
-
 @singleton
-class Stats:
+class Stats :
     ### PUT THE STATS YOU WANT HERE
     file_path = "/tmp/stats.txt"  # This gets overriden by the set_file_path function
-    objects_bucket_file_path = "/tmp/objects_bucket.txt"  # This gets overriden by the set_file_path function
+    endpoint_results_dir = "/tmp/endpoint_results"
+    unique_responses_file_path = "/tmp/unique_responses.txt"
     start_time: float = 0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     failed_nodes: dict[str, int] = {}
-    results: dict[str, dict[str, int]] = {}
+    results: dict[str, set[Result]] = {}    # Mapping of query/muation to results for that node
+    unique_responses: dict[str, list[str]] = {}  # Mapping of response to endpoints (query/mutation)
     number_of_queries: int = 0
     number_of_mutations: int = 0
     number_of_objects: int = 0
@@ -78,9 +79,23 @@ class Stats:
             self.http_status_codes[status_code_str] = {payload_name: 1}
         self.save()
 
-    def set_file_path(self, working_dir: str):
+    def set_file_paths(self, working_dir: str):
+        """
+
+        Args:
+            working_dir (str): _description_
+        """
+        # Do the stats file first
         initialize_file(Path(working_dir) / config.STATS_FILE_PATH)
         self.file_path = Path(working_dir) / config.STATS_FILE_PATH
+
+        # Do the endpoint results directory
+        self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
+        recreate_path(self.endpoint_results_dir)
+
+        # Do the unique responses file
+        self.unique_responses_file_path = Path(working_dir) / config.UNIQUE_RESPONSES_FILE_NAME
+        initialize_file(self.unique_responses_file_path)
 
     def print_running_stats(self):
         """Function to print stats during runtime (not saved to file)"""
@@ -136,7 +151,6 @@ class Stats:
             result (Result): the result
         """
         result_status = result.success
-        result_type = result.type
 
         # Update success / fail stats first
         if result_status:
@@ -145,12 +159,16 @@ class Stats:
             self.add_failed_node(node)
 
         # Update results
-        if result_type in self.results and node.name in self.results[result_type]:
-            self.results[result_type][node.name] += 1
-        elif result_type in self.results and node.name not in self.results[result_type]:
-            self.results[result_type][node.name] = 1
+        if node.name in self.results:
+            self.results[node.name].add(result)
         else:
-            self.results[result_type] = {node.name: 1}
+            self.results[node.name] = {result}
+
+        # Update unique responses
+        if str(result.graphql_response) in self.unique_responses:
+            self.unique_responses[str(result.graphql_response)].append(node.name)
+        else:
+            self.unique_responses[str(result.graphql_response)] = [node.name]
 
     def get_number_of_successful_mutations_and_queries(self) -> tuple[int, int]:
         """Returns the number of successful mutations and queries"""
@@ -204,8 +222,6 @@ class Stats:
             f.write(json.dumps(self.successful_nodes, indent=4))
             f.write("\n===================Failed Nodes===================\n")
             f.write(json.dumps(self.failed_nodes, indent=4))
-            f.write("\n===================Results===================\n")
-            f.write(json.dumps(self.results, indent=4))
             f.write("\n===================General stats ===================\n")
             f.write(f"\nTime taken: {str(time.time() - self.start_time)} seconds")
             f.write(f"\nNumber of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
@@ -218,3 +234,39 @@ class Stats:
             if len(self.vulnerabilities) > 0:
                 f.write("\n===================Detected Vulnerabilities===================\n")
                 f.write(json.dumps(self.vulnerabilities, indent=4))
+        self.save_endpoint_results()
+        self.save_unique_response()
+
+    def save_endpoint_results(self):
+        """Reads the results, for each node in the node name -> results, create a directory for the
+           result type, then a file for the response code, and append the payload and the response to the file.
+        """
+        unique_results = {}
+        # Filter out for only unique results
+        for node_name, results in self.results.items():
+            for result in results:
+                result_type = "success" if result.success else "failure"
+                result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / f"{result.status_code}"
+
+                if result_file_path not in unique_results:
+                    unique_results[result_file_path] = {result.payload_string: result.graphql_response}
+                else:
+                    if result.payload_string not in unique_results[result_file_path]:
+                        unique_results[result_file_path][result.payload_string] = result.graphql_response
+
+        # Write the unique results to the file
+        for result_file_path, payloads in unique_results.items():
+            intialize_file_if_not_exists(result_file_path)
+            for payload, response in payloads.items():
+                with open(result_file_path, "a") as f:
+                    f.write("------------------Payload:-------------------\n")
+                    f.write(f"{payload}\n")
+                    f.write("------------------Response:-------------------\n")
+                    f.write(f"{response}\n")
+
+    def save_unique_response(self):
+        """Saves the unique responses to a file"""
+        with open(Path(self.unique_responses_file_path), "w") as f:
+            for response, endpoints in self.unique_responses.items():
+                f.write(f"Response: {response}\n")
+                f.write(f"Endpoints: {endpoints}\n")

@@ -14,6 +14,7 @@ AUTHORIZATION = None  # Don't use this, this will be overriten by argparse
 OUTPUT_DIRECTORY = "graphqler-output"
 EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
+ENDPOINT_RESULTS_DIR_NAME = "endpoint_results"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
 OBJECTS_BUCKET_PICKLE_FILE_PATH = "objects_bucket.pkl"
@@ -58,6 +59,7 @@ IDOR_LOG_FILE_PATH = "logs/idor.log"
 """For stats"""
 STATS_FILE_PATH = "stats.txt"
 OBJECTS_BUCKET_TEXT_FILE_PATH = "objects_bucket.txt"
+UNIQUE_RESPONSES_FILE_NAME = "unique_responses.txt"
 
 """For plugins"""
 PLUGINS_PATH = f"{OUTPUT_DIRECTORY}/plugins"

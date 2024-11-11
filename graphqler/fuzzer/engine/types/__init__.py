@@ -1,5 +1,6 @@
-from .result import Result
+from .result import Result, ResultEnum
 
 __all__ = [
-    'Result'
+    'Result',
+    'ResultEnum'
 ]

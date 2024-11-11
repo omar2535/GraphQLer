@@ -1,6 +1,7 @@
 from pathlib import Path
 import yaml
 import json
+import shutil
 
 
 def initialize_file(file_path: Path):
@@ -11,6 +12,32 @@ def initialize_file(file_path: Path):
     """
     file_path.parent.mkdir(parents=True, exist_ok=True)
     open(file_path, "w").close()
+
+
+def intialize_file_if_not_exists(file_path: Path):
+    """Initialize file_path with an empty file creating any folders along the way if it does not exist
+
+    Args:
+        file_path (Path): The path to the file
+    """
+    if not file_path.exists():
+        initialize_file(file_path)
+
+
+def recreate_path(dir_path: Path):
+    """Recreate a directory
+
+    Args:
+        dir_path (Path): The directory path
+    """
+    # Convert the path to a Path object
+    path = Path(dir_path)
+
+    # Remove the directory if it exists
+    shutil.rmtree(path, ignore_errors=True)
+
+    # Re-create the directory
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def write_json_to_file(contents: dict, output_file: str | Path):

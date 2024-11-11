@@ -18,7 +18,7 @@ from graphqler.utils.stats import Stats
 from .exceptions import HardDependencyNotMetException
 from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, dos_materializers
 from .retrier import Retrier
-from .types import Result
+from .types import Result, ResultEnum
 from .utils import check_is_data_empty
 
 
@@ -102,9 +102,9 @@ class FEngine(object):
             return self.__run_mutation(name, objects_bucket, materializer)
         else:
             self.logger.warning(f"Unknown GraphQL type: {graphql_type} for {name}")
-            return ({}, Result.INTERNAL_FAILURE)
+            return ({}, Result(ResultEnum.INTERNAL_FAILURE))
 
-    def __run_mutation(self, mutation_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
+    def __run_mutation(self, endpoint_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
            1. Materializes the mutation with its parameters (resolving any dependencies from the object_bucket)
            2. Send the mutation against the server and gets the parses the object from the response
@@ -115,58 +115,68 @@ class FEngine(object):
               - if we have an unknown, don't do anything
 
         Args:
-            mutation_name (str): Name of the mutation
+            endpoint_name(str): Name of the mutation
             objects_bucket (dict): The current objects bucket
 
         Returns:
             tuple[dict, Result]: The graphql response dict, and the result of the mutation,
         """
+        result = Result()
         try:
             # Step 1
-            self.logger.info(f"[{mutation_name}] Running mutation: {mutation_name}")
-            self.logger.debug(f"[{mutation_name}] Objects bucket: {objects_bucket}")
-            payload_string, used_objects = materializer.get_payload(mutation_name, objects_bucket, "Mutation")
+            self.logger.info(f"[{endpoint_name}] Running mutation: {endpoint_name}")
+            self.logger.debug(f"[{endpoint_name}] Objects bucket: {objects_bucket}")
+            payload_string, used_objects = materializer.get_payload(endpoint_name, objects_bucket, "Mutation")
+            result.payload_string = payload_string
 
             # Step 2: Send the request & handle response
-            self.logger.info(f"[{mutation_name}] Sending mutation payload string:\n {payload_string}")
+            self.logger.info(f"[{endpoint_name}] Sending mutation payload string:\n {payload_string}")
             request_utils = plugins_handler.get_request_utils()
             graphql_response, request_response = request_utils.send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
-            # Stats tracking stuff
+            # Stats tracking stuff, results
             self.logger.info(f"Request Response code: {status_code}")
-            Stats().add_http_status_code(mutation_name, status_code)
+            Stats().add_http_status_code(endpoint_name, status_code)
+            result.status_code = status_code
+            result.graphql_response = graphql_response
+            result.raw_response_text = request_response.text
 
             # For the GraphQL reponse
             if not graphql_response:
-                return (graphql_response, Result.EXTERNAL_FAILURE)
-            if "errors" in graphql_response:
-                self.logger.info(f"[{mutation_name}] Mutation failed: {graphql_response['errors'][0]}")
-                self.logger.info(f"[{mutation_name}] Retrying ---")
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            if result.has_errors:
+                self.logger.info(f"[{endpoint_name}] Mutation failed: {graphql_response['errors'][0]}")
+                self.logger.info(f"[{endpoint_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, payload_string, graphql_response, 0)
                 if not retry_success:
-                    return (graphql_response, Result.EXTERNAL_FAILURE)
-            if "data" not in graphql_response:
-                self.logger.error(f"[{mutation_name}] No data in response: {graphql_response}")
-                return (graphql_response, Result.EXTERNAL_FAILURE)
-            if graphql_response["data"][mutation_name] is None or check_is_data_empty(graphql_response["data"]):
+                    result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                    return (graphql_response, result)
+            if not result.has_data:
+                self.logger.error(f"[{endpoint_name}] No data in response: {graphql_response}")
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            if result.data[endpoint_name] is None or check_is_data_empty(result.data):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
-                self.logger.info(f"[{mutation_name}] Mutation returned no data: {graphql_response} -- returning early")
+                self.logger.info(f"[{endpoint_name}] Mutation returned no data: {graphql_response} -- returning early")
                 if config.NO_DATA_COUNT_AS_SUCCESS:
-                    return (graphql_response, Result.NO_DATA_SUCCESS)
+                    result.result_enum = ResultEnum.NO_DATA_SUCCESS
+                    return (graphql_response, result)
                 else:
-                    return (graphql_response, Result.EXTERNAL_FAILURE)
+                    result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                    return (graphql_response, result)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
 
             # If there is information in the response, we need to process it
             # TODO: Store more things in the objects bucket (ie. names seen, other things seen, etc.)
-            if type(graphql_response["data"][mutation_name]) is dict:
-                mutation_output_type = get_output_type(mutation_name, self.api.mutations)
-                mutation_type = self.api.mutations[mutation_name]["mutationType"]
+            if type(result.data[endpoint_name]) is dict:
+                mutation_output_type = get_output_type(endpoint_name, self.api.mutations)
+                mutation_type = self.api.mutations[endpoint_name]["mutationType"]
                 if mutation_type == "CREATE":
-                    objects_bucket.put_in_bucket(graphql_response["data"])
+                    objects_bucket.put_in_bucket(result.data)
                 elif mutation_type == "UPDATE":
                     # TODO: Implement this
                     pass  # updates don't generally do anything to the objects bucket
@@ -181,74 +191,89 @@ class FEngine(object):
             else:
                 pass
 
-            return (graphql_response, Result.GENERAL_SUCCESS)
+            result.result_enum = ResultEnum.GENERAL_SUCCESS
+            return (graphql_response, result)
         except HardDependencyNotMetException as e:
-            self.logger.info(f"[{mutation_name}] Hard dependency not met: {e}")
-            return ({}, Result.INTERNAL_FAILURE)
+            self.logger.info(f"[{endpoint_name}] Hard dependency not met: {e}")
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return ({}, result)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
             # print(f"Exception when running: {mutation_name}: {e}, {traceback.print_exc()}")
-            self.logger.info(f"[{mutation_name}] Exception when running: {mutation_name}")
-            self.logger.info(f"[{mutation_name}] {e}")
-            self.logger.debug(f"[{mutation_name}] {traceback.format_exc()}")
-            return ({}, Result.INTERNAL_FAILURE)
+            self.logger.info(f"[{endpoint_name}] Exception when running: {endpoint_name}")
+            self.logger.info(f"[{endpoint_name}] {e}")
+            self.logger.debug(f"[{endpoint_name}] {traceback.format_exc()}")
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return ({}, result)
 
-    def __run_query(self, query_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
+    def __run_query(self, endpoint_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
         """Runs the query, and returns a new objects bucket
 
         Args:
-            query_name (str): The name of the query
+            endpoint_name (str): The name of the query
             objects_bucket (ObjectsBucket): The objects bucket
             materializer (QueryMaterializer): The materializer to use
 
         Returns:
             tuple[dict, Result]: The graphql response as a dict, and the result of the query
         """
+        result = Result()
         try:
             # Step 1
-            self.logger.info(f"[{query_name}] Running query: {query_name}")
-            self.logger.debug(f"[{query_name}] Objects bucket: {objects_bucket}")
-            payload_string, used_objects = materializer.get_payload(query_name, objects_bucket, "Query")
+            self.logger.info(f"[{endpoint_name}] Running query: {endpoint_name}")
+            self.logger.debug(f"[{endpoint_name}] Objects bucket: {objects_bucket}")
+            payload_string, used_objects = materializer.get_payload(endpoint_name, objects_bucket, "Query")
+            result.payload_string = payload_string
 
             # Step 2
-            self.logger.info(f"[{query_name}] Sending query payload string:\n {payload_string}")
+            self.logger.info(f"[{endpoint_name}] Sending query payload string:\n {payload_string}")
             request_utils = plugins_handler.get_request_utils()
             graphql_response, request_response = request_utils.send_graphql_request(self.api.url, payload_string)
             status_code = request_response.status_code
 
             # Stats tracking stuff
             self.logger.info(f"Request Response code: {status_code}")
-            Stats().add_http_status_code(query_name, status_code)
+            Stats().add_http_status_code(endpoint_name, status_code)
+            result.status_code = status_code
+            result.graphql_response = graphql_response
+            result.raw_response_text = request_response.text
 
-            # For the GraphQL response
+            # For the GraphQL reponse
             if not graphql_response:
-                return (graphql_response, Result.EXTERNAL_FAILURE)
-            if "errors" in graphql_response:
-                self.logger.info(f"[{query_name}] Query failed: {graphql_response['errors'][0]}")
-                self.logger.info(f"[{query_name}] Retrying ---")
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            if result.has_errors:
+                self.logger.info(f"[{endpoint_name}] Query failed: {graphql_response['errors'][0]}")
+                self.logger.info(f"[{endpoint_name}] Retrying ---")
                 graphql_response, retry_success = Retrier(self.logger).retry(self.api.url, payload_string, graphql_response, 0)
                 if not retry_success:
-                    return (graphql_response, Result.EXTERNAL_FAILURE)
-            if "data" not in graphql_response:
-                self.logger.error(f"[{query_name}] No data in response: {graphql_response}")
-                return (graphql_response, Result.EXTERNAL_FAILURE)
-            if graphql_response["data"][query_name] is None or check_is_data_empty(graphql_response["data"]):
-                # Special case, this could indicate a failure or could also not, we mark it as fail
-                self.logger.info(f"[{query_name}] No data in response: {graphql_response} -- returning early")
+                    result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                    return (graphql_response, result)
+            if not result.has_data:
+                self.logger.error(f"[{endpoint_name}] No data in response: {graphql_response}")
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            if endpoint_name not in result.data or result.data[endpoint_name] is None or check_is_data_empty(result.data):
+                # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
+                self.logger.info(f"[{endpoint_name}] Query returned no data: {graphql_response} -- returning early")
                 if config.NO_DATA_COUNT_AS_SUCCESS:
-                    return (graphql_response, Result.NO_DATA_SUCCESS)
+                    result.result_enum = ResultEnum.NO_DATA_SUCCESS
+                    return (graphql_response, result)
                 else:
-                    return (graphql_response, Result.EXTERNAL_FAILURE)
+                    result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                    return (graphql_response, result)
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
-            if type(graphql_response["data"][query_name]) is dict:
+            if type(graphql_response["data"][endpoint_name]) is dict:
                 objects_bucket.put_in_bucket(graphql_response["data"])
 
-            return (graphql_response, Result.HAS_DATA_SUCCESS)
+            result.result_enum = ResultEnum.GENERAL_SUCCESS
+            return (graphql_response, result)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
-            self.logger.info(f"[{query_name}]Exception when running: {query_name}: {e}, {traceback.format_exc()}")
-            return ({}, Result.INTERNAL_FAILURE)
+            self.logger.info(f"[{endpoint_name}]Exception when running: {endpoint_name}: {e}, {traceback.format_exc()}")
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return ({}, result)

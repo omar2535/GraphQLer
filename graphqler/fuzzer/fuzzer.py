@@ -26,7 +26,7 @@ from graphqler.utils.stats import Stats
 
 from .engine.fengine import FEngine
 from .engine.dengine import DEngine
-from .engine.types import Result
+from .engine.types import Result, ResultEnum
 
 
 class Fuzzer(object):
@@ -258,7 +258,7 @@ class Fuzzer(object):
             tuple[list[list[Node]], Result]: The results of the positive node evaluation
         """
         if node.name in config.SKIP_NODES:
-            return ([], Result.GENERAL_SUCCESS)
+            return ([], Result(ResultEnum.GENERAL_SUCCESS))
         new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)  # For positive testing (normal run)
         self.__fuzz(node, visit_path)  # For negative testing (fuzzing)
         self.__detect_vulnerabilities_on_node(node)  # For negative testing (Detect vulnerabilities)
@@ -281,14 +281,14 @@ class Fuzzer(object):
         neighboring_nodes = self._get_neighboring_nodes(node)
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
-        if node.graphql_type == "Object":
+        if node.graphql_type == "Object" and check_hard_depends_on:
             if self.objects_bucket.is_object_in_bucket(node.name):
-                return (new_visit_paths, Result.GENERAL_SUCCESS)
+                return (new_visit_paths, Result(ResultEnum.GENERAL_SUCCESS))
             else:
-                return ([], Result.INTERNAL_FAILURE)
+                return ([], Result(ResultEnum.INTERNAL_FAILURE))
         else:
             _graphql_response, res = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
-            if res == Result.GENERAL_SUCCESS:
+            if res.success:
                 return (new_visit_paths, res)
             else:
                 return ([], res)

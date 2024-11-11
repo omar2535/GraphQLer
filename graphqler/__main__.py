@@ -58,7 +58,7 @@ def run_fuzz_mode(path: str, url: str):
 
     print("(F) Initializing stats file")
     stats = Stats()
-    stats.set_file_path(path)
+    stats.set_file_paths(path)
 
     print("(F) Starting fuzzer")
     if not config.USE_OBJECTS_BUCKET:
