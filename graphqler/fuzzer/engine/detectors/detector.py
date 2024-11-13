@@ -71,7 +71,7 @@ class Detector(ABC):
         graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, self.payload)
         result = Result(
             result_enum=ResultEnum.GENERAL_SUCCESS,
-            payload_string=self.payload,
+            payload=self.payload,
             status_code=request_response.status_code,
             graphql_response=graphql_response,
             raw_response_text=request_response.text

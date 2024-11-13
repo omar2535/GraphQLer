@@ -250,11 +250,12 @@ class Stats :
                 result_type = "success" if result.success else "failure"
                 result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / f"{result.status_code}"
 
+                payload_string = str(result.payload)
                 if result_file_path not in unique_results:
-                    unique_results[result_file_path] = {result.payload_string: result.graphql_response}
+                    unique_results[result_file_path] = {payload_string: result.graphql_response}
                 else:
-                    if result.payload_string not in unique_results[result_file_path]:
-                        unique_results[result_file_path][result.payload_string] = result.graphql_response
+                    if payload_string not in unique_results[result_file_path]:
+                        unique_results[result_file_path][payload_string] = result.graphql_response
 
         # Write the unique results to the file
         for result_file_path, payloads in unique_results.items():

@@ -125,12 +125,12 @@ class QueryDenyBypassDetector(Detector):
             self.confirmed_vulnerable = False
 
         non_aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
-                                    payload_string=non_aliased_payload,
+                                    payload=non_aliased_payload,
                                     status_code=non_aliased_request_response.status_code,
                                     graphql_response=non_aliased_graphql_response,
                                     raw_response_text=non_aliased_request_response.text)
         aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
-                                payload_string=aliased_payload,
+                                payload=aliased_payload,
                                 status_code=aliased_request_response.status_code,
                                 graphql_response=aliased_graphql_response,
                                 raw_response_text=aliased_request_response.text)

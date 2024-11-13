@@ -14,7 +14,7 @@ class ResultEnum(Enum):
 class Result:
     def __init__(self,
                  result_enum: Optional[ResultEnum] = None,
-                 payload_string: Optional[str] = None,
+                 payload: Optional[str] | Optional[list[str]] | dict = None,
                  errors: Optional[list] = None,
                  data: Optional[dict] = None,
                  status_code: Optional[int] = None,
@@ -22,7 +22,7 @@ class Result:
                  raw_response_text: Optional[str] = None):
         """Initializes the result object"""
         self._result_enum = result_enum
-        self._payload_string = payload_string
+        self._payload = payload
         self._errors = errors
         self._data = data
         self._status_code = status_code
@@ -39,7 +39,7 @@ class Result:
 
         return (
             self._result_enum == other._result_enum
-            and self._payload_string == other._payload_string
+            and self._payload == other._payload
             and self._errors == other._errors
             and self._data == other._data
             and self._status_code == other._status_code
@@ -54,7 +54,7 @@ class Result:
         """
         return hash((
             self._result_enum,
-            self._payload_string,
+            str(self._payload),
             str(self._errors),
             str(self._data),
             self._status_code,
@@ -74,9 +74,9 @@ class Result:
         self._result_enum = result_enum
 
     @property
-    def payload_string(self) -> Optional[str]:
+    def payload(self) -> Optional[str] | Optional[list[str]] | dict:
         """Gets the payload string"""
-        return self._payload_string
+        return self._payload
 
     @property
     def success(self) -> bool:
@@ -187,7 +187,7 @@ class Result:
         """Sets errors"""
         self._errors = errors
 
-    @payload_string.setter
-    def payload_string(self, payload_string):
+    @payload.setter
+    def payload(self, payload):
         """Sets payload string"""
-        self._payload_string = payload_string
+        self._payload = payload

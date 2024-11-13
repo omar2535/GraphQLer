@@ -127,7 +127,7 @@ class FEngine(object):
             self.logger.info(f"[{endpoint_name}] Running mutation: {endpoint_name}")
             self.logger.debug(f"[{endpoint_name}] Objects bucket: {objects_bucket}")
             payload_string, used_objects = materializer.get_payload(endpoint_name, objects_bucket, "Mutation")
-            result.payload_string = payload_string
+            result.payload = payload_string
 
             # Step 2: Send the request & handle response
             self.logger.info(f"[{endpoint_name}] Sending mutation payload string:\n {payload_string}")
@@ -224,7 +224,7 @@ class FEngine(object):
             self.logger.info(f"[{endpoint_name}] Running query: {endpoint_name}")
             self.logger.debug(f"[{endpoint_name}] Objects bucket: {objects_bucket}")
             payload_string, used_objects = materializer.get_payload(endpoint_name, objects_bucket, "Query")
-            result.payload_string = payload_string
+            result.payload = payload_string
 
             # Step 2
             self.logger.info(f"[{endpoint_name}] Sending query payload string:\n {payload_string}")
