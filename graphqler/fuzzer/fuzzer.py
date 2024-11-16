@@ -13,7 +13,6 @@ import random
 import threading
 import time
 
-import cloudpickle
 import networkx
 import typing
 
@@ -97,8 +96,6 @@ class Fuzzer(object):
         self.stats.print_results()
         self.stats.save()
         self.objects_bucket.save()
-
-        return cloudpickle.dumps(self.objects_bucket)
 
     def run_no_dfs(self):
         """Runs the fuzzer without using the dependency graph. Just uses each node and tests against the server
