@@ -62,6 +62,14 @@ class Result:
             self._raw_response_text
         ))
 
+    def __str__(self) -> str:
+        """Returns a string representation of the result"""
+        return f"Result<{self._result_enum} | {self._status_code} | {self.__hash__()}>"
+
+    def __repr__(self) -> str:
+        """Returns a string representation of the result"""
+        return f"Result<{self._result_enum} | {self._status_code} | {self.__hash__()}>"
+
     # ----------------- Properties -----------------
     @property
     def result_enum(self) -> Optional[ResultEnum]:

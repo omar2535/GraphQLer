@@ -4,12 +4,15 @@ import json
 import shutil
 
 
-def initialize_file(file_path: Path):
+def initialize_file(file_path: str | Path):
     """Initialize file_path with an empty file creating any folders along the way
 
     Args:
-        file_path (Path): The path to the file
+        file_path (str | Path): The path to the file
     """
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+
     file_path.parent.mkdir(parents=True, exist_ok=True)
     open(file_path, "w").close()
 
@@ -38,6 +41,20 @@ def recreate_path(dir_path: Path):
 
     # Re-create the directory
     path.mkdir(parents=True, exist_ok=True)
+
+
+def get_or_create_file(file_path: Path) -> Path:
+    """Gets a file if it exists, otherwise creates it
+
+    Args:
+        file_path (Path): File path
+
+    Returns:
+        Path: The file path
+    """
+    if not file_path.exists():
+        initialize_file(file_path)
+    return file_path
 
 
 def write_json_to_file(contents: dict, output_file: str | Path):

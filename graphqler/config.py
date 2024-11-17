@@ -12,12 +12,16 @@ AUTHORIZATION = None  # Don't use this, this will be overriten by argparse
 
 """For the compiler / parser"""
 OUTPUT_DIRECTORY = "graphqler-output"
+SERIALIZED_DIR_NAME = "serialized"
 EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
 ENDPOINT_RESULTS_DIR_NAME = "endpoint_results"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
-OBJECTS_BUCKET_PICKLE_FILE_PATH = "objects_bucket.pkl"
+
+"""Pickle files -- mainly for cross-process communication"""
+OBJECTS_BUCKET_PICKLE_FILE_NAME = "objects_bucket.pkl"
+STATS_PICKLE_FILE_NAME = "stats.pkl"
 
 QUERY_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/query_parameter_list.yml"
 MUTATION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/mutation_parameter_list.yml"
@@ -57,8 +61,8 @@ DETECTOR_LOG_FILE_PATH = "logs/detector.log"
 IDOR_LOG_FILE_PATH = "logs/idor.log"
 
 """For stats"""
-STATS_FILE_PATH = "stats.txt"
-OBJECTS_BUCKET_TEXT_FILE_PATH = "objects_bucket.txt"
+STATS_FILE_NAME = "stats.txt"
+OBJECTS_BUCKET_TEXT_FILE_NAME = "objects_bucket.txt"
 UNIQUE_RESPONSES_FILE_NAME = "unique_responses.txt"
 
 """For plugins"""

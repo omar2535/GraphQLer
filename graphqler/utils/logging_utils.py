@@ -11,90 +11,87 @@ class Logger:
     compiler_logger = None
     detector_logger = None
     idor_logger = None
-    fuzzer_log_path = ""
-    compiler_log_path = ""
-    detector_log_path = ""
-    idor_log_path = ""
+    fuzzer_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.FUZZER_LOG_FILE_PATH)
+    compiler_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.COMPILER_LOG_FILE_PATH)
+    detector_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.DETECTOR_LOG_FILE_PATH)
+    idor_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.IDOR_LOG_FILE_PATH)
 
     def __init__(self):
-        pass
-
-    def initialize_loggers(self, mode: str, save_path: str):
-        """Initialize logger paths
-
-        Args:
-            mode (str): Mode of run
-            save_path (str): Save path
-        """
-        self.fuzzer_log_path = Path(save_path) / config.FUZZER_LOG_FILE_PATH
-        self.compiler_log_path = Path(save_path) / config.COMPILER_LOG_FILE_PATH
-        self.detector_log_path = Path(save_path) / config.DETECTOR_LOG_FILE_PATH
-        self.idor_log_path = Path(save_path) / config.IDOR_LOG_FILE_PATH
-
-        if mode == "fuzz":
-            self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.detector_log_path.parent.mkdir(parents=True, exist_ok=True)
-            initialize_file(self.fuzzer_log_path)
-            initialize_file(self.detector_log_path)
-        elif mode == "compile":
-            self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
-            initialize_file(self.compiler_log_path)
-        elif mode == "idor":
-            self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
-            initialize_file(self.idor_log_path)
-        else:
-            self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.detector_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.idor_log_path.parent.mkdir(parents=True, exist_ok=True)
-            initialize_file(self.compiler_log_path)
-            initialize_file(self.fuzzer_log_path)
-            initialize_file(self.detector_log_path)
-            initialize_file(self.idor_log_path)
-
-        self.fuzzer_logger = self.get_fuzzer_logger()
-        self.compiler_logger = self.get_compiler_logger()
-        self.detector_logger = self.get_detector_logger()
-        self.idor_logger = self.get_idor_logger()
+        self.fuzzer_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.FUZZER_LOG_FILE_PATH)
+        self.compiler_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.COMPILER_LOG_FILE_PATH)
+        self.detector_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.DETECTOR_LOG_FILE_PATH)
+        self.idor_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.IDOR_LOG_FILE_PATH)
 
     def get_fuzzer_logger(self) -> logging.Logger:
-        """Gets the fuzzer logger
+        """Gets the fuzzer logger. Creates the logger if it doesn't exist, and creates the log file if it doesn't exist
 
         Returns:
             logging.Logger: The fuzzer logger
         """
+        # create the log file if it doesn't exist
+        if not self.fuzzer_log_path.exists():
+            self.fuzzer_log_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_file(self.fuzzer_log_path)
+
+        # create the logger if it doesn't exist
         if not self.fuzzer_logger or not self.fuzzer_logger.hasHandlers():
             self.fuzzer_logger = self._get_logger("fuzzer", self.fuzzer_log_path)
+
+        # return the logger
         return self.fuzzer_logger
 
     def get_detector_logger(self) -> logging.Logger:
-        """Gets the detector logger
+        """Gets the detector logger. Creates the logger if it doesn't exist, and creates the log file if it doesn't exist
 
         Returns:
             logging.Logger: The detector logger
         """
+        # create the log file if it doesn't exist
+        if not self.detector_log_path.exists():
+            self.detector_log_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_file(self.detector_log_path)
+
+        # create the logger if it doesn't exist
         if not self.detector_logger or not self.detector_logger.hasHandlers():
             self.detector_logger = self._get_logger("detector", self.detector_log_path)
+
+        # return the logger
         return self.detector_logger
 
     def get_compiler_logger(self) -> logging.Logger:
-        """Gets the compiler logger
+        """Gets the compiler logger. Creates the logger if it doesn't exist, and creates the log file if it doesn't exist
 
         Returns:
             logging.Logger: The compiler logger
         """
+        # create the log file if it doesn't exist
+        if not self.compiler_log_path.exists():
+            self.compiler_log_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_file(self.compiler_log_path)
+
+        # create the logger if it doesn't exist
         if not self.compiler_logger:
             self.compiler_logger = self._get_logger("compiler", self.compiler_log_path)
+
+        # return the logger
         return self.compiler_logger
 
     def get_idor_logger(self) -> logging.Logger:
-        """Gets the IDOR logger
+        """Gets the IDOR logger. Creates the logger if it doesn't exist, and creates the log file if it doesn't exist
 
         Returns:
             logging.Logger: The IDOR logger
         """
+        # create the log file if it doesn't exist
+        if not self.idor_log_path.exists():
+            self.idor_log_path.parent.mkdir(parents=True, exist_ok=True)
+            initialize_file(self.idor_log_path)
+
+        # create the logger if it doesn't exist
         if not self.idor_logger:
             self.idor_logger = self._get_logger("idor", self.idor_log_path)
+
+        # return the logger
         return self.idor_logger
 
     def _get_logger(self, name: str, file_path: str | Path) -> logging.Logger:
