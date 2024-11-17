@@ -10,13 +10,16 @@ The class should have two functionalities
 3. Be able to return objects from the bucket if given a type and the object name
 """
 
+import pathlib
 import pprint
 import random
+from typing import Self
+
 import cloudpickle as pickle
-import pathlib
 
 from graphqler import config
 from graphqler.utils.api import API
+from graphqler.utils.file_utils import get_or_create_file
 from graphqler.utils.parser_utils import get_output_type_from_details
 
 from .singleton import singleton
@@ -32,6 +35,10 @@ class ObjectsBucket:
 
         # Stores the raw scalars {scalar_name: {type: str, values: set() }} where set() is a result with the scalar fields of the object
         self.scalars: dict[str, dict] = {}
+
+        # File paths
+        self.pickle_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.OBJECTS_BUCKET_PICKLE_FILE_NAME
+        self.text_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_TEXT_FILE_NAME
 
     def __str__(self):
         """Returns a string representation of the objects bucket"""
@@ -55,23 +62,25 @@ class ObjectsBucket:
 
     def save(self):
         """Saves the objects bucket as a pickle file and as a text file"""
-        pickle_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
-        with open(pickle_save_path, "wb") as file:
+        self.pickle_save_path = get_or_create_file(self.pickle_save_path)
+        with open(self.pickle_save_path, "wb") as file:
             pickle.dump(self, file)
 
-        text_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_TEXT_FILE_PATH
-        with open(text_save_path, "w") as file:
+        self.text_save_path = get_or_create_file(self.text_save_path)
+        with open(self.text_save_path, "w") as file:
             file.write(f"Number of objects: {self.get_num_objects()}\n")
             file.write(f"Number of scalars: {self.get_num_scalars()}\n")
             file.write(str(self))
 
-    def load(self):
-        """Loads the objects bucket from a pickle file"""
-        save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_PICKLE_FILE_PATH
-        with open(save_path, "rb") as file:
-            loaded_bucket = pickle.load(file)
-            self.objects = loaded_bucket.objects
-            self.scalars = loaded_bucket.scalars
+    def load(self) -> Self:
+        """Loads the objects bucket from a pickle file. If the file doesn't exist, does nothing.
+        """
+        if self.pickle_save_path.exists():
+            with open(self.pickle_save_path, "rb") as file:
+                loaded_bucket = pickle.load(file)
+                self.__dict__ = loaded_bucket.__dict__
+
+        return self
 
     # ------------------- GETTERS -------------------
     def get_num_objects(self) -> int:

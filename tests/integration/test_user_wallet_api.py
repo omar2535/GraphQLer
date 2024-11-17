@@ -46,7 +46,7 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
-        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
@@ -54,7 +54,7 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_single_mode(self.PATH, self.URL, "getCurrentRate")
-        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
@@ -62,6 +62,6 @@ class TestUserWalletApi(unittest.TestCase):
         print(self.PATH, self.URL)
         __main__.run_compile_mode(self.PATH, self.URL)
         __main__.run_fuzz_mode(self.PATH, self.URL)
-        stats_path = os.path.join(self.PATH, config.STATS_FILE_PATH)
+        stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         percentage = get_percent_query_mutation_success(stats_path)
         self.assertTrue(percentage >= 80)

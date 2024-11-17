@@ -1,13 +1,17 @@
+import json
+import cloudpickle as pickle
+import pprint
+import time
 from pathlib import Path
-from graphqler.graph import Node
-from graphqler.fuzzer.engine.types import Result
-from .singleton import singleton
-from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path
+from typing import Self
 
 from graphqler import config
-import pprint
-import json
-import time
+from graphqler.fuzzer.engine.types import Result
+from graphqler.graph import Node
+
+from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path, get_or_create_file
+from .singleton import singleton
+
 
 @singleton
 class Stats :
@@ -33,6 +37,12 @@ class Stats :
 
     def __init__(self):
         self.http_status_codes = {}
+        self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
+
+    def load(self) -> Self:
+        """Loads the stats from the pickle file"""
+        self.__load_pickle()
+        return self
 
     def add_successful_node(self, node: Node):
         """Adds a new successful node to the succesful stats
@@ -86,8 +96,8 @@ class Stats :
             working_dir (str): _description_
         """
         # Do the stats file first
-        initialize_file(Path(working_dir) / config.STATS_FILE_PATH)
-        self.file_path = Path(working_dir) / config.STATS_FILE_PATH
+        initialize_file(Path(working_dir) / config.STATS_FILE_NAME)
+        self.file_path = Path(working_dir) / config.STATS_FILE_NAME
 
         # Do the endpoint results directory
         self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
@@ -213,6 +223,8 @@ class Stats :
         print("---------------------------------------------------------")
 
     def save(self):
+        """Saves the stats into the stats text file
+        """
         number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
         number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_mutations_and_queries()
         with open(self.file_path, "w") as f:
@@ -236,6 +248,9 @@ class Stats :
                 f.write(json.dumps(self.vulnerabilities, indent=4))
         self.save_endpoint_results()
         self.save_unique_response()
+
+        # Saves the pickle file as well
+        self.__save_pickle()
 
     def save_endpoint_results(self):
         """Reads the results, for each node in the node name -> results, create a directory for the
@@ -273,3 +288,16 @@ class Stats :
             for response, endpoints in self.unique_responses.items():
                 f.write(f"Response: {response}\n")
                 f.write(f"Endpoints: {endpoints}\n")
+
+    def __save_pickle(self):
+        """Saves the stats to a pickle file"""
+        self.pickle_save_path = get_or_create_file(self.pickle_save_path)
+        with open(self.pickle_save_path, "wb") as file:
+            pickle.dump(self, file)
+
+    def __load_pickle(self):
+        """Loads the stats from a pickle file"""
+        if self.pickle_save_path.exists():
+            with open(self.pickle_save_path, "rb") as file:
+                loaded_stats = pickle.load(file)
+                self.__dict__.update(loaded_stats.__dict__)

@@ -13,7 +13,6 @@ from graphqler.fuzzer import Fuzzer, IDORFuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
-from graphqler.utils.logging_utils import Logger
 from graphqler.utils.config_handler import parse_config, set_config
 from graphqler import config
 
@@ -27,10 +26,6 @@ def run_compile_mode(path: str, url: str):
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
-    print("(F) Initializing log files")
-    logger = Logger()
-    logger.initialize_loggers("compile", path)
-
     print("(C) In compile mode!")
     Compiler(path, url).run()
 
@@ -50,12 +45,6 @@ def run_fuzz_mode(path: str, url: str):
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
-    print("(F) Initializing log files")
-    logger = Logger()
-    logger.initialize_loggers("fuzz", path)
-    logger.initialize_loggers("detector", path)
-    logger.initialize_loggers("idor", path)
-
     print("(F) Initializing stats file")
     stats = Stats()
     stats.set_file_paths(path)
@@ -76,10 +65,8 @@ def run_fuzz_mode(path: str, url: str):
 
 def run_idor_mode(path: str, url: str):
     print("(F) Running IDOR fuzzer")
-    logger = Logger()
-    logger.initialize_loggers("idor", path)
     try:
-        with open(f"{path}/{config.OBJECTS_BUCKET_PICKLE_FILE_PATH}", "rb") as f:
+        with open(f"{path}/{config.OBJECTS_BUCKET_PICKLE_FILE_NAME}", "rb") as f:
             objects_bucket = pickle.load(f)
             possible_idor_nodes = IDORFuzzer(path, url, objects_bucket).run()
             print("Possible IDOR nodes:")
@@ -91,8 +78,6 @@ def run_idor_mode(path: str, url: str):
 
 def run_single_mode(path: str, url: str, name: str):
     print("(F) Running single mode")
-    logger = Logger()
-    logger.initialize_loggers("fuzz", path)
     Fuzzer(path, url).run_single(name)
 
 

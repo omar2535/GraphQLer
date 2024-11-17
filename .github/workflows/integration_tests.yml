@@ -40,3 +40,7 @@ jobs:
     - name: Run integration test for user wallet API
       run: |
         poetry run pytest tests/integration/test_user_wallet_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
+
+    - name: Run tests for core
+      run: |
+        poetry run pytest tests/integration/test_core.py --exitfirst --verbose --failed-first --cov=. --cov-report html
