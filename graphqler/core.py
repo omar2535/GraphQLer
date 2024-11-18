@@ -3,7 +3,7 @@ from graphqler.compiler import Compiler
 from graphqler.utils.config_handler import set_config
 from graphqler.utils.stats import Stats
 from graphqler.utils.objects_bucket import ObjectsBucket
-
+from graphqler.utils.api import API
 
 def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> dict:
     """
@@ -40,7 +40,9 @@ def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> d
     fuzzer = Fuzzer(path, url)
     fuzzer.run()
 
-    objects_bucket = ObjectsBucket(api=fuzzer.api).load()
+    api: API = fuzzer.api
+
+    objects_bucket = ObjectsBucket(api=api).load()
     stats = Stats().load()
 
     return {
