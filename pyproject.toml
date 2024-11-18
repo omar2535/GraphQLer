@@ -3,9 +3,9 @@ line-length = 180
 
 [tool.poetry]
 name = "GraphQLer"
-version = "2.3.5"
+version = "2.3.6"
 description = "A cutting edge context aware GraphQL API fuzzing tool!"
-authors = ["Omar2535 <omar2535@alumni.ubc.ca>"]
+authors = ["Omar2535 <omar@9tsai.ca>"]
 license = "MIT"
 readme = "README.md"
 package-mode = true
