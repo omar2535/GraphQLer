@@ -10,11 +10,11 @@ RUN pip install --no-cache-dir poetry
 # Copy the poetry.lock and pyproject.toml files to the working directory
 COPY poetry.lock pyproject.toml ./
 
-# Install project dependencies using Poetry
-RUN poetry install
-
 # Copy the rest of the application code to the working directory
 COPY . .
+
+# Install project dependencies using Poetry
+RUN poetry install
 
 # Use ENTRYPOINT to make the script receive arguments
 ENTRYPOINT ["poetry", "run", "python", "-m", "graphqler"]
