@@ -1,6 +1,6 @@
 [project]
 name = "GraphQLer"
-version = "2.3.6"
+version = "2.3.7"
 description = "A cutting edge context aware GraphQL API fuzzing tool!"
 authors = [{ name = "Omar2535", email = "omar@9tsai.ca" }]
 requires-python = ">=3.12,<3.13"
