@@ -19,10 +19,11 @@ jobs:
       with:
         python-version: 3.12
 
-    - name: Set up poetry
-      run: |
-        pip install poetry
-        poetry install
+    - name: Install the latest version of uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install Python dependencies
+      run: uv sync
 
     - name: Install Python dependencies
       run: |
@@ -30,4 +31,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        poetry run pytest tests/unit/ --exitfirst --verbose --failed-first --cov=. --cov-report html
+        uv run pytest tests/unit/ --exitfirst --verbose --failed-first --cov=. --cov-report html

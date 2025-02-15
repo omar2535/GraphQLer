@@ -1,125 +1,130 @@
-[tool.ruff]
-line-length = 180
-
-[tool.poetry]
+[project]
 name = "GraphQLer"
 version = "2.3.6"
 description = "A cutting edge context aware GraphQL API fuzzing tool!"
-authors = ["Omar2535 <omar@9tsai.ca>"]
-license = "MIT"
+authors = [{ name = "Omar2535", email = "omar@9tsai.ca" }]
+requires-python = ">=3.12,<3.13"
 readme = "README.md"
-package-mode = true
+license = "MIT"
+dependencies = [
+    "requests==2.32.3",
+    "aiodns==3.2.0",
+    "aiohttp==3.10.11",
+    "aiosignal==1.3.1",
+    "astroid==2.15.8",
+    "asttokens==2.4.0",
+    "asyncio==3.4.3",
+    "attrs==23.1.0",
+    "backcall==0.2.0",
+    "backports-entry-points-selectable==1.2.0",
+    "black==24.3.0",
+    "brotli==1.1.0",
+    "certifi==2024.7.4",
+    "cffi==1.16.0",
+    "cfgv==3.4.0",
+    "charset-normalizer==3.2.0",
+    "clairvoyance==2.5.2",
+    "click==8.1.7",
+    "colorama==0.4.6",
+    "colorclass==2.2.2",
+    "contourpy==1.1.1",
+    "coverage==7.3.1",
+    "cycler==0.12.1",
+    "decorator==5.1.1",
+    "dill==0.3.7",
+    "distlib==0.3.7",
+    "docopt==0.6.2",
+    "executing==2.0.0",
+    "filelock==3.12.4",
+    "fonttools==4.43.1",
+    "frozenlist==1.4.1",
+    "graphql-core==3.2.5",
+    "identify==2.5.29",
+    "idna==3.7",
+    "importlib-metadata==6.8.0",
+    "iniconfig==2.0.0",
+    "ipython==8.16.1",
+    "isort==5.12.0",
+    "jedi==0.19.1",
+    "jinja2==3.1.5",
+    "jsonpickle==3.0.2",
+    "kiwisolver==1.4.5",
+    "lazy-object-proxy==1.9.0",
+    "levenshtein==0.23.0",
+    "markdown-it-py==3.0.0",
+    "markupsafe==2.1.3",
+    "matplotlib==3.8.0",
+    "matplotlib-inline==0.1.6",
+    "mccabe==0.7.0",
+    "mdurl==0.1.2",
+    "multidict==6.0.5",
+    "mypy-extensions==1.0.0",
+    "networkx==3.1",
+    "nodeenv==1.8.0",
+    "num2words==0.5.12",
+    "numpy==1.26.0",
+    "packaging==23.1",
+    "parso==0.8.3",
+    "pathspec==0.11.2",
+    "pexpect==4.8.0",
+    "pickleshare==0.7.5",
+    "pillow==10.3.0",
+    "pip-upgrader==1.4.15",
+    "platformdirs==3.10.0",
+    "pluggy==1.3.0",
+    "prompt-toolkit==3.0.39",
+    "ptyprocess==0.7.0",
+    "pure-eval==0.2.2",
+    "pycares==4.4.0",
+    "pycodestyle==2.11.0",
+    "pycparser==2.22",
+    "pyflakes==3.1.0",
+    "pygments==2.16.1",
+    "pylint==2.17.6",
+    "pyparsing==3.1.1",
+    "python-dateutil==2.9.0",
+    "python-levenshtein==0.23.0",
+    "pyyaml==6.0.1",
+    "rapidfuzz==3.4.0",
+    "rich==13.7.1",
+    "setuptools==70.0.0",
+    "six==1.16.0",
+    "stack-data==0.6.3",
+    "terminaltables==3.1.10",
+    "tomli==2.0.1",
+    "tomlkit==0.12.1",
+    "traitlets==5.11.2",
+    "typed-ast==1.5.5",
+    "typing-extensions==4.8.0",
+    "urllib3==2.2.2",
+    "virtualenv==20.26.6",
+    "wcwidth==0.2.8",
+    "wrapt==1.15.0",
+    "yarl==1.16.0",
+    "zipp==3.19.1",
+    "cloudpickle>=3.1.0,<4",
+    "scipy>=1.14.1,<2",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.12,<3.13"
-requests = "2.32.3"
-aiodns = "3.2.0"
-aiohttp = "3.10.11"
-aiosignal = "1.3.1"
-astroid = "2.15.8"
-asttokens = "2.4.0"
-asyncio = "3.4.3"
-attrs = "23.1.0"
-backcall = "0.2.0"
-backports-entry-points-selectable = "1.2.0"
-black = "24.3.0"
-brotli = "1.1.0"
-certifi = "2024.7.4"
-cffi = "1.16.0"
-cfgv = "3.4.0"
-charset-normalizer = "3.2.0"
-clairvoyance = "2.5.2"
-click = "8.1.7"
-colorama = "0.4.6"
-colorclass = "2.2.2"
-contourpy = "1.1.1"
-coverage = "7.3.1"
-cycler = "0.12.1"
-decorator = "5.1.1"
-dill = "0.3.7"
-distlib = "0.3.7"
-docopt = "0.6.2"
-executing = "2.0.0"
-filelock = "3.12.4"
-fonttools = "4.43.1"
-frozenlist = "1.4.1"
-graphql-core = "3.2.5"
-identify = "2.5.29"
-idna = "3.7"
-importlib-metadata = "6.8.0"
-iniconfig = "2.0.0"
-ipython = "8.16.1"
-isort = "5.12.0"
-jedi = "0.19.1"
-jinja2 = "3.1.5"
-jsonpickle = "3.0.2"
-kiwisolver = "1.4.5"
-lazy-object-proxy = "1.9.0"
-levenshtein = "0.23.0"
-markdown-it-py = "3.0.0"
-markupsafe = "2.1.3"
-matplotlib = "3.8.0"
-matplotlib-inline = "0.1.6"
-mccabe = "0.7.0"
-mdurl = "0.1.2"
-multidict = "6.0.5"
-mypy-extensions = "1.0.0"
-networkx = "3.1"
-nodeenv = "1.8.0"
-num2words = "0.5.12"
-numpy = "1.26.0"
-packaging = "23.1"
-parso = "0.8.3"
-pathspec = "0.11.2"
-pexpect = "4.8.0"
-pickleshare = "0.7.5"
-pillow = "10.3.0"
-pip-upgrader = "1.4.15"
-platformdirs = "3.10.0"
-pluggy = "1.3.0"
-prompt-toolkit = "3.0.39"
-ptyprocess = "0.7.0"
-pure-eval = "0.2.2"
-pycares = "4.4.0"
-pycodestyle = "2.11.0"
-pycparser = "2.22"
-pyflakes = "3.1.0"
-pygments = "2.16.1"
-pylint = "2.17.6"
-pyparsing = "3.1.1"
-python-dateutil = "2.9.0"
-python-levenshtein = "0.23.0"
-pyyaml = "6.0.1"
-rapidfuzz = "3.4.0"
-rich = "13.7.1"
-setuptools = "70.0.0"
-six = "1.16.0"
-stack-data = "0.6.3"
-terminaltables = "3.1.10"
-tomli = "2.0.1"
-tomlkit = "0.12.1"
-traitlets = "5.11.2"
-typed-ast = "1.5.5"
-typing-extensions = "4.8.0"
-urllib3 = "2.2.2"
-virtualenv = "20.26.6"
-wcwidth = "0.2.8"
-wrapt = "1.15.0"
-yarl = "1.16.0"
-zipp = "3.19.1"
-cloudpickle = "^3.1.0"
-scipy = "^1.14.1"
+[tool.ruff]
+line-length = 180
 
-[tool.poetry.group.dev.dependencies]
-autopep8 = "2.0.4"
-pytest = "7.4.2"
-pytest-cov = "4.1.0"
-pytest-mock = "*"
-flake8 = "6.1.0"
-pre-commit = "3.8.0"
-ruff = "^0.7.3"
-mkdocs = "^1.6.1"
+[dependency-groups]
+dev = [
+    "autopep8==2.0.4",
+    "pytest==7.4.2",
+    "pytest-cov==4.1.0",
+    "pytest-mock",
+    "flake8==6.1.0",
+    "pre-commit==3.8.0",
+    "ruff>=0.7.3,<0.8",
+    "mkdocs>=1.6.1,<2",
+    "lark>=1.2.2",
+]
+
+[tool.uv]
+package = true
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

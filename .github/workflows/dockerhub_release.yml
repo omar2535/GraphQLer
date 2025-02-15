@@ -19,9 +19,8 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-
+    - name: Install the latest version of uv
+      uses: astral-sh/setup-uv@v5
 
     - name: login to dockerhub
       uses: docker/login-action@v3
