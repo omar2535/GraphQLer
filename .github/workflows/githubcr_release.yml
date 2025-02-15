@@ -19,8 +19,8 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
+    - name: Install the latest version of uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
@@ -31,6 +31,6 @@ jobs:
 
     - name: Publish to GitHub Container Registry
       run: |
-        poetry build
+        uv build
         docker build -t ghcr.io/omar2535/graphqler:latest .
         docker push ghcr.io/omar2535/graphqler:latest

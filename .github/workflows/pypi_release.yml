@@ -22,13 +22,12 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
+    - name: Install the latest version of uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Publish to PyPI
       env:
         PYPI_TOKEN: ${{ secrets.GRAPHQLER_PYPI_REPO_SECRET }}
       run: |
-        poetry config pypi-token.pypi $PYPI_TOKEN
-        poetry build
-        poetry publish
+        uv build
+        uv publish --token $PYPI_TOKEN

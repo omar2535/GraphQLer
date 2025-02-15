@@ -5,6 +5,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.api import API
 
+
 def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> dict:
     """
     Runs the program in compile and fuzz mode.

@@ -42,40 +42,24 @@ Firstly, it is recommended to do everythiong in a pyenv and virtual environment.
 - [pyenv](https://github.com/pyenv/pyenv) - Manages your python version for you
 - [venv](https://docs.python.org/3/library/venv.html) - Manages dependencies in a virtual environment
 
-### Using Poetry (Recommended)
+Next, we'll install the package manager for this project.
 
-Install poetry [here](https://python-poetry.org/docs/)
+### Using uv (Recommended)
 
-**Setting up the environment:**
-
-```sh
-# Creating the virtual environment
-python3 -m venv .venv
-```
-
-**Installing dependencies:**
-
-```sh
-poetry shell
-poetry install
-```
-
-### Using requirements.txt
+Install [here](https://docs.astral.sh/uv/getting-started/installation/)
 
 **Setting up the environment:**
 
 ```sh
-# Creating the virtual environment
-python3 -m venv .venv
-
-# Activating the virtual environment
-source .env/bin/activate
+# Creating the virtual environment & Install dependencies
+uv sync
+source .venv/bin/activate
 ```
 
-**Installing dependencies:**
+**Running GraphQLer:**
 
 ```sh
-(.env) pip install -r requirements.txt
+uv run graphqler --version
 ```
 
 **Setting up pre-commit hooks (optional):**
