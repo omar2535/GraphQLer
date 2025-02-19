@@ -22,7 +22,6 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
   <video src='https://github.com/user-attachments/assets/0c0595a7-d0d9-4554-998a-98d6ebd1fbc2' controls="controls"></video>
 </div>
 
-
 ## Key features
 
 - **Request generation**: Automatically generate valid queries and mutations based on the schema *(supports fragments, unions, interfaces, and enums based on the latest [GraphQL-spec](https://spec.graphql.org/October2021/#sec-ID))*

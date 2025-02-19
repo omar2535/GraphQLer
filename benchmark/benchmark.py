@@ -17,7 +17,7 @@ APIS_TO_TEST = [
     # ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
     # ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
     # ("https://graphql.anilist.co/", "anilist-test"),
-    ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
+    # ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
     # ("https://www.universe.com/graphql", "universe-test"),
     # ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
     # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
