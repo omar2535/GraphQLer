@@ -43,6 +43,23 @@ def recreate_path(dir_path: Path):
     path.mkdir(parents=True, exist_ok=True)
 
 
+def get_or_create_directory(directory_path: str | Path) -> Path:
+    """Gets a directory if it exists, otherwise creates it
+
+    Args:
+        directory_path (str | Path): directory path
+
+    Returns:
+        Path: The directory path
+    """
+    if isinstance(directory_path, str):
+        directory_path = Path(directory_path)
+
+    if not directory_path.exists():
+        directory_path.mkdir(parents=True, exist_ok=True)
+    return directory_path
+
+
 def get_or_create_file(file_path: Path) -> Path:
     """Gets a file if it exists, otherwise creates it
 
@@ -90,3 +107,21 @@ def read_yaml_to_dict(read_path: Path) -> dict:
         dict: Dictionary of the YAML file contents
     """
     return yaml.safe_load(read_path.read_text())
+
+
+def get_graphqler_root() -> Path:
+    """Gets graphqler's root
+
+    Returns:
+        Path: Graphqler root
+    """
+    return Path(__file__).parent.parent
+
+
+def get_project_root() -> Path:
+    """Gets the project root
+
+    Returns:
+        Path: The project root
+    """
+    return Path(__file__).parent.parent.parent

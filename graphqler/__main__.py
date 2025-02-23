@@ -13,7 +13,8 @@ from graphqler.fuzzer import Fuzzer, IDORFuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
-from graphqler.utils.config_handler import parse_config, set_config
+from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path
+from graphqler.utils.file_utils import get_or_create_directory
 from graphqler import config
 
 
@@ -92,9 +93,10 @@ def main(args: dict):
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
-    # Set the path if provided
+    # Set the path if provided and create the directory if it doesn't exist
     if 'path' in args and args['path']:
         config.OUTPUT_DIRECTORY = args['path']
+        get_or_create_directory(config.OUTPUT_DIRECTORY)
 
     # Set proxy if provided
     if 'proxy' in args and args['proxy']:
@@ -106,8 +108,16 @@ def main(args: dict):
 
     # Parse config if provided
     if args['config'] and args['config']:
+        print("(P) Using provided config file")
         new_config = parse_config(args['config'])
         set_config(new_config)
+    elif does_config_file_exist_in_path(args['path']):
+        print("(P) Using config file in path")
+        new_config = parse_config(f"{args['path']}/{config.CONFIG_FILE_NAME}")
+        set_config(new_config)
+    else:
+        print("(P) Generating new config")
+        generate_new_config(f"{args['path']}/{config.CONFIG_FILE_NAME}")
 
     # Parse plugins if defined
     if 'plugins_path' in args and args['plugins_path']:

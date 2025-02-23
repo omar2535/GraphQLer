@@ -1,7 +1,6 @@
 # Configuration
 
 """Debugging purposes"""
-
 DEBUG = False
 
 """For proxy"""
@@ -18,6 +17,7 @@ COMPILED_DIR_NAME = "compiled"
 ENDPOINT_RESULTS_DIR_NAME = "endpoint_results"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
+CONFIG_FILE_NAME = "config.toml"
 
 """Pickle files -- mainly for cross-process communication"""
 OBJECTS_BUCKET_PICKLE_FILE_NAME = "objects_bucket.pkl"
