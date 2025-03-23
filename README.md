@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/omar2535/GraphQLer/main/docs/images/logo.png" />
-  <p align="center">The <strong>only</strong> dependency-aware GraphQL API testing tool!</p>
+  <p align="center">The <strong>only</strong> dependency-aware GraphQL API testing tool</p>
 </p>
 
 <p align="center">
@@ -78,7 +78,7 @@ Below will be the steps on how you can use this program to test your GraphQL API
 
 A third mode is also included for ease of use, called **run** mode. this mode compiles both the compilation and fuzzing mode into one single command.
 
-A mode in development right now is known as the IDOR mode, which will look for re-used objects that are accessible using another access token.
+A mode in development right now is known as the **idor** mode, which will look for re-used objects that are accessible using another access token. This is in trial right now and requires the user to have run the *compile* and *fuzzing* mode first.
 
 ### Compile mode
 
@@ -143,4 +143,6 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 
-Furthermore, you can implement your own plugins for custom authentication. See more in the docs.
+### Plugins
+
+You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [docs](https://github.com/omar2535/GraphQLer/tree/main/docs).
