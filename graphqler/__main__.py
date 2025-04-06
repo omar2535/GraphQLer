@@ -96,7 +96,7 @@ def main(args: dict):
     # Set the path if provided and create the directory if it doesn't exist
     if 'path' in args and args['path']:
         config.OUTPUT_DIRECTORY = args['path']
-        get_or_create_directory(config.OUTPUT_DIRECTORY)
+    get_or_create_directory(config.OUTPUT_DIRECTORY)
 
     # Set proxy if provided
     if 'proxy' in args and args['proxy']:
@@ -107,7 +107,7 @@ def main(args: dict):
         set_auth_token_constant(args['auth'])
 
     # Parse config if provided
-    if args['config'] and args['config']:
+    if 'config' in args and args['config']:
         print("(P) Using provided config file")
         new_config = parse_config(args['config'])
         set_config(new_config)
@@ -124,6 +124,7 @@ def main(args: dict):
         config.PLUGINS_PATH = args['plugins_path']
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
 
+    # Start the program
     if args['mode'] == "compile":
         run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "fuzz":
