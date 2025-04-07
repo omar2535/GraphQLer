@@ -75,6 +75,21 @@ class Getter:
 
         return f'"{graphql_datetime}"'
 
+    def get_random_custom_scalar(self, input_name: str, scalar_type: str, objects_bucket: ObjectsBucket) -> str:
+        # Must be a custom scalar, check if it's an ID, if not then just fail
+        if scalar_type.lower().endswith("id") or scalar_type.lower().endswith("ids"):
+            return str(self.get_random_id(input_name, objects_bucket))
+        elif scalar_type.lower() == "time":
+            return self.get_random_time(input_name)
+        elif scalar_type.lower() == "long":
+            return self.get_random_long(input_name)
+        elif scalar_type.lower() == "datetime":
+            return self.get_random_datetime(input_name)
+        elif scalar_type.lower() == "json":
+            return self.get_random_json(input_name)
+        else:
+            raise Exception(f"This custom scalar is not supported at this time: {input_name}:{scalar_type}")
+
     # Gets a random scalar for the scalar type given
     def get_random_scalar(self, input_name: str, scalar_type: str, objects_bucket: ObjectsBucket) -> str:
         """Gets a random scalar based on the scalar type, the return value will
@@ -106,19 +121,7 @@ class Getter:
             else:
                 return str(1)
         else:
-            # Must be a custom scalar, check if it's an ID, if not then just fail
-            if scalar_type.lower().endswith("id") or scalar_type.lower().endswith("ids"):
-                return str(self.get_random_id(input_name, objects_bucket))
-            elif scalar_type.lower() == "time":
-                return self.get_random_time(input_name)
-            elif scalar_type.lower() == "long":
-                return self.get_random_long(input_name)
-            elif scalar_type.lower() == "datetime":
-                return self.get_random_datetime(input_name)
-            elif scalar_type.lower() == "json":
-                return self.get_random_json(input_name)
-            else:
-                raise Exception(f"This custom scalar is not supported at this time: {input_name}:{scalar_type}")
+            return self.get_random_custom_scalar(input_name, scalar_type, objects_bucket)
 
     def get_random_enum_value(self, enum_values: list[dict]) -> str:
         """Gets a random enum from the enumValue list
