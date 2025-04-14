@@ -12,18 +12,18 @@ import multiprocessing
 
 # Dictionary specifying the API URL and path
 APIS_TO_TEST = [
-    # ("https://countries.trevorblades.com/", "countries-test/"),
-    # ("https://api.react-finland.fi/graphql", "react-finland-test/"),
-    # ("https://rickandmortyapi.com/graphql", "rick-and-morty-test/"),
-    # ("https://graphqlzero.almansi.me/api", "graphql-zero-test/"),
-    # ("https://graphql.anilist.co/", "anilist-test"),
-    # ("https://portal.ehri-project.eu/api/graphql", "ehri-test/"),
-    # ("https://www.universe.com/graphql", "universe-test"),
-    # ("https://beta.pokeapi.co/graphql/v1beta", "pokeapi-test"),
-    # ("https://hivdb.stanford.edu/graphql", "hivdb-test"),
-    # ("https://api.spacex.land/graphql/", "spacex-test/"),
-    # ("https://api.tcgdex.net/v2/graphql", "tcgdex-test/"),
+    ("https://countries.trevorblades.com/", "ablation-test-oob/countries-test/"),
+    ("https://api.react-finland.fi/graphql", "ablation-test-oob/react-finland-test/"),
+    ("https://rickandmortyapi.com/graphql", "ablation-test-oob/rick-and-morty-test/"),
+    ("https://graphqlzero.almansi.me/api", "ablation-test-oob/graphql-zero-test/"),
+    ("https://graphql.anilist.co/", "ablation-test-oob/anilist-test"),
+    ("https://portal.ehri-project.eu/api/graphql", "ablation-test-oob/ehri-test/"),
+    ("https://www.universe.com/graphql", "ablation-test-oob/universe-test"),
+    ("https://beta.pokeapi.co/graphql/v1beta", "ablation-test-oob/pokeapi-test"),
+    ("https://hivdb.stanford.edu/graphql", "ablation-test-oob/hivdb-test"),
+    ("https://api.tcgdex.net/v2/graphql", "ablation-test-oob/tcgdex-test/"),
     # ('http://localhost:4000/graphql', 'benchmark-tests/user-wallet-test/'),
+    # ("https://api.spacex.land/graphql/", "spacex-test/"),
     # ('http://localhost:4000/graphql', 'benchmark-tests/food-delivery-test/')
     # ('https://graphql.anilist.co/', 'benchmark-tests/anilist-test/'),
     # ('https://www.universe.com/graphql', 'benchmark-tests/universe-test/'),
@@ -31,13 +31,14 @@ APIS_TO_TEST = [
     # ('http://localhost:3000/', 'benchmark-tests/json-graphql-server/'),
 ]
 
-MAX_TIMES = [5, 10, 20, 30, 60]
+# MAX_TIMES = [5, 10, 20, 30, 60]
+MAX_TIMES = [60]
 NUM_RETRIES = 1
 
 # Set the constants
-config.USE_OBJECTS_BUCKET = True
+config.USE_OBJECTS_BUCKET = False
 config.USE_DEPENDENCY_GRAPH = True
-config.NO_DATA_COUNT_AS_SUCCESS = True
+config.NO_DATA_COUNT_AS_SUCCESS = False
 config.SKIP_DOS_ATTACKS = True
 config.SKIP_MISC_ATTACKS = True
 config.SKIP_INJECTION_ATTACKS = True

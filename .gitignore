@@ -27,7 +27,6 @@ dist/
 ## testing
 *-test/
 *-tests/
-benchmark/
 graphqler-output/
 
 # Codeql
