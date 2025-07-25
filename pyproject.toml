@@ -95,7 +95,7 @@ dependencies = [
     "tomlkit==0.12.1",
     "traitlets==5.11.2",
     "typing-extensions==4.8.0",
-    "urllib3==2.2.2",
+    "urllib3==2.5.0",
     "virtualenv==20.26.6",
     "wcwidth==0.2.8",
     "wrapt==1.15.0",
