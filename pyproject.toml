@@ -94,7 +94,6 @@ dependencies = [
     "tomli==2.0.1",
     "tomlkit==0.12.1",
     "traitlets==5.11.2",
-    "typed-ast==1.5.5",
     "typing-extensions==4.8.0",
     "urllib3==2.2.2",
     "virtualenv==20.26.6",
