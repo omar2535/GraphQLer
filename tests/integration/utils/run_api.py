@@ -20,13 +20,20 @@ def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Po
     env = os.environ.copy()
     env["PORT"] = port
 
-    # Run npm instuv
+    # Run npm install with proper handling
     npm_cmd = shutil.which("npm")
-    subprocess.run([npm_cmd, "install"], cwd=path, check=True, env=env)
+    if npm_cmd is None:
+        raise RuntimeError("npm command not found. Please ensure Node.js is installed.")
+    
+    try:
+        subprocess.run([npm_cmd, "install"], cwd=path, check=True, env=env, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(f"npm install failed: {e}")
+        raise
 
     # Run each command in the list
     for command in commands:
-        subprocess.run(command.split(), cwd=path, check=True, env=env)
+        subprocess.run(command.split(), cwd=path, check=True, env=env, shell=True)
 
     # Run node server.js
     process = subprocess.Popen(["node", "server.js"], cwd=path, env=env)

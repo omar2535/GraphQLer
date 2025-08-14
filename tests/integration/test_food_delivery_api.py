@@ -34,7 +34,8 @@ class TestFoodDeliveryAPI(unittest.TestCase):
         if cls.process and cls.process.pid == cls.process_pid:
             cls.process.kill()
             cls.process.wait()
-        os.system(f"rm -rf {cls.PATH}")
+        if os.path.exists(cls.PATH):
+            shutil.rmtree(cls.PATH)
 
     def test_run_compile_mode_generates_valid_introspection_file(self):
         __main__.run_compile_mode(self.PATH, self.URL)
