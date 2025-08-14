@@ -4,7 +4,7 @@ from graphqler import config
 from tests.integration.utils.stats import get_percent_query_mutation_success
 from tests.integration.utils.run_api import run_node_project, wait_for_server
 import os
-
+import shutil
 
 class TestFoodDeliveryAPI(unittest.TestCase):
     PORT = 4000
@@ -18,7 +18,8 @@ class TestFoodDeliveryAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Start the GrapQL server
-        cls.process = run_node_project(cls.API_PATH, ["node dbinitializer.js"], str(cls.PORT))
+        node_cmd = shutil.which("node")
+        cls.process = run_node_project(cls.API_PATH, [f"{node_cmd} dbinitializer.js"], str(cls.PORT))
         cls.process_pid = cls.process.pid
 
         # Parse the config
