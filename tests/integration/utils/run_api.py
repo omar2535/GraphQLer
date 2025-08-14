@@ -2,6 +2,7 @@ import subprocess
 import os
 import requests
 import time
+import shutil
 
 
 def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Popen:
@@ -19,8 +20,9 @@ def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Po
     env = os.environ.copy()
     env["PORT"] = port
 
-    # Run npm install
-    subprocess.run(["npm", "install"], cwd=path, check=True, env=env)
+    # Run npm instuv
+    npm_cmd = shutil.which("npm")
+    subprocess.run([npm_cmd, "install"], cwd=path, check=True, env=env)
 
     # Run each command in the list
     for command in commands:
