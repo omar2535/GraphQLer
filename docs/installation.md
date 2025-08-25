@@ -37,18 +37,18 @@ docker run --rm omar2535/graphqler --help
 
 ## 🤓 Developer setup guide
 
-Firstly, it is recommended to do everythiong in a pyenv and virtual environment. Links are provided below, but not necessary:
+Follow these steps to get set up as a developer. Firstly, setup uv by following [these steps](https://docs.astral.sh/uv/getting-started/installation/)
 
-- [pyenv](https://github.com/pyenv/pyenv) - Manages your python version for you
-- [venv](https://docs.python.org/3/library/venv.html) - Manages dependencies in a virtual environment
+### 1. Install OS specific dependencies
 
-Next, we'll install the package manager for this project.
+For ubuntu
 
-### Using uv (Recommended)
+```sh
+sudo apt-get install build-essential
+```
 
-Install [here](https://docs.astral.sh/uv/getting-started/installation/)
 
-**Setting up the environment:**
+### 2. Setting up the environment
 
 ```sh
 # Creating the virtual environment & Install dependencies
@@ -56,14 +56,28 @@ uv sync
 source .venv/bin/activate
 ```
 
-**Running GraphQLer:**
+### 3. Running GraphQLer
 
 ```sh
 uv run graphqler --version
 ```
 
-**Setting up pre-commit hooks (optional):**
+### 4. Setting up pre-commit hooks (optional)
 
 ```sh
 (.env) pre-commit install
+```
+
+### 5. Running tests
+
+**Unit tests:**
+
+```sh
+uv run pytest tests/unit/
+```
+
+**Integration tests:**
+
+```sh
+uv run pytest tests/integration/
 ```
