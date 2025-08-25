@@ -12,6 +12,7 @@ from graphqler.graph import Node
 from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path, get_or_create_file
 from .singleton import singleton
 import os
+import re
 
 
 @singleton
@@ -264,7 +265,7 @@ class Stats :
             node_name = node_name.replace("/", "_")
             if os.name == "nt":
                 # Replace characters that are invalid in Windows filenames
-                node_name = node_name.replace(":", "_").replace("?", "_").replace("*", "_").replace("<", "_").replace(">", "_").replace("|", "_").replace("\"", "_")
+                node_name = re.sub(r'[\\/:*?"<>|]', "_", name)
             for result in results:
                 result_type = "success" if result.success else "failure"
                 result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / f"{result.status_code}"
