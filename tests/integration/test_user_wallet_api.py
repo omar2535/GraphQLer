@@ -39,7 +39,7 @@ class TestUserWalletApi(unittest.TestCase):
             try:
                 shutil.rmtree(cls.PATH)
             except Exception as e:
-                pass
+                print(f"Error removing directory {cls.PATH}: {e}")
 
     def test_run_compile_mode_generates_valid_introspection_file(self):
         print(self.PATH, self.URL)
