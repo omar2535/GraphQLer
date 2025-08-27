@@ -4,6 +4,8 @@ from graphqler import config
 from tests.integration.utils.stats import get_percent_query_mutation_success
 from tests.integration.utils.run_api import run_node_project, wait_for_server
 import os
+import shutil
+
 
 
 class TestUserWalletApi(unittest.TestCase):
@@ -33,7 +35,11 @@ class TestUserWalletApi(unittest.TestCase):
         if cls.process and cls.process.pid == cls.process_pid:
             cls.process.kill()
             cls.process.wait()
-        os.system(f"rm -rf {cls.PATH}")
+        if os.path.exists(cls.PATH):
+            try:
+                shutil.rmtree(cls.PATH)
+            except Exception as e:
+                print(f"Error removing directory {cls.PATH}: {e}")
 
     def test_run_compile_mode_generates_valid_introspection_file(self):
         print(self.PATH, self.URL)
