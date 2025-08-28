@@ -34,7 +34,7 @@ dependencies = [
     "dill==0.3.7",
     "distlib==0.3.7",
     "docopt==0.6.2",
-    "executing==2.0.0",
+    "executing>=2.0.0",
     "filelock==3.12.4",
     "fonttools==4.43.1",
     "frozenlist==1.4.1",
@@ -103,6 +103,7 @@ dependencies = [
     "zipp==3.19.1",
     "cloudpickle>=3.1.0,<4",
     "scipy>=1.14.1,<2",
+    "litellm>=1.43.1",
 ]
 
 [tool.ruff]

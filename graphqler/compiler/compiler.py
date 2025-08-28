@@ -136,7 +136,7 @@ class Compiler:
         return schema
 
     def run_parsers_and_save(self, introspection_result: dict):
-        """Runs all the parsers and saves them to a YAML file
+        """Runs all the parsers (parses introspection result sections out) and saves them to a YAML file
 
         Args:
             introspection_result (dict): Introspection results as a dict
