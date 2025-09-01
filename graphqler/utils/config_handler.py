@@ -1,5 +1,5 @@
 from graphqler import config
-from graphqler.utils.file_utils import get_project_root
+from graphqler.utils.file_utils import get_project_root, get_graphqler_root
 import tomllib
 import os
 
@@ -39,7 +39,7 @@ def generate_new_config(config_file_to_write: str) -> None:
         config_file_to_write (str): The config file to write
     """
     # copy from the base path of the graphqler package
-    project_root = get_project_root()
+    project_root = get_graphqler_root()
     os.system(f"cp {project_root}/examples/config.toml {config_file_to_write}")
 
 
