@@ -11,9 +11,9 @@ def parse_config(config_obj: str | dict) -> dict:
     Otherwise parses it out of a TOML file
     """
     config = {}
-    if type(config_obj) == dict:
+    if isinstance(config_obj, dict):
         config = config_obj
-    elif type(config_obj) == str:
+    elif isinstance(config_obj, str):
         with open(config_obj, "rb") as f:
             config = tomllib.load(f)
 
