@@ -4,16 +4,21 @@ import tomllib
 import os
 
 
-def parse_config(config_file: str) -> dict:
+def parse_config(config_obj: str | dict) -> dict:
     """
-    Parse the config, and return the dictionary
+    Parse the config, and return the dictionary.
+    If it's a dictionary, just parses the config object directly
+    Otherwise parses it out of a TOML file
     """
     config = {}
-    with open(config_file, "rb") as f:
-        config = tomllib.load(f)
+    if type(config_obj) == dict:
+        config = config_obj
+    elif type(config) == str:
+        with open(config_obj, "rb") as f:
+            config = tomllib.load(f)
 
     if len(config.keys()) == 0:
-        print(f"(!) No items in config file: {config_file}")
+        print(f"(!) No items in config {config_obj}")
         exit(1)
 
     return config
