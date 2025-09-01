@@ -1,5 +1,5 @@
 from graphqler import config
-from graphqler.utils.file_utils import get_project_root, get_graphqler_root
+from graphqler.utils.file_utils import get_graphqler_root
 import tomllib
 import os
 
@@ -13,7 +13,7 @@ def parse_config(config_obj: str | dict) -> dict:
     config = {}
     if type(config_obj) == dict:
         config = config_obj
-    elif type(config) == str:
+    elif type(config_obj) == str:
         with open(config_obj, "rb") as f:
             config = tomllib.load(f)
 
