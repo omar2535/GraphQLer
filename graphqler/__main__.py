@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="remote host URL", required=True)
     parser.add_argument("--path", help=f"directory location for files to be saved-to/used-from. Defaults to {config.OUTPUT_DIRECTORY}", required=False)
-    parser.add_argument("--config", help="configuration file for the program", required=False)
+    parser.add_argument("--config", help="TOML configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)

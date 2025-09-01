@@ -21,7 +21,7 @@ class Stats :
     file_path = "/tmp/stats.txt"  # This gets overriden by the set_file_path function
     endpoint_results_dir = "/tmp/endpoint_results"
     unique_responses_file_path = "/tmp/unique_responses.txt"
-    start_time: float = 0
+    start_time: float = time.time()
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     failed_nodes: dict[str, int] = {}
