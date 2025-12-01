@@ -36,7 +36,7 @@ dependencies = [
     "docopt==0.6.2",
     "executing>=2.0.0",
     "filelock==3.12.4",
-    "fonttools==4.43.1",
+    "fonttools==4.61.0",
     "frozenlist==1.4.1",
     "graphql-core==3.2.5",
     "identify==2.5.29",
