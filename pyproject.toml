@@ -96,7 +96,7 @@ dependencies = [
     "traitlets==5.11.2",
     "typing-extensions==4.8.0",
     "urllib3==2.5.0",
-    "virtualenv==20.26.6",
+    "virtualenv==20.36.1",
     "wcwidth==0.2.8",
     "wrapt==1.15.0",
     "yarl==1.16.0",
