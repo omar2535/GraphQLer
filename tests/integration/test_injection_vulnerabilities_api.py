@@ -17,7 +17,6 @@ import unittest
 from graphqler import __main__, config
 from tests.integration.utils.run_api import run_node_project, wait_for_server
 from tests.integration.utils.stats import (
-    get_percent_query_mutation_success,
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
