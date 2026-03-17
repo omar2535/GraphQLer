@@ -1,0 +1,15 @@
+{
+  "name": "ssrf-api",
+  "version": "1.0.0",
+  "description": "Intentionally SSRF-vulnerable GraphQL API for testing the SSRF detector",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "apollo-server-express": "^3.13.0",
+    "express": "^4.21.0",
+    "graphql": "^16.9.0",
+    "node-fetch": "^2.7.0"
+  }
+}

@@ -1,0 +1,32 @@
+# Configuration for ssrf-api integration tests
+
+DEBUG = true
+WORDLIST_PATH = "static/wordlist.txt"
+OUTPUT_DIRECTORY = "ci-test-ssrf-api"
+
+MAX_LEVENSHTEIN_THRESHOLD = 20
+GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
+
+MAX_OBJECT_CYCLES = 3
+MAX_OUTPUT_SELECTOR_DEPTH = 3
+HARD_CUTOFF_DEPTH = 20
+MAX_INPUT_DEPTH = 20
+
+USE_OBJECTS_BUCKET = true
+USE_DEPENDENCY_GRAPH = true
+NO_DATA_COUNT_AS_SUCCESS = true
+
+ALLOW_DELETION_OF_OBJECTS = false
+MAX_FUZZING_ITERATIONS = 1
+MAX_TIME = 3600
+
+# Enable injection attack detectors to catch SSRF
+SKIP_DOS_ATTACKS = true
+SKIP_INJECTION_ATTACKS = false
+SKIP_MISC_ATTACKS = true
+
+REQUEST_TIMEOUT = 10
+TIME_BETWEEN_REQUESTS = 0.001
+
+[CUSTOM_HEADERS]
+Accept = "application/json"

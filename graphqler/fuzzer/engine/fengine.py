@@ -170,26 +170,23 @@ class FEngine(object):
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
 
-            # If there is information in the response, we need to process it
-            # TODO: Store more things in the objects bucket (ie. names seen, other things seen, etc.)
+            # Process the response into the objects bucket
             if type(result.data[endpoint_name]) is dict:
                 mutation_output_type = get_output_type(endpoint_name, self.api.mutations)
                 mutation_type = self.api.mutations[endpoint_name]["mutationType"]
                 if mutation_type == "CREATE":
                     objects_bucket.put_in_bucket(result.data)
                 elif mutation_type == "UPDATE":
-                    # TODO: Implement this
-                    pass  # updates don't generally do anything to the objects bucket
+                    objects_bucket.update_object_in_bucket(result.data)
                 elif mutation_type == "DELETE" and config.ALLOW_DELETION_OF_OBJECTS:
                     if mutation_output_type in used_objects:
-                        # TODO: Implement new version of this
-                        # used_object_value = used_objects[mutation_output_type]
-                        # remove_from_object_bucket(objects_bucket, mutation_output_type, used_object_value)
-                        pass
+                        used_object_value = used_objects[mutation_output_type]
+                        objects_bucket.delete_object_from_bucket(mutation_output_type, used_object_value)
                 else:
-                    pass  # The UNKNOWN mutation type, we don't know what to do with it so just don't do anything
+                    pass  # UNKNOWN mutation type — nothing to do
             else:
-                pass
+                # For non-dict responses (scalars, lists), still capture any data into the bucket
+                objects_bucket.put_in_bucket(result.data)
 
             result.result_enum = ResultEnum.GENERAL_SUCCESS
             return (graphql_response, result)

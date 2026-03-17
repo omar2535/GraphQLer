@@ -31,3 +31,7 @@ graphqler-output/
 
 # Codeql
 codeql/
+
+# For test-apis
+node_modules/
+ci-test-api-security-api/

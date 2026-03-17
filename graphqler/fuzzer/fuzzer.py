@@ -13,7 +13,6 @@ import random
 import threading
 import time
 
-import networkx
 import typing
 
 from graphqler import config
@@ -171,7 +170,9 @@ class Fuzzer(object):
         for current_node in nodes:
             self.stats.print_running_stats()
             self.logger.info(f"Running node: {current_node}")
+            node_start = time.time()
             _next_visit_path, result = self.__run_node(current_node, [current_node], check_hard_depends_on=False)
+            self.stats.record_node_timing(current_node, time.time() - node_start)
 
             # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
@@ -207,7 +208,9 @@ class Fuzzer(object):
             self.logger.info(f"Current node: {current_node}")
 
             if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
+                node_start = time.time()
                 new_paths_to_evaluate, res = self.__run_node(current_node, current_visit_path)
+                self.stats.record_node_timing(current_node, time.time() - node_start)
                 self.stats.update_stats_from_result(current_node, res)  # Update the stats
 
                 # If it's not successful:
@@ -346,18 +349,22 @@ class Fuzzer(object):
 
     def _get_starter_nodes(self) -> list[Node]:
         """Gets a list of starter nodes to start the fuzzing with.
-           First, looks for independent nodes. If no independent nodes are found,
-           then nodes with the fewest dependencies are returned, if there aren't any, then returns random nodes
+           First, looks for nodes with no incoming edges (in-degree == 0).
+           If none exist, returns nodes with the minimum in-degree.
 
         Returns:
             list[Node]: A list of starter nodes
         """
-        in_degree_centrality = networkx.in_degree_centrality(self.dependency_graph)
-        for num_dependencies in range(0, 100000):  # choose a very large number, most likely never hit it
-            nodes = [node for node, centrality in in_degree_centrality.items() if centrality == num_dependencies]
-            if len(nodes) != 0:
-                return nodes
+        in_degrees = dict(self.dependency_graph.in_degree())
+        if not in_degrees:
+            self.logger.error("No nodes in dependency graph")
+            return []
 
-        # This shouldn't ever be hit, but in case, then we choose random nodes as the starter nodes
+        min_degree = min(in_degrees.values())
+        nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
+        if nodes:
+            return nodes
+
+        # Fallback — should never be reached
         self.logger.error("No starter nodes found, choosing a random node")
         return [random.choice(list(self.dependency_graph.nodes))]

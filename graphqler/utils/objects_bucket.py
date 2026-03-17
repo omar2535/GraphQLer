@@ -117,7 +117,7 @@ class ObjectsBucket:
         if object_name not in self.objects:
             return {}
 
-        return next(iter(self.objects[object_name]))
+        return random.choice(self.objects[object_name])
 
     def get_random_object_field_value(self, object_name: str, field_name: str) -> str | int | float | bool | None:
         """Returns a random field from an object.
@@ -212,7 +212,7 @@ class ObjectsBucket:
             self.parse_object_scalars(method_data)
 
     def put_object_in_bucket(self, object_name: str, object_info: dict):
-        """Puts an object in the bucket
+        """Puts an object in the bucket, skipping duplicates
 
         Args:
             object_name (str): The object's name
@@ -220,7 +220,8 @@ class ObjectsBucket:
         """
         if object_name not in self.objects:
             self.objects[object_name] = []
-        self.objects[object_name].append(object_info)
+        if object_info not in self.objects[object_name]:
+            self.objects[object_name].append(object_info)
 
     def parse_object_scalars(self, object_info: dict):
         """Parses each field of a dictionary as a scalar and parses it into the scalar components
@@ -244,15 +245,46 @@ class ObjectsBucket:
         self.scalars[name]["values"].add(data)
 
     # ------------------- DELETERS -------------------
-    def delete_object_from_bucket(self, object_name: str):
-        """Deletes an object from the bucket
+    def delete_object_from_bucket(self, object_name: str, object_value: dict):
+        """Deletes a specific object entry from the bucket
 
         Args:
-            object_name (str): The object name
+            object_name (str): The object type name
+            object_value (dict): The specific object instance to remove
         """
-        # TODO: Need to figure out what to remove from bucket since
-        #       there will be many objects under the object name
-        pass
+        if object_name not in self.objects:
+            return
+        try:
+            self.objects[object_name].remove(object_value)
+        except ValueError:
+            pass
+
+    def update_object_in_bucket(self, response_data: dict):
+        """Updates an existing object in the bucket with new data from a successful UPDATE mutation response.
+           If the object is not already tracked, adds it.
+
+        Args:
+            response_data (dict): The data dict from the GraphQL response
+        """
+        if not response_data:
+            return
+        for data_key, data in response_data.items():
+            if not self.api.is_operation_in_api(data_key):
+                continue
+            operation = self.api.get_operation(data_key)
+            operation_output_type = get_output_type_from_details(operation)
+            if not isinstance(data, dict) or operation_output_type not in self.objects:
+                self.put_in_bucket(response_data)
+                return
+            # Try to find and replace the matching entry by id-like fields
+            id_value = data.get("id") or data.get("ID")
+            if id_value is not None:
+                for i, existing in enumerate(self.objects[operation_output_type]):
+                    if existing.get("id") == id_value or existing.get("ID") == id_value:
+                        self.objects[operation_output_type][i] = data
+                        return
+            # No match found — just add it
+            self.put_object_in_bucket(operation_output_type, data)
 
     # ------------------- HELPERS -------------------
     def clear_bucket(self):

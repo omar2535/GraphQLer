@@ -33,12 +33,14 @@ class Stats :
     number_of_successes: int = 0
     number_of_failures: int = 0
     vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potentiall or confirmed vulnerability
+    node_timings: dict[str, list[float]] = {}  # Mapping of node name to list of elapsed times in seconds
 
     # Detection stats
     is_introspection_available: bool = False
 
     def __init__(self):
         self.http_status_codes = {}
+        self.node_timings = {}
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:
@@ -101,6 +103,11 @@ class Stats :
         initialize_file(Path(working_dir) / config.STATS_FILE_NAME)
         self.file_path = Path(working_dir) / config.STATS_FILE_NAME
 
+        # JSON report path (machine-readable)
+        json_file_name = config.STATS_FILE_NAME.replace(".txt", ".json") if config.STATS_FILE_NAME.endswith(".txt") else config.STATS_FILE_NAME + ".json"
+        initialize_file(Path(working_dir) / json_file_name)
+        self.json_file_path = Path(working_dir) / json_file_name
+
         # Do the endpoint results directory
         self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
         recreate_path(self.endpoint_results_dir)
@@ -155,6 +162,18 @@ class Stats :
                 formatted_vulnerabilities += f"\n{vulnerability_name}:\n"
                 formatted_vulnerabilities += vulnerable_nodes
         return formatted_vulnerabilities
+
+    def record_node_timing(self, node: Node, elapsed_seconds: float):
+        """Records the elapsed time for a node execution
+
+        Args:
+            node (Node): The node that was executed
+            elapsed_seconds (float): Time taken in seconds
+        """
+        key_name = f"{node.graphql_type}|{node.name}"
+        if key_name not in self.node_timings:
+            self.node_timings[key_name] = []
+        self.node_timings[key_name].append(elapsed_seconds)
 
     def update_stats_from_result(self, node, result: Result) -> None:
         """Parses the result and adds it to the stats
@@ -250,9 +269,36 @@ class Stats :
                 f.write(json.dumps(self.vulnerabilities, indent=4))
         self.save_endpoint_results()
         self.save_unique_response()
+        self.save_json()
 
         # Saves the pickle file as well
         self.__save_pickle()
+
+    def save_json(self):
+        """Saves a machine-readable JSON report alongside the text stats file"""
+        json_path = getattr(self, "json_file_path", None)
+        if json_path is None:
+            return
+        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
+        number_failed_of_mutations_and_queries, _ = self.get_number_of_failed_mutations_and_queries()
+        report = {
+            "time_taken_seconds": time.time() - self.start_time,
+            "number_of_queries": self.number_of_queries,
+            "number_of_mutations": self.number_of_mutations,
+            "number_of_objects": self.number_of_objects,
+            "number_of_successes": self.number_of_successes,
+            "number_of_failures": self.number_of_failures,
+            "unique_successful_nodes": number_success_of_mutations_and_queries,
+            "unique_failed_nodes": number_failed_of_mutations_and_queries,
+            "total_nodes": num_mutations_and_queries,
+            "http_status_codes": self.http_status_codes,
+            "successful_nodes": self.successful_nodes,
+            "failed_nodes": self.failed_nodes,
+            "vulnerabilities": self.vulnerabilities,
+            "node_timings": self.node_timings,
+        }
+        with open(json_path, "w") as f:
+            json.dump(report, f, indent=4)
 
     def save_endpoint_results(self):
         """Reads the results, for each node in the node name -> results, create a directory for the

@@ -5,6 +5,8 @@ import requests
 from .xss_injection_materializer import XSSInjectionMaterializer
 from ..detector import Detector
 
+XSS_PAYLOAD = "<script>alert(1)</script>"
+
 
 class XSSInjectionDetector(Detector):
     @property
@@ -24,13 +26,11 @@ class XSSInjectionDetector(Detector):
         return XSSInjectionMaterializer
 
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
-        return False
+        # Confirmed vulnerable: payload reflected verbatim in the raw HTTP response
+        return request_response.status_code == 200 and XSS_PAYLOAD in request_response.text
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         if graphql_response is None:
             return False
-        if 'data' not in graphql_response:
-            return False
-        if graphql_response['data'] is None:
-            return False
-        return "<script>alert(1)</script>" in graphql_response['data'] and request_response.status_code == 200
+        # Potentially vulnerable: any part of the payload reflected in the response body
+        return request_response.status_code == 200 and ("<script>" in request_response.text or "alert(1)" in request_response.text)

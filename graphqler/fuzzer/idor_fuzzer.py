@@ -4,7 +4,7 @@ from graphqler.fuzzer.fuzzer import Fuzzer
 from graphqler.graph import Node
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler.fuzzer.engine.types.result import Result
+from graphqler.fuzzer.engine.types.result import ResultEnum
 
 
 class IDORFuzzer(Fuzzer):
@@ -52,6 +52,6 @@ class IDORFuzzer(Fuzzer):
         """
         if node.graphql_type == "Query" or node.graphql_type == "Mutation":
             graphql_response, result = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
-            if result == Result.HAS_DATA_SUCCESS:
+            if result.result_enum == ResultEnum.HAS_DATA_SUCCESS or result.success:
                 return True
         return False
