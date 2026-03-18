@@ -10,7 +10,7 @@ from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, i
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
-from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver
+from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
 from graphqler import config
 from clairvoyance.cli import blind_introspection
 
@@ -164,9 +164,10 @@ class Compiler:
         """Resolves objects, mutations and queries together so make it a "compiled" look:
             1. Enriches object-object dependency
             2. Enriches object-method dependency
-            3. Enriches mutation-object dependency
-            4. Enriches query-object dependency
-            5. Write enrichmend objects to "compiled" directory in a yaml file
+            3. Enriches mutation-object dependency (classic or LLM-based)
+            4. Enriches query-object dependency   (classic or LLM-based)
+            5. When USE_LLM_RESOLVER=True, saves a side-by-side comparison JSON
+            6. Write enriched objects to "compiled" directory in a yaml file
 
         Args:
             introspection_result (dict): Introspection query result
@@ -179,8 +180,20 @@ class Compiler:
         objects = ObjectDependencyResolver().resolve(objects)
         objects = ObjectMethodResolver().resolve(objects, queries, mutations)
 
-        mutations = MutationObjectResolver().resolve(objects, mutations, input_objects)
-        queries = QueryObjectResolver().resolve(objects, queries, input_objects)
+        if config.USE_LLM_RESOLVER:
+            print(f"(C) Using LLM resolver ({config.LLM_MODEL}) for dependency graph inference …")
+            mut_resolver = LLMMutationObjectResolver()
+            qry_resolver = LLMQueryObjectResolver()
+            mutations = mut_resolver.resolve(objects, mutations, input_objects)
+            queries = qry_resolver.resolve(objects, queries, input_objects)
+
+            if config.LLM_RESOLVER_SAVE_COMPARISON:
+                comparison = ResolverComparison(mut_resolver.comparison, qry_resolver.comparison)
+                comparison.save(self.save_path)
+                comparison.print_diff_summary()
+        else:
+            mutations = MutationObjectResolver().resolve(objects, mutations, input_objects)
+            queries = QueryObjectResolver().resolve(objects, queries, input_objects)
 
         write_dict_to_yaml(objects, self.compiled_objects_save_path)
         write_dict_to_yaml(mutations, self.compiled_mutations_save_path)

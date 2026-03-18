@@ -9,6 +9,28 @@ WORDLIST_PATH = "static/wordlist.txt"
 # For the resolver
 MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower this, but this almost guarantees us to find a matching object name - ID
 
+# ── LLM-based dependency resolver (opt-in) ────────────────────────────────────
+# When enabled, GraphQLer sends the full schema to an LLM and asks it to infer
+# dependency relationships (hardDependsOn / softDependsOn / mutationType).
+# This catches cases the classic ID-name-matching resolver misses:
+#   - String inputs that semantically reference an object (e.g. userEmail → User)
+#   - Unconventional mutation verb names (provision, wipe, spawn → CREATE/DELETE)
+#   - Non-English or domain-specific naming
+#
+# Model string uses litellm format (provider/model):
+#   OpenAI:         "gpt-4o-mini"                        + LLM_API_KEY or OPENAI_API_KEY env var
+#   Anthropic:      "anthropic/claude-3-5-haiku-20241022" + LLM_API_KEY or ANTHROPIC_API_KEY env var
+#   Ollama (local): "ollama/llama3"                      + LLM_BASE_URL = "http://localhost:11434"
+#   LiteLLM proxy:  "openai/my-model"                   + LLM_BASE_URL = "http://my-proxy:4000"
+# ──────────────────────────────────────────────────────────────────────────────
+USE_LLM_RESOLVER = false              # master toggle
+LLM_MODEL = "gpt-4o-mini"            # litellm model string
+LLM_API_KEY = ""                      # API key; if empty, reads from env (OPENAI_API_KEY, etc.)
+LLM_BASE_URL = ""                     # custom base URL (required for Ollama / LiteLLM proxies)
+LLM_RESOLVER_FALLBACK_TO_ID = true    # fall back to classic resolver if LLM call fails
+LLM_RESOLVER_SAVE_COMPARISON = true   # save compiled/resolver_comparison.json (LLM vs classic diff)
+LLM_MAX_RETRIES = 2                   # retry attempts when LLM returns non-JSON (0 = no retries)
+
 # For the linker
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
 

@@ -16,6 +16,7 @@ dependencies = [
     "cloudpickle>=3.1.2,<4",
     "matplotlib>=3.8.0",
     "networkx>=3.6.1",
+    "litellm>=1.67.0",
 ]
 
 [tool.ruff]
