@@ -49,7 +49,7 @@ Model string uses litellm format:
   Ollama:    "ollama/llama3"  (set LLM_BASE_URL to "http://localhost:11434")
   LiteLLM proxy: "openai/my-model"  (set LLM_BASE_URL to your proxy URL)
 """
-USE_LLM_RESOLVER = False                # Master toggle: use LLM for dependency graph inference
+USE_LLM = False                         # Master toggle: use LLM for dependency graph inference
 LLM_MODEL = "gpt-4o-mini"              # litellm model string (encodes provider + model)
 LLM_API_KEY = ""                        # API key; if empty, reads from env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
 LLM_BASE_URL = ""                       # Custom base URL (required for Ollama and LiteLLM proxies)

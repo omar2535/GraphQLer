@@ -166,7 +166,7 @@ class Compiler:
             2. Enriches object-method dependency
             3. Enriches mutation-object dependency (classic or LLM-based)
             4. Enriches query-object dependency   (classic or LLM-based)
-            5. When USE_LLM_RESOLVER=True, saves a side-by-side comparison JSON
+            5. When USE_LLM=True, saves a side-by-side comparison JSON
             6. Write enriched objects to "compiled" directory in a yaml file
 
         Args:
@@ -180,7 +180,7 @@ class Compiler:
         objects = ObjectDependencyResolver().resolve(objects)
         objects = ObjectMethodResolver().resolve(objects, queries, mutations)
 
-        if config.USE_LLM_RESOLVER:
+        if config.USE_LLM:
             print(f"(C) Using LLM resolver ({config.LLM_MODEL}) for dependency graph inference …")
             mut_resolver = LLMMutationObjectResolver()
             qry_resolver = LLMQueryObjectResolver()

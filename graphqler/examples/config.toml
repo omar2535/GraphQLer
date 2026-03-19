@@ -23,7 +23,7 @@ MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower
 #   Ollama (local): "ollama/llama3"                      + LLM_BASE_URL = "http://localhost:11434"
 #   LiteLLM proxy:  "openai/my-model"                   + LLM_BASE_URL = "http://my-proxy:4000"
 # ──────────────────────────────────────────────────────────────────────────────
-USE_LLM_RESOLVER = false              # master toggle
+USE_LLM = false                       # master toggle
 LLM_MODEL = "gpt-4o-mini"            # litellm model string
 LLM_API_KEY = ""                      # API key; if empty, reads from env (OPENAI_API_KEY, etc.)
 LLM_BASE_URL = ""                     # custom base URL (required for Ollama / LiteLLM proxies)
