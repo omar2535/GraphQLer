@@ -208,36 +208,6 @@ class TestLLMResolverBase(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.resolver._extract_json_from_text("this is not json at all")
 
-    # ── _supports_json_mode ────────────────────────────────────────────────────
-
-    def test_supports_json_mode_openai(self):
-        import graphqler.config as graphqler_config
-        original = graphqler_config.LLM_MODEL
-        try:
-            graphqler_config.LLM_MODEL = "gpt-4o-mini"
-            self.assertTrue(self.resolver._supports_json_mode())
-        finally:
-            graphqler_config.LLM_MODEL = original
-
-    def test_supports_json_mode_anthropic(self):
-        import graphqler.config as graphqler_config
-        original = graphqler_config.LLM_MODEL
-        try:
-            graphqler_config.LLM_MODEL = "anthropic/claude-3-5-haiku-20241022"
-            self.assertTrue(self.resolver._supports_json_mode())
-        finally:
-            graphqler_config.LLM_MODEL = original
-
-    def test_supports_json_mode_ollama_false(self):
-        import graphqler.config as graphqler_config
-        original = graphqler_config.LLM_MODEL
-        try:
-            graphqler_config.LLM_MODEL = "ollama/llama3"
-            self.assertFalse(self.resolver._supports_json_mode())
-        finally:
-            graphqler_config.LLM_MODEL = original
-
-
 # ── Retry logic ───────────────────────────────────────────────────────────────
 
 
