@@ -17,7 +17,7 @@ from graphqler import config
 try:
     import litellm  # noqa: PLC0415 — lazy import so litellm is optional
 except ImportError as exc:
-    raise ImportError("litellm is required for USE_LLM_RESOLVER=True. Install it with: uv add litellm") from exc
+    raise ImportError("litellm is required for USE_LLM=True. Install it with: uv add litellm") from exc
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +198,7 @@ class LLMResolver:
         if config.LLM_BASE_URL:
             base_kwargs["base_url"] = config.LLM_BASE_URL
         if self._supports_json_mode():
-            base_kwargs["response_format"] = {"type": "json_object"}
+            base_kwargs["format"] = 'json'
 
         messages = [
             {"role": "system", "content": system_prompt},

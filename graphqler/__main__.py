@@ -124,6 +124,19 @@ def main(args: dict):
         config.PLUGINS_PATH = args['plugins_path']
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
 
+    # Apply LLM CLI overrides — these take precedence over config file values
+    if args.get('use_llm'):
+        config.USE_LLM = True
+        print("(P) LLM mode enabled via CLI flag")
+    if args.get('llm_model'):
+        config.LLM_MODEL = args['llm_model']
+    if args.get('llm_api_key'):
+        config.LLM_API_KEY = args['llm_api_key']
+    if args.get('llm_base_url'):
+        config.LLM_BASE_URL = args['llm_base_url']
+    if args.get('llm_max_retries') is not None:
+        config.LLM_MAX_RETRIES = args['llm_max_retries']
+
     # Start the program
     if args['mode'] == "compile":
         run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
@@ -159,6 +172,11 @@ if __name__ == "__main__":
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
+    parser.add_argument("--use-llm", help="enable LLM-based dependency graph inference (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--llm-model", help="litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3', 'anthropic/claude-3-5-haiku-20241022'", required=False)
+    parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)
+    parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
+    parser.add_argument("--llm-max-retries", help="number of retries when LLM returns non-JSON (default: 2)", type=int, required=False)
     parser.add_argument("--version", help="display version", action="store_true")
 
     args = parser.parse_args()

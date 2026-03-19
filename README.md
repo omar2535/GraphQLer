@@ -143,6 +143,15 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 
+## AI Features
+
+LLM Enabled compilation (using ollama as an example):
+
+```sh
+uv run graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-model ollama/qwen3.5:9b --llm-base-url http://localhost:11434
+```
+
+
 ### Plugins
 
 You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [docs](https://github.com/omar2535/GraphQLer/tree/main/docs).
