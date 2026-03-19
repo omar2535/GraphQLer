@@ -19,7 +19,6 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from graphqler import config
 from graphqler.compiler.resolvers.llm.llm_resolver import LLMResolver
 from graphqler.compiler.resolvers.llm.llm_mutation_object_resolver import LLMMutationObjectResolver
 from graphqler.compiler.resolvers.llm.llm_query_object_resolver import LLMQueryObjectResolver
