@@ -124,7 +124,7 @@ class LLMResolver:
     def _supports_json_mode(self) -> bool:
         """Return True if the configured model supports response_format json_object."""
         provider = config.LLM_MODEL.split("/")[0].lower()
-        model = config.LLM_MODEL.lower()
+        model = config.LLM_MODEL.split('/')[1].lower() if config.LLM_MODEL.count("/") > 1 else ""
         does_support_json = litellm.supports_response_schema(model=model, custom_llm_provider=provider)
         return does_support_json
 
