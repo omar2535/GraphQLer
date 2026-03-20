@@ -1,0 +1,53 @@
+# Ground truth dependency annotations for the Rick & Morty GraphQL API
+# https://rickandmortyapi.com/graphql
+#
+# This file was manually created by inspecting the public schema and API documentation.
+# It serves as the reference for evaluating GraphQLer's dependency inference heuristics.
+#
+# Format:
+#   Each entry has:
+#     name:        the exact GraphQL operation name
+#     mutationType (mutations only): CREATE | UPDATE | DELETE | UNKNOWN
+#     hardDependsOn: list of object types that MUST exist before this can run
+#     softDependsOn: list of object types that can optionally be provided
+#
+# Rick & Morty is a read-only public API — all operations are Queries.
+
+queries:
+  - name: character
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: characters
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: charactersByIds
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: location
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: locations
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: locationsByIds
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: episode
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: episodes
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: episodesByIds
+    hardDependsOn: []
+    softDependsOn: []
+
+mutations: []

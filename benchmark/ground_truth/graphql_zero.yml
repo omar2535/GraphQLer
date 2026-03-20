@@ -1,0 +1,145 @@
+# Ground truth dependency annotations for the GraphQL Zero API
+# https://graphqlzero.almansi.me/api
+#
+# Manually created from the public GraphQL Zero documentation and schema.
+# GraphQL Zero is based on JSONPlaceholder data.
+
+queries:
+  - name: user
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: users
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: post
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: posts
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: comment
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: comments
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: album
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: albums
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: photo
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: photos
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: todo
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: todos
+    hardDependsOn: []
+    softDependsOn: []
+
+mutations:
+  - name: createUser
+    mutationType: CREATE
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: updateUser
+    mutationType: UPDATE
+    hardDependsOn: [User]
+    softDependsOn: []
+
+  - name: deleteUser
+    mutationType: DELETE
+    hardDependsOn: [User]
+    softDependsOn: []
+
+  - name: createPost
+    mutationType: CREATE
+    hardDependsOn: [User]
+    softDependsOn: []
+
+  - name: updatePost
+    mutationType: UPDATE
+    hardDependsOn: [Post]
+    softDependsOn: []
+
+  - name: deletePost
+    mutationType: DELETE
+    hardDependsOn: [Post]
+    softDependsOn: []
+
+  - name: createComment
+    mutationType: CREATE
+    hardDependsOn: [Post]
+    softDependsOn: []
+
+  - name: updateComment
+    mutationType: UPDATE
+    hardDependsOn: [Comment]
+    softDependsOn: []
+
+  - name: deleteComment
+    mutationType: DELETE
+    hardDependsOn: [Comment]
+    softDependsOn: []
+
+  - name: createAlbum
+    mutationType: CREATE
+    hardDependsOn: [User]
+    softDependsOn: []
+
+  - name: updateAlbum
+    mutationType: UPDATE
+    hardDependsOn: [Album]
+    softDependsOn: []
+
+  - name: deleteAlbum
+    mutationType: DELETE
+    hardDependsOn: [Album]
+    softDependsOn: []
+
+  - name: createPhoto
+    mutationType: CREATE
+    hardDependsOn: [Album]
+    softDependsOn: []
+
+  - name: updatePhoto
+    mutationType: UPDATE
+    hardDependsOn: [Photo]
+    softDependsOn: []
+
+  - name: deletePhoto
+    mutationType: DELETE
+    hardDependsOn: [Photo]
+    softDependsOn: []
+
+  - name: createTodo
+    mutationType: CREATE
+    hardDependsOn: [User]
+    softDependsOn: []
+
+  - name: updateTodo
+    mutationType: UPDATE
+    hardDependsOn: [Todo]
+    softDependsOn: []
+
+  - name: deleteTodo
+    mutationType: DELETE
+    hardDependsOn: [Todo]
+    softDependsOn: []

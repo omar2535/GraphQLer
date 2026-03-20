@@ -91,3 +91,12 @@ class SQLInjectionDetector(Detector):
         if request_response.status_code == 200 and graphql_response['data'] and any(keyword in self.payload for keyword in SQL_INJECTION_STRINGS):
             return True
         return False
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        response_text_lower = request_response.text.lower()
+        for pattern in SQL_ERROR_PATTERNS:
+            if pattern in response_text_lower:
+                return f"matched SQL error pattern: '{pattern}'"
+        if self._is_potentially_vulnerable(graphql_response, request_response):
+            return "server returned data on SQL injection payload (potential blind SQLi)"
+        return ""

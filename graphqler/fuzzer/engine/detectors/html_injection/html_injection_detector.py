@@ -50,3 +50,8 @@ class HTMLInjectionDetector(Detector):
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         return 'data' in graphql_response and '"<h1>Hello world!</h1>"' in self.payload and request_response.status_code == 200
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        if self._is_potentially_vulnerable(graphql_response, request_response):
+            return "HTML injection payload accepted by server (data returned with HTML payload present)"
+        return ""

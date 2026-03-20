@@ -1,0 +1,31 @@
+# Ground truth dependency annotations for the Countries GraphQL API
+# https://countries.trevorblades.com/
+#
+# Manually created from the public schema — this is a read-only API with no mutations.
+
+queries:
+  - name: countries
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: country
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: continents
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: continent
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: languages
+    hardDependsOn: []
+    softDependsOn: []
+
+  - name: language
+    hardDependsOn: []
+    softDependsOn: []
+
+mutations: []

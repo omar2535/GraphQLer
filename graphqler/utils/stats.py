@@ -123,25 +123,46 @@ class Stats :
         print(f"Number of failures: {self.number_of_failures}", end="")
         print("\r", end="", flush=True)
 
-    def add_vulnerability(self, vulnerability_name: str, node_name: str, is_vulnerable: bool, potentially_vulnerable: bool = False):
-        """Whether a detection was detected or not -- if already detected, it will stay detected
+    def add_vulnerability(
+        self,
+        vulnerability_name: str,
+        node_name: str,
+        is_vulnerable: bool,
+        potentially_vulnerable: bool = False,
+        payload: str = "",
+        evidence: str = "",
+    ):
+        """Record a vulnerability finding.  Once a node is confirmed vulnerable it stays confirmed.
 
         Args:
-            detection_name (str): name of the detection
-            detected (bool): whether the detection was detected or not
+            vulnerability_name (str): Name of the detector / vulnerability class.
+            node_name (str): The GraphQL operation that triggered the finding.
+            is_vulnerable (bool): True when vulnerability-specific evidence was observed (CONFIRMED).
+            potentially_vulnerable (bool): True when only a generic indicator was observed (POTENTIAL).
+            payload (str): The exact GraphQL payload that triggered the finding.
+            evidence (str): Human-readable description of what specific indicator was matched,
+                e.g. "matched SQL error pattern: 'sql syntax'".  Empty string means not yet determined.
         """
         if vulnerability_name not in self.vulnerabilities:
             self.vulnerabilities[vulnerability_name] = {}
 
         if node_name in self.vulnerabilities[vulnerability_name]:
-            self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"] = (
-                potentially_vulnerable | self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"]
-            )
-            self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"] = is_vulnerable | self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"]
+            existing = self.vulnerabilities[vulnerability_name][node_name]
+            existing["potentially_vulnerable"] = potentially_vulnerable | existing["potentially_vulnerable"]
+            existing["is_vulnerable"] = is_vulnerable | existing["is_vulnerable"]
+            # Prefer the confirmed finding's payload/evidence over a potential one
+            if is_vulnerable or (not existing["is_vulnerable"] and potentially_vulnerable):
+                if payload:
+                    existing["payload"] = payload
+                if evidence:
+                    existing["evidence"] = evidence
         else:
-            self.vulnerabilities[vulnerability_name][node_name] = {}
-            self.vulnerabilities[vulnerability_name][node_name]["potentially_vulnerable"] = potentially_vulnerable
-            self.vulnerabilities[vulnerability_name][node_name]["is_vulnerable"] = is_vulnerable
+            self.vulnerabilities[vulnerability_name][node_name] = {
+                "potentially_vulnerable": potentially_vulnerable,
+                "is_vulnerable": is_vulnerable,
+                "payload": payload,
+                "evidence": evidence,
+            }
 
     def get_formatted_vulnerabilites(self) -> str:
         """Returns the formatted vulnerabilities
@@ -154,14 +175,35 @@ class Stats :
             vulnerable_nodes = ""
             for node_name, vulnerability in nodes.items():
                 if vulnerability["is_vulnerable"] or vulnerability["potentially_vulnerable"]:
+                    evidence_str = f" [{vulnerability.get('evidence', '')}]" if vulnerability.get("evidence") else ""
                     if vulnerability["is_vulnerable"]:
-                        vulnerable_nodes += f"  ❗'{node_name}'  - Is vulnerable\n"
+                        vulnerable_nodes += f"  ❗'{node_name}'  - Is vulnerable{evidence_str}\n"
                     else:
-                        vulnerable_nodes += f"  🔍'{node_name}'  - Is potentially vulnerable \n"
+                        vulnerable_nodes += f"  🔍'{node_name}'  - Is potentially vulnerable{evidence_str}\n"
             if vulnerable_nodes != "":
                 formatted_vulnerabilities += f"\n{vulnerability_name}:\n"
                 formatted_vulnerabilities += vulnerable_nodes
         return formatted_vulnerabilities
+
+    def get_coverage_rate(self) -> tuple[int, int, float]:
+        """Returns (covered_operations, total_operations, coverage_fraction).
+
+        A covered operation is one that returned at least one successful response
+        (HTTP 200 with no GraphQL 'errors' field).
+        """
+        covered, total = self.get_number_of_successful_mutations_and_queries()
+        fraction = covered / total if total > 0 else 0.0
+        return covered, total, fraction
+
+    def get_negative_coverage_rate(self) -> tuple[int, int, float]:
+        """Returns (failed_operations, total_operations, negative_fraction).
+
+        A negatively-covered operation is one that returned at least one failed response
+        (any non-success result including GraphQL 'errors').
+        """
+        failed, total = self.get_number_of_failed_mutations_and_queries()
+        fraction = failed / total if total > 0 else 0.0
+        return failed, total, fraction
 
     def record_node_timing(self, node: Node, elapsed_seconds: float):
         """Records the elapsed time for a node execution
@@ -229,14 +271,14 @@ class Stats :
         pprint.pprint(self.successful_nodes)
         print("Unique failed nodes:")
         pprint.pprint(self.failed_nodes)
-        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
-        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_mutations_and_queries()
+        covered, total, coverage_frac = self.get_coverage_rate()
+        failed, _, negative_frac = self.get_negative_coverage_rate()
         print(f"(RESULTS): Time taken: {time.time() - self.start_time} seconds")
         print(f"(RESULTS): Number of queries: {self.number_of_queries}")
         print(f"(RESULTS): Number of mutations: {self.number_of_mutations}")
         print(f"(RESULTS): Number of objects: {self.number_of_objects}")
-        print(f"(RESULTS): Number of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
-        print(f"(RESULTS): Number of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
+        print(f"(RESULTS): Operation coverage (successful):  {covered}/{total} ({coverage_frac * 100:.1f}%)")
+        print(f"(RESULTS): Negative coverage (failed):       {failed}/{total} ({negative_frac * 100:.1f}%)")
         print(f"(RESULTS): Please check {self.file_path} for more information regarding the run")
         if len(self.vulnerabilities) > 0:
             print("----------------------DETECTED VULNS-------------------------")
@@ -246,8 +288,8 @@ class Stats :
     def save(self):
         """Saves the stats into the stats text file
         """
-        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
-        number_failed_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_failed_mutations_and_queries()
+        covered, total, coverage_frac = self.get_coverage_rate()
+        failed, _, negative_frac = self.get_negative_coverage_rate()
         with open(self.file_path, "w") as f:
             f.write("\n===================HTTP Status Codes===================\n")
             f.write(json.dumps(self.http_status_codes, indent=4))
@@ -257,8 +299,12 @@ class Stats :
             f.write(json.dumps(self.failed_nodes, indent=4))
             f.write("\n===================General stats ===================\n")
             f.write(f"\nTime taken: {str(time.time() - self.start_time)} seconds")
-            f.write(f"\nNumber of unique query/mutation successes: {number_success_of_mutations_and_queries}/{num_mutations_and_queries}")
-            f.write(f"\nNumber of unique external query/mutation failures: {number_failed_of_mutations_and_queries}/{num_mutations_and_queries}")
+            # Operation coverage: operations with >=1 success (HTTP 200, no GraphQL 'errors' field)
+            f.write(f"\nOperation coverage (successful):  {covered}/{total} ({coverage_frac * 100:.1f}%)")
+            # Kept for backward compatibility with test utilities
+            f.write(f"\nNumber of unique query/mutation successes: {covered}/{total}")
+            # Negative coverage: operations with >=1 failure (any non-success result)
+            f.write(f"\nNegative coverage (failed):       {failed}/{total} ({negative_frac * 100:.1f}%)")
             f.write(f"\nNumber of queries: {self.number_of_queries}")
             f.write(f"\nNumber of mutations: {self.number_of_mutations}")
             f.write(f"\nNumber of objects: {self.number_of_objects}")
@@ -279,8 +325,8 @@ class Stats :
         json_path = getattr(self, "json_file_path", None)
         if json_path is None:
             return
-        number_success_of_mutations_and_queries, num_mutations_and_queries = self.get_number_of_successful_mutations_and_queries()
-        number_failed_of_mutations_and_queries, _ = self.get_number_of_failed_mutations_and_queries()
+        covered, total, coverage_frac = self.get_coverage_rate()
+        failed, _, negative_frac = self.get_negative_coverage_rate()
         report = {
             "time_taken_seconds": time.time() - self.start_time,
             "number_of_queries": self.number_of_queries,
@@ -288,9 +334,10 @@ class Stats :
             "number_of_objects": self.number_of_objects,
             "number_of_successes": self.number_of_successes,
             "number_of_failures": self.number_of_failures,
-            "unique_successful_nodes": number_success_of_mutations_and_queries,
-            "unique_failed_nodes": number_failed_of_mutations_and_queries,
-            "total_nodes": num_mutations_and_queries,
+            # operation_coverage: unique ops with >=1 HTTP-200/no-errors response / total ops
+            "operation_coverage": {"covered": covered, "total": total, "rate": round(coverage_frac, 4)},
+            # negative_coverage: unique ops with >=1 failure / total ops
+            "negative_coverage": {"failed": failed, "total": total, "rate": round(negative_frac, 4)},
             "http_status_codes": self.http_status_codes,
             "successful_nodes": self.successful_nodes,
             "failed_nodes": self.failed_nodes,

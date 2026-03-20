@@ -51,3 +51,12 @@ class SSRFInjectionDetector(Detector):
         if request_response.status_code == 200 and graphql_response.get('data') and any(kw in self.payload for kw in ssrf_input_keywords):
             return True
         return False
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        response_text_lower = request_response.text.lower()
+        for pattern in SSRF_RESPONSE_PATTERNS:
+            if pattern in response_text_lower:
+                return f"matched SSRF indicator: '{pattern}'"
+        if self._is_potentially_vulnerable(graphql_response, request_response):
+            return "server returned data on SSRF-like URL input (potential blind SSRF)"
+        return ""
