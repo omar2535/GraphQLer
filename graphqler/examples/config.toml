@@ -44,6 +44,7 @@ MAX_INPUT_DEPTH = 20
 USE_OBJECTS_BUCKET = true  # This mode is for when we want to use the objects bucket
 USE_DEPENDENCY_GRAPH = true  # This mode is for when we want to use DFS through the dependency graph
 NO_DATA_COUNT_AS_SUCCESS = false  # This mode is for when we want to count no data in the data object as a success or failure
+DISABLE_MUTATIONS = true  # When true, only Query chains are generated — all Mutation nodes are excluded from fuzzing
 
 # For fuzzing
 ALLOW_DELETION_OF_OBJECTS = false  # This mode is for when we want to allow the deletion of objects from the objects bucket when coming across a DELETE mutation success

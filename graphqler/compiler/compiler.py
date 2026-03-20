@@ -2,6 +2,7 @@
 - Getting the introspection query results into various files we can use later on
 - Resolving dependencies among objects
 - Tieing queries / mutations to objects
+- Generating dependency chains for the fuzzer
 """
 
 from pathlib import Path
@@ -11,6 +12,8 @@ from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
+from graphqler.chains import ChainGenerator
+from graphqler.graph import GraphGenerator
 from graphqler import config
 from clairvoyance.cli import blind_introspection
 
@@ -57,6 +60,9 @@ class Compiler:
         # Initialize the plugins handler to get request utils
         self.request_utils = plugins_handler.get_request_utils()
 
+        # ChainGenerator — populated after run() completes
+        self.chain_generator: ChainGenerator = ChainGenerator()
+
         # Create empty files for these files
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
         initialize_file(self.introspection_result_save_path)
@@ -77,6 +83,7 @@ class Compiler:
         2. Trying clairvoyance if introspection query fails
         3. Run the parsers, storing files into objects / query / mutations
         4. Creating dependencies between objects and attaching methods (query/mutations) to objects
+        5. Generate and persist dependency chains for the fuzzer
         """
         introspection_result = self.get_introspection_query_results()
         if introspection_result is None or introspection_result == {}:
@@ -88,6 +95,7 @@ class Compiler:
 
         self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_save(introspection_result)
+        self.run_chain_generation_and_save()
 
     def get_introspection_query_results(self) -> dict:
         """Run the introspection query, grab results and output to file. Raises error if introspection query wasn't successful
@@ -198,3 +206,25 @@ class Compiler:
         write_dict_to_yaml(objects, self.compiled_objects_save_path)
         write_dict_to_yaml(mutations, self.compiled_mutations_save_path)
         write_dict_to_yaml(queries, self.compiled_queries_save_path)
+
+    def run_chain_generation_and_save(self):
+        """Builds the dependency graph from compiled files, generates chains via the configured
+        :class:`ChainGenerator`, and persists them as a YAML file for human inspection.
+
+        The generated chains are also available via ``self.chain_generator.chains`` for
+        immediate inspection without reloading from disk.
+        """
+        dependency_graph = GraphGenerator(self.save_path).get_dependency_graph()
+        in_degrees = dict(dependency_graph.in_degree())
+        if not in_degrees:
+            self.logger.warning("Dependency graph is empty — no chains generated")
+            return
+
+        min_degree = min(in_degrees.values())
+        starter_nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
+
+        self.chain_generator.generate(dependency_graph, starter_nodes)
+        self.logger.info(f"Generated {len(self.chain_generator.chains)} chains")
+
+        self.chain_generator.save_to_yaml(self.save_path)
+        self.logger.info(f"Chains saved to {self.save_path}/{config.CHAINS_FILE_NAME}")

@@ -22,6 +22,7 @@ def run_compile_mode(path: str, url: str):
     """Runs the program in compile mode, running two things:
        - Compiler - compiles the objects and resolves dependencies
        - GraphGeneration - links objects together making the graph
+       - ChainGeneration - pre-generates fuzzing chains from the graph
 
     Args:
         path (str): Directory for all compilation outputs to be saved to
@@ -37,6 +38,64 @@ def run_compile_mode(path: str, url: str):
 
     print("(C) Found", len(graph.nodes), "nodes and", len(graph.edges), "edges")
     print("(C) Complete compilation phase")
+
+
+def run_compile_graph_mode(path: str, url: str):
+    """Runs only the introspection / parsing / resolving steps (no chain generation).
+
+    Use this when you want to regenerate the dependency graph without re-running
+    chain generation, or when you plan to run ``compile-chains`` separately.
+
+    Args:
+        path (str): Directory for all compilation outputs to be saved to
+        url (str): URL of the target
+    """
+    print("(C) In compile-graph mode!")
+    compiler = Compiler(path, url)
+    introspection_result = compiler.get_introspection_query_results()
+    if introspection_result is None or introspection_result == {}:
+        print("(C) Introspection query failed, trying clairvoyance")
+        introspection_result = compiler.get_clairvoyance_results()
+    if introspection_result is None or introspection_result == {}:
+        raise SystemExit("(E) Couldn't get schema of the API. Exiting")
+    compiler.run_parsers_and_save(introspection_result)
+    compiler.run_resolvers_and_save(introspection_result)
+
+    print("(C) Finished compiling, starting graph generator")
+    graph_generator = GraphGenerator(path)
+    graph = graph_generator.get_dependency_graph()
+    graph_generator.draw_dependency_graph()
+
+    print("(C) Found", len(graph.nodes), "nodes and", len(graph.edges), "edges")
+    print("(C) Complete graph compilation phase (chains not generated)")
+
+
+def run_compile_chains_mode(path: str):
+    """Generates (or re-generates) fuzzing chains from an already-compiled graph.
+
+    Requires that ``compile`` or ``compile-graph`` has been run first so that the
+    compiled YAML files and dependency graph are present on disk.
+
+    Args:
+        path (str): Directory used during the original compilation.
+    """
+    from graphqler.chains import ChainGenerator
+
+    print("(C) In compile-chains mode!")
+    dependency_graph = GraphGenerator(path).get_dependency_graph()
+    in_degrees = dict(dependency_graph.in_degree())
+    if not in_degrees:
+        print("(C) Dependency graph is empty — no chains generated")
+        return
+
+    min_degree = min(in_degrees.values())
+    starter_nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
+
+    chain_generator = ChainGenerator()
+    chain_generator.generate(dependency_graph, starter_nodes)
+    chain_generator.save_to_yaml(path)
+    print(f"(C) Generated {len(chain_generator.chains)} chains")
+    print("(C) Chain generation complete")
 
 
 def run_fuzz_mode(path: str, url: str):
@@ -88,8 +147,13 @@ def main(args: dict):
         print("Please provide a mode to run the program in")
         sys.exit(1)
 
+    # compile-chains works from disk — URL not needed; all other modes require it
+    if args['mode'] != "compile-chains" and not args.get('url'):
+        print(f"--url is required for mode '{args['mode']}'")
+        sys.exit(1)
+
     # If not compile mode, check if compiled directory exists
-    if args['mode'] not in ["compile", "run", "single", "idor"] and (not is_compiled(args['path']) or not is_compiled(config.OUTPUT_DIRECTORY)):
+    if args['mode'] not in ["compile", "compile-graph", "compile-chains", "run", "single", "idor"] and (not is_compiled(args['path']) or not is_compiled(config.OUTPUT_DIRECTORY)):
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
@@ -137,9 +201,18 @@ def main(args: dict):
     if args.get('llm_max_retries') is not None:
         config.LLM_MAX_RETRIES = args['llm_max_retries']
 
+    # Apply mutation CLI override
+    if args.get('disable_mutations'):
+        config.DISABLE_MUTATIONS = True
+        print("(P) Mutation fuzzing disabled — only Query chains will be generated")
+
     # Start the program
     if args['mode'] == "compile":
         run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "compile-graph":
+        run_compile_graph_mode(config.OUTPUT_DIRECTORY, args['url'])
+    elif args['mode'] == "compile-chains":
+        run_compile_chains_mode(config.OUTPUT_DIRECTORY)
     elif args['mode'] == "fuzz":
         run_fuzz_mode(config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "run":
@@ -164,10 +237,10 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", help="remote host URL", required=True)
+    parser.add_argument("--url", help="remote host URL (required for all modes except compile-chains)", required=False)
     parser.add_argument("--path", help=f"directory location for files to be saved-to/used-from. Defaults to {config.OUTPUT_DIRECTORY}", required=False)
     parser.add_argument("--config", help="TOML configuration file for the program", required=False)
-    parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "fuzz", "idor", "run", "single"], required=True)
+    parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "compile-graph", "compile-chains", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
@@ -177,6 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
     parser.add_argument("--llm-max-retries", help="number of retries when LLM returns non-JSON (default: 2)", type=int, required=False)
+    parser.add_argument("--disable-mutations", help="only generate and run Query chains — all Mutation nodes are excluded from fuzzing", action="store_true", default=False)
     parser.add_argument("--version", help="display version", action="store_true")
 
     args = parser.parse_args()
