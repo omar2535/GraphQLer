@@ -9,8 +9,17 @@ from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
 
 # Lower value = earlier in chain within a strongly connected component.
-# Mutations typically CREATE/UPDATE/DELETE objects, so they should run before Objects and Queries.
-_GRAPHQL_TYPE_PRIORITY: dict[str, int] = {"Mutation": 0, "Object": 1, "Query": 2}
+# Mirrors the 3-pass logic in ChainGenerator:
+#   CREATE runs first (produces objects), then Objects are populated,
+#   then Queries read them, then UPDATE modifies them, DELETE/UNKNOWN run last.
+_NODE_PRIORITY: dict[str, int] = {
+    "CREATE": 0,
+    "Object": 1,   # keyed on graphql_type for non-mutation nodes
+    "Query": 2,
+    "UPDATE": 3,
+    "DELETE": 4,
+    "UNKNOWN": 5,
+}
 
 
 class AllDependenciesChainStrategy(BaseChainStrategy):
@@ -70,7 +79,7 @@ class AllDependenciesChainStrategy(BaseChainStrategy):
             }
 
             chain_node_set = valid_ancestors | {node}
-            subgraph = graph.subgraph(chain_node_set)
+            subgraph = cast(networkx.DiGraph, graph.subgraph(chain_node_set))
             sorted_nodes = self._safe_topo_sort(subgraph)
 
             chains.append(Chain(nodes=sorted_nodes))
@@ -95,6 +104,19 @@ class AllDependenciesChainStrategy(BaseChainStrategy):
         result: list[Node] = []
         for cond_node in networkx.topological_sort(condensation):
             members: set[Node] = condensation.nodes[cond_node]["members"]
-            ordered = sorted(members, key=lambda n: (_GRAPHQL_TYPE_PRIORITY.get(n.graphql_type, 1), n.name))
+            ordered = sorted(members, key=self._node_sort_key)
             result.extend(ordered)
         return result
+
+    @staticmethod
+    def _node_sort_key(node: Node) -> tuple[int, str]:
+        """Return a sort key that respects dependency order within an SCC.
+
+        For Mutation nodes the ``mutation_type`` (CREATE/UPDATE/DELETE/UNKNOWN) is used.
+        For all other nodes the ``graphql_type`` (Object/Query) is used.
+        """
+        if node.graphql_type == "Mutation":
+            key = _NODE_PRIORITY.get(node.mutation_type or "UNKNOWN", 5)
+        else:
+            key = _NODE_PRIORITY.get(node.graphql_type, 1)
+        return (key, node.name)
