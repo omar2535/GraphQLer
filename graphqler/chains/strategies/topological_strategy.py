@@ -22,7 +22,7 @@ _NODE_PRIORITY: dict[str, int] = {
 }
 
 
-class AllDependenciesChainStrategy(BaseChainStrategy):
+class TopologicalChainStrategy(BaseChainStrategy):
     """Generates one self-sufficient chain per node by including all transitive dependencies.
 
     For every node N in topological order:
