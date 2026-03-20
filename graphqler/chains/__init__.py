@@ -3,11 +3,13 @@
 from .chain import Chain
 from .chain_generator import ChainGenerator
 from .strategies.base_strategy import BaseChainStrategy
+from .strategies.all_dependencies_strategy import AllDependenciesChainStrategy
 from .strategies.dfs_strategy import DFSChainStrategy
 
 __all__ = [
     "Chain",
     "ChainGenerator",
     "BaseChainStrategy",
+    "AllDependenciesChainStrategy",
     "DFSChainStrategy",
 ]
