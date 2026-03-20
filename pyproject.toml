@@ -1,6 +1,6 @@
 [project]
 name = "GraphQLer"
-version = "2.3.7"
+version = "2.3.8"
 description = "A cutting edge context aware GraphQL API fuzzing tool!"
 authors = [{ name = "Omar2535", email = "omar@9tsai.ca" }]
 requires-python = ">=3.12,<3.13"
@@ -30,7 +30,7 @@ dev = [
     "pytest-mock",
     "flake8>=7.3.0",
     "pre-commit>=4.5.1",
-    "ruff>=0.15.6",
+    "ruff>=0.15.7",
     "mkdocs>=1.6.1,<2",
     "lark>=1.3.1",
 ]
