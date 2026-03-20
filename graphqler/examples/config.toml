@@ -28,7 +28,7 @@ LLM_MODEL = "gpt-4o-mini"            # litellm model string
 LLM_API_KEY = ""                      # API key; if empty, reads from env (OPENAI_API_KEY, etc.)
 LLM_BASE_URL = ""                     # custom base URL (required for Ollama / LiteLLM proxies)
 LLM_RESOLVER_FALLBACK_TO_ID = true    # fall back to classic resolver if LLM call fails
-LLM_RESOLVER_SAVE_COMPARISON = true   # save compiled/resolver_comparison.json (LLM vs classic diff)
+LLM_RESOLVER_SAVE_COMPARISON = true   # save eval/resolver_comparison.json (LLM vs classic diff)
 LLM_MAX_RETRIES = 2                   # retry attempts when LLM returns non-JSON (0 = no retries)
 
 # For the linker
