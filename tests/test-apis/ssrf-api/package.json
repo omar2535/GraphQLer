@@ -10,7 +10,6 @@
     "apollo-server-express": "^3.13.0",
     "express": "^4.22.1",
     "graphql": "^16.13.1",
-    "node-fetch": "^2.7.0",
-    "uuid": "^13.0.0"
+    "node-fetch": "^2.7.0"
   }
 }
