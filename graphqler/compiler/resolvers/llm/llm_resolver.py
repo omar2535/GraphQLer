@@ -14,10 +14,15 @@ Responsibilities:
 import json
 import logging
 from graphqler import config
-try:
-    import litellm  # noqa: PLC0415 — lazy import so litellm is optional
-except ImportError as exc:
-    raise ImportError("litellm is required for USE_LLM=True. Install it with: uv add litellm") from exc
+
+
+def _get_litellm():
+    """Import and return litellm only when LLM resolution is actually used."""
+    try:
+        import litellm
+    except ImportError as exc:
+        raise ImportError("litellm is required for USE_LLM=True. Install it with: uv add litellm") from exc
+    return litellm
 
 logger = logging.getLogger(__name__)
 
@@ -122,9 +127,27 @@ class LLMResolver:
     # ── LLM call ─────────────────────────────────────────────────────────────
 
     def _supports_json_mode(self) -> bool:
-        """Return True if the configured model supports response_format json_object."""
-        provider = config.LLM_MODEL.split("/")[0].lower()
-        model = config.LLM_MODEL.split('/')[1].lower() if config.LLM_MODEL.count("/") > 1 else ""
+        """Return True if the configured model supports format object.
+
+        Handles both prefixed (e.g. "openai/gpt-4o-mini") and unprefixed
+        (e.g. "gpt-4o-mini") model strings.  When there is no provider prefix
+        the full string is used as the model name and litellm infers the
+        provider automatically.
+        """
+        llm_model = config.LLM_MODEL
+        if "/" in llm_model:
+            provider, model = llm_model.split("/", 1)
+        else:
+            # No prefix — treat as an OpenAI model and let litellm infer the provider.
+            provider = "openai"
+            model = llm_model
+
+        if not model:
+            # Malformed string like "openai/" — fall back to the full string.
+            model = llm_model
+            provider = "openai"
+
+        litellm = _get_litellm()
         does_support_json = litellm.supports_response_schema(model=model, custom_llm_provider=provider)
         return does_support_json
 
@@ -189,6 +212,8 @@ class LLMResolver:
             ValueError: If the LLM returns malformed JSON after all retries.
             Exception: Any litellm / network error propagates to the caller.
         """
+
+        litellm = _get_litellm()
 
         base_kwargs: dict = {
             "model": config.LLM_MODEL,
