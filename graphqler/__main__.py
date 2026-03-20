@@ -19,29 +19,20 @@ from graphqler import config
 
 
 def run_compile_mode(path: str, url: str):
-    """Runs the program in compile mode, running two things:
-       - Compiler - compiles the objects and resolves dependencies
-       - GraphGeneration - links objects together making the graph
-       - ChainGeneration - pre-generates fuzzing chains from the graph
+    """Runs the full compilation pipeline by delegating to compile-graph then compile-chains.
 
     Args:
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
     print("(C) In compile mode!")
-    Compiler(path, url).run()
-
-    print("(C) Finished compiling, starting graph generator")
-    graph_generator = GraphGenerator(path)
-    graph = graph_generator.get_dependency_graph()
-    graph_generator.draw_dependency_graph()
-
-    print("(C) Found", len(graph.nodes), "nodes and", len(graph.edges), "edges")
+    run_compile_graph_mode(path, url)
+    run_compile_chains_mode(path)
     print("(C) Complete compilation phase")
 
 
 def run_compile_graph_mode(path: str, url: str):
-    """Runs only the introspection / parsing / resolving steps (no chain generation).
+    """Runs only the introspection / parsing / resolving steps and generates the dependency graph.
 
     Use this when you want to regenerate the dependency graph without re-running
     chain generation, or when you plan to run ``compile-chains`` separately.
@@ -51,15 +42,7 @@ def run_compile_graph_mode(path: str, url: str):
         url (str): URL of the target
     """
     print("(C) In compile-graph mode!")
-    compiler = Compiler(path, url)
-    introspection_result = compiler.get_introspection_query_results()
-    if introspection_result is None or introspection_result == {}:
-        print("(C) Introspection query failed, trying clairvoyance")
-        introspection_result = compiler.get_clairvoyance_results()
-    if introspection_result is None or introspection_result == {}:
-        raise SystemExit("(E) Couldn't get schema of the API. Exiting")
-    compiler.run_parsers_and_save(introspection_result)
-    compiler.run_resolvers_and_save(introspection_result)
+    Compiler(path, url).run()
 
     print("(C) Finished compiling, starting graph generator")
     graph_generator = GraphGenerator(path)
