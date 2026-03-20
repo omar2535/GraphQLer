@@ -1,6 +1,5 @@
 """Unit tests for the compiler chains module."""
 
-import pytest
 import networkx
 
 from graphqler.chains.chain import Chain
