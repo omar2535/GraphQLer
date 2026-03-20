@@ -1,11 +1,10 @@
 """Class for fuzzer
 
-1. Gets all nodes that can be run without a dependency (query/mutation)
-2. Adds these to the DFS queue
-3. 1st Pass: Perform DFS, going through only creation nodes
-4. 2nd Pass: Perform DFS, allow also queries and updates
-5. 3rd Pass: Perform DFS, allow deletions
-6. Clean up
+1. Loads pre-generated chains from the compilation step
+2. Pass 1: Run chains that contain only CREATE/QUERY nodes
+3. Pass 2: Run chains that also allow UPDATE nodes
+4. Pass 3: Run all chains (including DELETE/UNKNOWN)
+5. Clean up
 """
 
 import multiprocessing
@@ -16,6 +15,7 @@ import time
 import typing
 
 from graphqler import config
+from graphqler.chains import Chain, ChainGenerator
 from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
@@ -50,15 +50,16 @@ class Fuzzer(object):
         else:
             self.objects_bucket = ObjectsBucket(self.api)
 
+        # Load pre-generated chains produced during compilation
+        self.chains: list[Chain] = ChainGenerator().load_from_yaml(save_path, self.dependency_graph)
+
         # Stats about the run
-        self.dfs_ran_nodes: set[Node] = set()
         self.stats.number_of_queries = self.api.get_num_queries()
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
 
     def run(self):
         """Main function to run the fuzzer"""
-        # Create a separate thread / process so that we can kill it if it takes too long / times out
         queue = multiprocessing.Queue()
         if config.DEBUG:
             p = threading.Thread(target=self.__run_steps, args=(queue,))
@@ -68,12 +69,10 @@ class Fuzzer(object):
         p.start()
         p.join(config.MAX_TIME)
 
-        # Terminate the process if it's still alive after the max time
         if p.is_alive() and isinstance(p, multiprocessing.Process):
             print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
             p.terminate()
 
-        # Get results from the process
         if not queue.empty():
             _ = queue.get()
 
@@ -110,53 +109,78 @@ class Fuzzer(object):
         self.objects_bucket.save()
 
     def __run_steps(self, queue: multiprocessing.Queue):
-        """Runs the fuzzer. Performs steps as follows:
-        1. Gets all nodes that can be run without a dependency (query/mutation)
-        2. 1st Pass: Perform DFS, going through only CREATE nodes and query nodes
-        3. 2nd Pass: Perform DFS, allow UPDATE as well as CREATE and also query nodes
-        4. 3rd Pass: Perform DFS, allow DELETE and UNKNOWN
-        5. Get all nodes that still haven't been ran, run them (these are the nodes that may be in islands of the graph - very rare)
-        6. Run detections on the API
-        7. Finish
+        """Runs the fuzzer using pre-generated chains. Steps:
+        1. Execute each chain in order (pass/filter ordering handled by the compiler)
+        2. Run any nodes not covered by the chains (island nodes)
+        3. Run detections on the overall API
+        4. Finish
 
         Args:
-            queue (multiprocessing.Queue): The queue to send the objects bucket to
+            queue (multiprocessing.Queue): Queue for communicating back to the parent process
         """
-        # Step 1
-        starter_nodes: list[Node] = self._get_starter_nodes()
-        self.logger.info(f"Starter nodes: {starter_nodes}")
         self.stats.start_time = time.time()
 
-        # Step 2
-        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
-        self.logger.info("Completed 1st pass using CREATE and QUERY")
-        self.logger.info(f"Objects bucket: {self.objects_bucket}")
+        if self.chains:
+            self.logger.info(f"Running {len(self.chains)} pre-generated chains")
+            for chain in self.chains:
+                self.__run_chain(chain)
+            self.logger.info("Completed all chains")
 
-        # Step 3
-        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
-        self.logger.info("Completed 2nd pass using CREATE, QUERY, UPDATE")
-        self.logger.info(f"Objects bucket: {self.objects_bucket}")
+            # Run any nodes not covered by any chain (e.g. isolated nodes)
+            chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
+            uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
+        else:
+            # Fallback: no chains available (compiler not run or old compilation), execute all nodes
+            self.logger.warning("No chains found — falling back to running all nodes directly")
+            uncovered_nodes = list(self.dependency_graph.nodes)
 
-        # Step 4
-        self.__perform_dfs(starter_stack=starter_nodes, filter_mutation_type=[])
-        self.logger.info("Completed 3rd pass using all available mutations and queries")
-        self.logger.info(f"Objects bucket: {self.objects_bucket}")
+        if uncovered_nodes:
+            self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
+            self.__run_nodes(uncovered_nodes)
 
-        # Step 5
-        nodes_to_run = [node for node in self.dependency_graph.nodes if node not in self.dfs_ran_nodes]
-        self.__run_nodes(nodes_to_run)
-        self.logger.info("Completed running all nodes that haven't been ran yet")
-
-        # Step 6
+        # Detections
         self.dengine.run_detections_on_api()
         self.logger.info("Completed running detections on the overall API")
 
-        # Step 7: Finish
+        # Finish
         self.logger.info("Completed fuzzing")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
         self.stats.print_results()
         self.stats.save()
         self.objects_bucket.save()
+
+    def __run_chain(self, chain: Chain):
+        """Executes every node in the chain sequentially using a **fresh** ObjectsBucket.
+
+        A new non-singleton ObjectsBucket is created for each chain so that objects
+        accumulated during this chain's execution do not leak into other chains.
+        The global Stats singleton is updated throughout.
+
+        Args:
+            chain (Chain): The chain to execute.
+        """
+        # Create a fresh, non-singleton ObjectsBucket for this chain
+        fresh_bucket: ObjectsBucket = ObjectsBucket.__wrapped__(self.api)
+
+        self.logger.info(f"Running chain: {chain}")
+        for node in chain.nodes:
+            if node.name in config.SKIP_NODES:
+                continue
+            self.stats.print_running_stats()
+            self.logger.info(f"[chain] Running node: {node}")
+            node_start = time.time()
+            _next_paths, result = self.__evaluate(node, list(chain.nodes[:chain.nodes.index(node) + 1]),
+                                                  objects_bucket=fresh_bucket)
+            self.stats.record_node_timing(node, time.time() - node_start)
+            self.stats.update_stats_from_result(node, result)
+
+            self.__fuzz(node, list(chain.nodes[:chain.nodes.index(node) + 1]), objects_bucket=fresh_bucket)
+            self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+
+            if not result.success:
+                # If a prerequisite node fails, the rest of the chain cannot proceed
+                self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                break
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -173,76 +197,10 @@ class Fuzzer(object):
             node_start = time.time()
             _next_visit_path, result = self.__run_node(current_node, [current_node], check_hard_depends_on=False)
             self.stats.record_node_timing(current_node, time.time() - node_start)
-
-            # Upddate the stats
             self.stats.update_stats_from_result(current_node, result)
 
-            # If it was a success, then update the objects bucket
             if result.success:
                 self.logger.info(f"Node was successful: {current_node}")
-
-    def __perform_dfs(self, starter_stack: list[Node], filter_mutation_type: list[str]):
-        """Performs DFS with the initial starter stack
-
-        Args:
-            starter_stack (list[Node]): A list of the nodes to start the fuzzing
-            filter_mutation_type (list[str]): A list of mutation types to filter out when performing DFS (IE. [UPDATE,UNKNOWN,DELETE])
-        """
-
-        # DFS visit specific
-        visited: list[Node] = []
-        failed_visited: dict = {}
-        to_visit: list[list[Node]] = [[n] for n in starter_stack]
-
-        # Initialize some counters for cases when we need to break out of DFS
-        max_run_times = (len(self.dependency_graph.nodes) + len(self.dependency_graph.edges)) * 10
-        run_times = 0
-        max_requeue_for_same_node = 3
-
-        while len(to_visit) != 0:
-            self.stats.print_running_stats()
-
-            # Now for the actual DFS
-            current_visit_path: list[Node] = to_visit.pop()
-            current_node: Node = current_visit_path[-1]
-            self.logger.info(f"Current node: {current_node}")
-
-            if current_node not in visited and current_node.mutation_type not in filter_mutation_type:  # skip over any nodes that are in the filter_mutation_type
-                node_start = time.time()
-                new_paths_to_evaluate, res = self.__run_node(current_node, current_visit_path)
-                self.stats.record_node_timing(current_node, time.time() - node_start)
-                self.stats.update_stats_from_result(current_node, res)  # Update the stats
-
-                # If it's not successful:
-                # then we check if it's exceeded the max retries
-                # If it is, then we dont re-queue the node
-                if not res.success:
-                    self.logger.info(f"[{current_node}]Node was not successful")
-                    if current_node.name in failed_visited and failed_visited[current_node.name] >= max_requeue_for_same_node:
-                        continue  # Stop counting failures, already max retries reached
-                    else:
-                        failed_visited[current_node.name] = failed_visited[current_node.name] + 1 if current_node.name in failed_visited else 1
-                        to_visit.insert(0, current_visit_path)  # Will retry later, put it at the back of the stack
-                else:
-                    self.logger.info(f"[{current_node}]Node was successful")
-                    to_visit.extend(new_paths_to_evaluate)  # Will keep going deeper, put new paths at the front of the stack
-                    visited.append(current_node)  # We've visited this node, so add it to the visited list
-
-                    if current_node.name in failed_visited:  # If it was in the failed visited, remove it since it passed
-                        del failed_visited[current_node.name]
-
-                # Mark the node as dfs used (independent from visited since visited is used for each run, dfs_ran_nodes is noted for all 3 DFS phases)
-                self.dfs_ran_nodes.add(current_node)
-                self.logger.debug(f"Visited: {visited}")
-                self.logger.debug(f"Failed visited: {failed_visited}")
-                self.logger.debug(f"Objects bucket: {self.objects_bucket}")
-
-            # Break out condition from the loop
-            # - Max run times reached
-            run_times += 1
-            if run_times >= max_run_times:
-                self.logger.info("Hit max run times. Ending DFS")
-                break
 
     def __run_node(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
         """Runs the node, evaluating it and return the next visit paths.
@@ -259,12 +217,13 @@ class Fuzzer(object):
         """
         if node.name in config.SKIP_NODES:
             return ([], Result(ResultEnum.GENERAL_SUCCESS))
-        new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)  # For positive testing (normal run)
-        self.__fuzz(node, visit_path)  # For negative testing (fuzzing)
-        self.__detect_vulnerabilities_on_node(node)  # For negative testing (Detect vulnerabilities)
+        new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)
+        self.__fuzz(node, visit_path)
+        self.__detect_vulnerabilities_on_node(node)
         return (new_paths_to_evaluate, res)
 
-    def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
+    def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True,
+                   objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
         """Evaluates the path, performing the following based on the type of node:
            Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
                    then queue up the next neighboring nodes to visit
@@ -273,53 +232,57 @@ class Fuzzer(object):
         Args:
             node (Node): Node to be evaluated
             visit_path (list[Node]): The list of visited paths to arrive at the node
-            check_hard_depends_n (bool): The check hard depends on flag for materializing the object
+            check_hard_depends_on (bool): The check hard depends on flag for materializing the object
+            objects_bucket (ObjectsBucket | None): Bucket to use; defaults to self.objects_bucket
 
         Returns:
             tuple[list[list[Node]], Result]: A list of the next to_visit paths, and the result of the node evaluation
         """
+        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
         neighboring_nodes = self._get_neighboring_nodes(node)
         new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
 
         if node.graphql_type == "Object" and check_hard_depends_on:
-            if self.objects_bucket.is_object_in_bucket(node.name):
+            if bucket.is_object_in_bucket(node.name):
                 return (new_visit_paths, Result(ResultEnum.GENERAL_SUCCESS))
             else:
                 return ([], Result(ResultEnum.INTERNAL_FAILURE))
         else:
-            _graphql_response, res = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
+            _graphql_response, res = self.fengine.run_minimal_payload(node.name, bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
             if res.success:
                 return (new_visit_paths, res)
             else:
                 return ([], res)
 
-    def __fuzz(self, node: Node, visit_path: list[Node]):
+    def __fuzz(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None):
         """Fuzzes a node by running the node and storing the results. Currently runs:
            - DOS Query / Mutation (from size 0 to MAX_INPUT_DEPTH or HARD_CUTOFF_DEPTH, whichever is smaller)
 
         Args:
             node (Node): The node to fuzz
             visit_path (list[Node]): The list of visited paths to arrive at the node
+            objects_bucket (ObjectsBucket | None): Bucket to use; defaults to self.objects_bucket
         """
-        # If not a query or mutation, just return since there's nothing to fuzz / send to the host
+        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
         if node.graphql_type not in ["Query", "Mutation"]:
             return
-        # DOS Query / Mutation
         if not config.SKIP_DOS_ATTACKS and config.MAX_FUZZING_ITERATIONS != 0:
             random_numbers = [random.randint(1, min(config.HARD_CUTOFF_DEPTH, config.MAX_INPUT_DEPTH)) for _ in range(0, config.MAX_FUZZING_ITERATIONS)]
             random_number = random.choice(random_numbers)
             self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
-            results = self.fengine.run_dos_payloads(node.name, self.objects_bucket, node.graphql_type, random_number)
+            results = self.fengine.run_dos_payloads(node.name, bucket, node.graphql_type, random_number)
             for _graphql_response, res in results:
                 self.stats.update_stats_from_result(node, res)
 
-        # Run the maximal payloads as part of the fuzz (always runs because this is just the maximal output in queries / mutations)
         if not config.SKIP_MAXIMAL_PAYLOADS:
-            self.fengine.run_maximal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+            self.fengine.run_maximal_payload(node.name, bucket, node.graphql_type, check_hard_depends_on=False)
 
-    def __detect_vulnerabilities_on_node(self, node: Node):
+    def __detect_vulnerabilities_on_node(self, node: Node, objects_bucket: typing.Optional[ObjectsBucket] = None):
+        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
         if node.graphql_type in ["Query", "Mutation"]:
-            self.dengine.run_detections_on_graphql_object(node, self.objects_bucket, node.graphql_type)
+            self.dengine.run_detections_on_graphql_object(node, bucket, node.graphql_type)
+
+    # ------------------- Helpers -------------------
 
     def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
         """Gets the new visit path with the neighbors by creating a new path for each neighboring node
@@ -365,6 +328,5 @@ class Fuzzer(object):
         if nodes:
             return nodes
 
-        # Fallback — should never be reached
         self.logger.error("No starter nodes found, choosing a random node")
         return [random.choice(list(self.dependency_graph.nodes))]

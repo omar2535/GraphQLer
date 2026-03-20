@@ -35,6 +35,7 @@ INTERFACE_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/interface_list.yml"
 COMPILED_OBJECTS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_objects.yml"
 COMPILED_MUTATIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_mutations.yml"
 COMPILED_QUERIES_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_queries.yml"
+CHAINS_FILE_NAME = f"{COMPILED_DIR_NAME}/chains.yml"
 
 """For clairvoyance"""
 WORDLIST_PATH = ""
@@ -88,6 +89,7 @@ PLUGINS_PATH = f"{OUTPUT_DIRECTORY}/plugins"
 USE_OBJECTS_BUCKET = True  # This mode is for when we want to use the objects bucket
 USE_DEPENDENCY_GRAPH = True  # This mode is for when we want to use DFS through the dependency graph
 NO_DATA_COUNT_AS_SUCCESS = False  # This mode is for when we want to count no data in the data object as a success or failure
+DISABLE_MUTATIONS = False  # When True, only Query chains are generated — all Mutation nodes are excluded from fuzzing
 
 """For fuzzing"""
 ALLOW_DELETION_OF_OBJECTS = False  # This mode is for when we want to allow the deletion of objects from the objects bucket when coming across a DELETE mutation success

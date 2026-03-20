@@ -54,29 +54,35 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] --url URL [--path PATH] [--config CONFIG] --mode {compile,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--version]
+usage: __main__.py [-h] [--url URL] [--path PATH] [--config CONFIG] --mode {compile,compile-graph,compile-chains,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--disable-mutations] [--version]
 
 options:
   -h, --help            show this help message and exit
-  --url URL             remote host URL
+  --url URL             remote host URL (required for all modes except compile-chains)
   --path PATH           directory location for files to be saved-to/used-from. Defaults to graphqler-output
   --config CONFIG       configuration file for the program
-  --mode {compile,fuzz,idor,run,single}
+  --mode {compile,compile-graph,compile-chains,fuzz,idor,run,single}
                         mode to run the program in
   --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
   --node NODE           node to run (only used in single mode)
   --plugins-path PLUGINS_PATH
                         path to plugins directory
-  --version             display versionn
+  --disable-mutations   only generate and run Query chains — all Mutation nodes are excluded from fuzzing
+  --version             display version
 ```
 
 Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.
 
-- **Compilation mode**:This mode is responsible for running an *introspection query* against the given API and generating the dependency graphh
-- **Fuzzing mode**: This mode is responsible for traversing the dependency graph and sending test requests to the API
+- **Compilation mode**: Responsible for running an *introspection query* against the given API, resolving dependencies between objects/queries/mutations, generating the dependency graph, and pre-generating fuzzing chains.
+- **Fuzzing mode**: Responsible for executing the pre-generated chains against the API and collecting results.
 
-A third mode is also included for ease of use, called **run** mode. this mode compiles both the compilation and fuzzing mode into one single command.
+The compile step can be broken into two finer sub-modes:
+
+- **compile-graph**: Runs only the introspection, parsing, and dependency-resolution steps — stops before chain generation.
+- **compile-chains**: (Re-)generates fuzzing chains from an already-compiled graph without making any network requests. Useful when you want to tweak `DISABLE_MUTATIONS` or the chain strategy without re-running introspection.
+
+A third mode is also included for ease of use, called **run** mode — this runs both compilation and fuzzing in a single command.
 
 A mode in development right now is known as the **idor** mode, which will look for re-used objects that are accessible using another access token. This is in trial right now and requires the user to have run the *compile* and *fuzzing* mode first.
 
@@ -86,7 +92,23 @@ A mode in development right now is known as the **idor** mode, which will look f
 python -m graphqler --mode compile --url <URL> --path <SAVE_PATH>
 ```
 
-After compiling, you can view the compiled results in the `<SAVE_PATH>/compiled`. Additionally, a graph will have been generated called `dependency_graph.png` for inspection. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
+Runs the full compilation pipeline: introspection → parsing → dependency resolution → dependency graph → fuzzing chains. After compiling, you can view the compiled results in `<SAVE_PATH>/compiled`. A dependency graph image (`dependency_graph.png`) is also generated for inspection. Fuzzing chains are saved to `<SAVE_PATH>/compiled/chains.yml` — this file is human-readable and can be edited before fuzzing. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
+
+### Compile-graph mode
+
+```sh
+python -m graphqler --mode compile-graph --url <URL> --path <SAVE_PATH>
+```
+
+Runs only the introspection, parsing, and dependency-resolution steps. Stops before chain generation. Use this when you only want to refresh the schema and graph, then run `compile-chains` separately (e.g. to experiment with different chain settings without hitting the API again).
+
+### Compile-chains mode
+
+```sh
+python -m graphqler --mode compile-chains --path <SAVE_PATH>
+```
+
+(Re-)generates fuzzing chains from an already-compiled dependency graph. **No `--url` is required** — all data is read from disk. Run this after `compile` or `compile-graph` to regenerate `compiled/chains.yml` with different settings (e.g. `--disable-mutations` or a custom `CHAINS_FILE_NAME` in your config).
 
 ### Fuzz mode
 
@@ -142,6 +164,7 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
 | SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
+| DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
 
 ## AI Features
 
