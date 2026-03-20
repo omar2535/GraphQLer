@@ -1,13 +1,17 @@
 # flake8: noqa
 
+import json
 import sys
 import time
 from os import path
+from pathlib import Path
 
 from graphqler.__main__ import run_compile_mode, run_fuzz_mode
 
 from graphqler import config
+import graphqler
 import multiprocessing
+import platform
 
 
 # Dictionary specifying the API URL and path
@@ -47,6 +51,34 @@ config.DEBUG = False
 # config.TIME_BETWEEN_REQUESTS = 0.5
 
 
+def _save_run_metadata(output_path: str, api_url: str, max_time: int):
+    """Save a run_metadata.json file capturing the exact configuration used for this run.
+
+    This makes results reproducible and explains any differences between runs
+    (e.g. the Table 2 vs Table 3 discrepancy is caused by different config snapshots).
+    """
+    metadata = {
+        "graphqler_version": getattr(graphqler, "__version__", "unknown"),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "api_url": api_url,
+        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "config": {
+            "MAX_TIME": max_time,
+            "USE_OBJECTS_BUCKET": config.USE_OBJECTS_BUCKET,
+            "USE_DEPENDENCY_GRAPH": config.USE_DEPENDENCY_GRAPH,
+            "NO_DATA_COUNT_AS_SUCCESS": config.NO_DATA_COUNT_AS_SUCCESS,
+            "SKIP_DOS_ATTACKS": config.SKIP_DOS_ATTACKS,
+            "SKIP_MISC_ATTACKS": config.SKIP_MISC_ATTACKS,
+            "SKIP_INJECTION_ATTACKS": config.SKIP_INJECTION_ATTACKS,
+            "SKIP_MAXIMAL_PAYLOADS": config.SKIP_MAXIMAL_PAYLOADS,
+        },
+    }
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    with open(Path(output_path) / "run_metadata.json", "w") as f:
+        json.dump(metadata, f, indent=4)
+
+
 # Run the command multiple times
 def run_api(api_to_test):
     api_name = api_to_test[1]
@@ -59,6 +91,7 @@ def run_api(api_to_test):
             try:
                 print(f"Running the API {api_name} with path {output_path} and max time {max_time}")
                 config.MAX_TIME = max_time
+                _save_run_metadata(output_path, api_url, max_time)
                 run_compile_mode(output_path, api_url)
                 run_fuzz_mode(output_path, api_url)
                 is_success = True

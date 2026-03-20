@@ -56,3 +56,12 @@ class PathInjectionDetector(Detector):
             return False
         return ((graphql_response['data'] is not None and "Permission denied" in request_response.text)
                 or ('../../../../etc/passwd' in request_response.text))
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        if self._is_vulnerable(graphql_response, request_response):
+            return "path traversal success: /etc/passwd content ('root:x:0:0:root:') found in response"
+        if graphql_response and graphql_response.get('data') and "Permission denied" in request_response.text:
+            return "path traversal attempted: 'Permission denied' error returned (filesystem access blocked)"
+        if '../../../../etc/passwd' in request_response.text:
+            return "path traversal payload echoed back in response"
+        return ""

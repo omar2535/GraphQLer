@@ -31,3 +31,8 @@ class FieldSuggestionsDetector(Detector):
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         return self._is_vulnerable(graphql_response, request_response)
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        if self._is_vulnerable(graphql_response, request_response):
+            return "server returned a field suggestion ('did you mean') — field enumeration is possible"
+        return ""

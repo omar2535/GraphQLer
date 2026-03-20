@@ -139,7 +139,25 @@ class QueryDenyBypassDetector(Detector):
         Stats().add_http_status_code(self.name, aliased_request_response.status_code)
         Stats().update_stats_from_result(self.node, non_aliased_result)
         Stats().update_stats_from_result(self.node, aliased_result)
-        Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
+        evidence = ""
+        if self.confirmed_vulnerable:
+            evidence = (
+                "query deny bypass confirmed: non-aliased request blocked (400/errors), "
+                "aliased request succeeded (200 with data and no errors)"
+            )
+        elif self.potentially_vulnerable:
+            evidence = (
+                "query deny bypass potential: non-aliased request blocked, "
+                "aliased request returned data but also contained errors"
+            )
+        Stats().add_vulnerability(
+            self.DETECTION_NAME,
+            self.name,
+            self.confirmed_vulnerable,
+            self.potentially_vulnerable,
+            payload=aliased_payload,
+            evidence=evidence,
+        )
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:

@@ -83,7 +83,15 @@ class Detector(ABC):
         self.fuzzer_logger.info(f"[{request_response.status_code}]Response: {graphql_response}")
 
         self._parse_response(graphql_response, request_response)
-        Stats().add_vulnerability(self.DETECTION_NAME, self.name, self.confirmed_vulnerable, self.potentially_vulnerable)
+        evidence = self._get_evidence(graphql_response, request_response)
+        Stats().add_vulnerability(
+            self.DETECTION_NAME,
+            self.name,
+            self.confirmed_vulnerable,
+            self.potentially_vulnerable,
+            payload=self.payload,
+            evidence=evidence,
+        )
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
     def get_payload(self) -> str:
@@ -123,3 +131,16 @@ class Detector(ABC):
         Must be implemented by subclasses.
         """
         pass
+
+    def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
+        """Returns a human-readable string describing what specific indicator triggered this finding.
+
+        The default implementation returns an empty string.  Subclasses should override this to
+        surface the exact matched pattern or observation so that findings can be distinguished from
+        generic error noise — e.g. "matched SQL error pattern: 'sql syntax'" or
+        "XSS payload reflected verbatim in response body".
+
+        Returns:
+            str: Evidence description, or empty string if none available.
+        """
+        return ""
