@@ -5,6 +5,7 @@ import networkx
 from graphqler.chains.chain import Chain
 from graphqler.chains.chain_generator import ChainGenerator
 from graphqler.chains.strategies.dfs_strategy import DFSChainStrategy
+from graphqler.chains.strategies.all_dependencies_strategy import AllDependenciesChainStrategy
 from graphqler.graph.node import Node
 from graphqler import config
 
@@ -189,9 +190,9 @@ class TestDFSChainStrategy:
 # ---------------------------------------------------------------------------
 
 class TestChainGenerator:
-    def test_default_strategy_is_dfs(self):
+    def test_default_strategy_is_all_dependencies(self):
         gen = ChainGenerator()
-        assert isinstance(gen._strategy, DFSChainStrategy)
+        assert isinstance(gen._strategy, AllDependenciesChainStrategy)
 
     def test_custom_strategy_accepted(self):
         custom = DFSChainStrategy()
@@ -278,3 +279,152 @@ class TestChainGenerator:
             assert len(mutation_chains) > 0
         finally:
             config.DISABLE_MUTATIONS = original
+
+
+# ---------------------------------------------------------------------------
+# AllDependenciesChainStrategy
+# ---------------------------------------------------------------------------
+
+
+
+def _names(chain: "Chain") -> list:
+    """Return the list of node names in a chain."""
+    return [n.name for n in chain.nodes]
+
+
+class TestAllDependenciesChainStrategy:
+    def _strategy(self) -> AllDependenciesChainStrategy:
+        return AllDependenciesChainStrategy()
+
+    def test_single_node(self):
+        graph, nodes = _linear_graph("A")
+        chains = self._strategy().generate(graph, [])
+        assert len(chains) == 1
+        assert _names(chains[0]) == ["A"]
+
+    def test_linear_chain_produces_one_chain_per_node(self):
+        """A -> B -> C -> D: each node gets its own self-sufficient chain."""
+        graph, nodes = _linear_graph("A", "B", "C", "D")
+        chains = self._strategy().generate(graph, [])
+        assert len(chains) == 4
+
+        chain_by_last = {_names(c)[-1]: _names(c) for c in chains}
+        assert chain_by_last["A"] == ["A"]
+        assert chain_by_last["B"] == ["A", "B"]
+        assert chain_by_last["C"] == ["A", "B", "C"]
+        assert chain_by_last["D"] == ["A", "B", "C", "D"]
+
+    def test_diamond_multi_parent(self):
+        """B and C both depend on A; D depends on both B and C."""
+        A, B, C, D = [_make_node(n) for n in "ABCD"]
+        graph = networkx.DiGraph()
+        graph.add_edge(A, B)
+        graph.add_edge(A, C)
+        graph.add_edge(B, D)
+        graph.add_edge(C, D)
+
+        chains = self._strategy().generate(graph, [])
+        chain_by_last = {_names(c)[-1]: _names(c) for c in chains}
+
+        d_chain = chain_by_last["D"]
+        assert set(d_chain) == {"A", "B", "C", "D"}
+        assert d_chain[-1] == "D"
+        assert d_chain.index("A") < d_chain.index("B")
+        assert d_chain.index("A") < d_chain.index("C")
+        assert d_chain.index("B") < d_chain.index("D")
+        assert d_chain.index("C") < d_chain.index("D")
+
+    def test_deep_three_layer_multi_dependency(self):
+        """Deep 3-layer graph where Z has 2 mid-level deps each with 2-3 root deps.
+
+        Layer 0 (roots): A, B, C, E, F
+        Layer 1 (mid):   D <- (A, B, C);  H <- (E, F)
+        Layer 2 (final): Z <- (D, H)
+        """
+        A, B, C, D, E, F, H, Z = [_make_node(n) for n in ["A", "B", "C", "D", "E", "F", "H", "Z"]]
+        graph = networkx.DiGraph()
+        graph.add_edge(A, D)
+        graph.add_edge(B, D)
+        graph.add_edge(C, D)
+        graph.add_edge(E, H)
+        graph.add_edge(F, H)
+        graph.add_edge(D, Z)
+        graph.add_edge(H, Z)
+
+        chains = self._strategy().generate(graph, [])
+        chain_by_last = {_names(c)[-1]: _names(c) for c in chains}
+
+        z_chain = chain_by_last["Z"]
+        assert set(z_chain) == {"A", "B", "C", "D", "E", "F", "H", "Z"}
+        assert z_chain[-1] == "Z"
+        for root in ("A", "B", "C"):
+            assert z_chain.index(root) < z_chain.index("D")
+        for root in ("E", "F"):
+            assert z_chain.index(root) < z_chain.index("H")
+        assert z_chain.index("D") < z_chain.index("Z")
+        assert z_chain.index("H") < z_chain.index("Z")
+
+        d_chain = chain_by_last["D"]
+        assert set(d_chain) == {"A", "B", "C", "D"}
+        assert d_chain[-1] == "D"
+
+        h_chain = chain_by_last["H"]
+        assert set(h_chain) == {"E", "F", "H"}
+        assert h_chain[-1] == "H"
+
+    def test_filter_excludes_nodes(self):
+        """A filtered node should produce no chain."""
+        create = _make_node("create", graphql_type="Mutation", mutation_type="CREATE")
+        obj = _make_node("Obj", graphql_type="Object")
+        delete = _make_node("delete", graphql_type="Mutation", mutation_type="DELETE")
+        graph = networkx.DiGraph()
+        graph.add_edge(create, obj)
+        graph.add_edge(obj, delete)
+
+        chains = self._strategy().generate(graph, [], filter_mutation_type=["DELETE"])
+        all_last_nodes = {_names(c)[-1] for c in chains}
+        assert "delete" not in all_last_nodes
+
+    def test_filtered_ancestor_excluded_from_descendant_chain(self):
+        """If an ancestor is filtered, it should be absent from the descendant chain."""
+        update = _make_node("update", graphql_type="Mutation", mutation_type="UPDATE")
+        obj = _make_node("Obj", graphql_type="Object")
+        query = _make_node("getObj", graphql_type="Query")
+        graph = networkx.DiGraph()
+        graph.add_edge(update, obj)
+        graph.add_edge(obj, query)
+
+        chains = self._strategy().generate(graph, [], filter_mutation_type=["UPDATE"])
+        chain_by_last = {_names(c)[-1]: _names(c) for c in chains}
+
+        assert "update" not in chain_by_last
+        q_chain = chain_by_last.get("getObj", [])
+        assert "update" not in q_chain
+
+    def test_starter_nodes_ignored(self):
+        """AllDependenciesChainStrategy ignores starter_nodes; all nodes get a chain."""
+        graph, nodes = _linear_graph("A", "B", "C")
+        chains_empty = self._strategy().generate(graph, [])
+        chains_with = self._strategy().generate(graph, [nodes[0]])
+        assert len(chains_empty) == len(chains_with)
+
+
+class TestChainGeneratorUsesAllDependenciesDefault:
+    def test_default_strategy_is_all_dependencies(self):
+        gen = ChainGenerator()
+        assert isinstance(gen._strategy, AllDependenciesChainStrategy)
+
+    def test_generate_with_diamond_includes_all_ancestors(self):
+        """ChainGenerator default strategy handles diamond graphs correctly."""
+        A, B, C, D = [_make_node(n) for n in "ABCD"]
+        graph = networkx.DiGraph()
+        graph.add_edge(A, B)
+        graph.add_edge(A, C)
+        graph.add_edge(B, D)
+        graph.add_edge(C, D)
+
+        gen = ChainGenerator()
+        chains = gen.generate(graph, [])
+        # All 3 passes x 4 nodes each = 12 chains (all Query type, never filtered)
+        all_d_chains = [c for c in chains if D in c.nodes and c.nodes[-1] == D]
+        assert any(len(c.nodes) == 4 for c in all_d_chains)

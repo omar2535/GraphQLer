@@ -8,7 +8,7 @@ import yaml
 from graphqler import config
 from graphqler.chains.chain import Chain
 from graphqler.chains.strategies.base_strategy import BaseChainStrategy
-from graphqler.chains.strategies.dfs_strategy import DFSChainStrategy
+from graphqler.chains.strategies.all_dependencies_strategy import AllDependenciesChainStrategy
 from graphqler.graph.node import Node
 
 # All possible mutation_type values assigned to Mutation nodes
@@ -38,8 +38,9 @@ class ChainGenerator:
         # chains are also accessible afterwards:
         print(generator.chains)
 
-    The default strategy is :class:`DFSChainStrategy`.  Pass a different
-    :class:`BaseChainStrategy` subclass to use an alternative generation method.
+    The default strategy is :class:`AllDependenciesChainStrategy`.  Pass a different
+    :class:`BaseChainStrategy` subclass to use an alternative generation method
+    (e.g. :class:`~graphqler.chains.strategies.dfs_strategy.DFSChainStrategy`).
     """
 
     def __init__(self, strategy: BaseChainStrategy | None = None):
@@ -49,7 +50,7 @@ class ChainGenerator:
             strategy (BaseChainStrategy | None): Chain generation strategy.
                 Defaults to :class:`DFSChainStrategy` when *None*.
         """
-        self._strategy: BaseChainStrategy = strategy if strategy is not None else DFSChainStrategy()
+        self._strategy: BaseChainStrategy = strategy if strategy is not None else AllDependenciesChainStrategy()
         self._chains: list[Chain] = []
 
     @property
