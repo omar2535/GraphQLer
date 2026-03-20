@@ -39,6 +39,18 @@ jobs:
       run: |
         uv run pytest tests/integration/test_user_wallet_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
 
+    - name: Run integration test for injection vulnerabilities API
+      run: |
+        uv run pytest tests/integration/test_injection_vulnerabilities_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
+
+    - name: Run integration test for SSRF API
+      run: |
+        uv run pytest tests/integration/test_ssrf_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
+
+    - name: Run integration test for API security API
+      run: |
+        uv run pytest tests/integration/test_api_security_api.py --exitfirst --verbose --failed-first --cov=. --cov-report html
+
     - name: Run tests for core
       run: |
         uv run pytest tests/integration/test_core.py --exitfirst --verbose --failed-first --cov=. --cov-report html
