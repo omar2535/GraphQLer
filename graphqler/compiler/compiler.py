@@ -83,7 +83,6 @@ class Compiler:
         2. Trying clairvoyance if introspection query fails
         3. Run the parsers, storing files into objects / query / mutations
         4. Creating dependencies between objects and attaching methods (query/mutations) to objects
-        5. Generate and persist dependency chains for the fuzzer
         """
         introspection_result = self.get_introspection_query_results()
         if introspection_result is None or introspection_result == {}:
@@ -95,7 +94,6 @@ class Compiler:
 
         self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_save(introspection_result)
-        self.run_chain_generation_and_save()
 
     def get_introspection_query_results(self) -> dict:
         """Run the introspection query, grab results and output to file. Raises error if introspection query wasn't successful
