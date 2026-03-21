@@ -52,7 +52,6 @@ const typeDefs = `
 `;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const NOSQL_OPERATORS = ["$gt", "$gte", "$lt", "$lte", "$ne", "$in", "$nin", "$exists", "$regex", "$where", "$expr", "$not"];
 
 /** Returns true when the parsed filter object contains any MongoDB operator. */
 function hasMongoOperator(obj) {
@@ -68,10 +67,15 @@ function hasMongoOperator(obj) {
  * Synchronous sleep: blocks the event loop for `ms` milliseconds.
  * This simulates a database that executes a time-based SQL payload
  * (e.g., SELECT pg_sleep(3)) and hangs until the sleep finishes.
+ *
+ * Uses Atomics.wait on a SharedArrayBuffer to avoid a busy-wait loop
+ * that would otherwise peg a CPU core during the sleep window.
  */
 function sleepSync(ms) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) { /* busy wait */ }
+  const shared = new SharedArrayBuffer(4); // 4 bytes for one Int32
+  const int32 = new Int32Array(shared);
+  // Block the current thread for up to `ms` milliseconds while waiting on index 0.
+  Atomics.wait(int32, 0, 0, ms);
 }
 
 const MAX_SLEEP_MS = 5000; // cap to avoid runaway test hangs

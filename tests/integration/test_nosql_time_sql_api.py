@@ -66,10 +66,14 @@ class TestNoSQLTimeSQLAPI(unittest.TestCase):
 
     # ── Injection detection ───────────────────────────────────────────────────
 
+    _cached_vulns = None
+
     def _run_and_get_vulns(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
-        return get_vulnerabilities_from_stats(self.PATH)
+        if self.__class__._cached_vulns is None:
+            __main__.run_compile_mode(self.PATH, self.URL)
+            __main__.run_fuzz_mode(self.PATH, self.URL)
+            self.__class__._cached_vulns = get_vulnerabilities_from_stats(self.PATH)
+        return self.__class__._cached_vulns
 
     def test_nosql_injection_detected(self):
         vulns = self._run_and_get_vulns()
