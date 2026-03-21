@@ -1,0 +1,15 @@
+{
+  "name": "nosql-time-sql-api",
+  "version": "1.0.0",
+  "description": "Intentionally vulnerable GraphQL API for testing NoSQL and time-based SQL injection detectors",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "apollo-server-express": "^3.13.0",
+    "express": "^4.22.1",
+    "graphql": "^16.13.1",
+    "uuid": "^9.0.1"
+  }
+}

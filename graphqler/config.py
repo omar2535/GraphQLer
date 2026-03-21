@@ -100,6 +100,25 @@ SKIP_DOS_ATTACKS = True  # This mode is for when we want to skip the DoS check
 SKIP_INJECTION_ATTACKS = False  # This mode is for when we want to skip the injection check
 SKIP_MISC_ATTACKS = False  # This mode is for when we want to skip the miscellaneous attacks
 
+"""For NoSQL blind extraction"""
+NOSQLI_BLIND_EXTRACTION = False  # When True, attempt char-by-char data extraction after a potential NoSQLi is detected
+NOSQLI_EXTRACTION_CHARSET = "0123456789abcdef-"  # Charset to iterate during blind extraction (default covers hex IDs)
+NOSQLI_MAX_EXTRACTION_LENGTH = 64  # Maximum number of characters to extract before stopping
+
+"""For time-based SQL blind injection"""
+TIME_BASED_SQL_SLEEP_SECONDS = 3  # Seconds to sleep in time-based SQL payloads (pg_sleep / SLEEP / WAITFOR)
+TIME_BASED_SQL_THRESHOLD_RATIO = 0.8  # Response time >= sleep * ratio is treated as confirmed time-based SQLi
+
+"""For field charset fuzzing and ID enumeration (GraphQLMap GRAPHQL_CHARSET / GRAPHQL_INCREMENT equivalent)"""
+SKIP_ENUMERATION_ATTACKS = True  # Disabled by default (sends many requests per node — opt-in)
+# Charset used for field-level enumeration fuzzing (printable ASCII minus obvious injection chars)
+FIELD_CHARSET = "0123456789abcdefghijklmnopqrstuvwxyz"
+MAX_CHARSET_FUZZ_FIELDS = 3  # Max string fields to fuzz per node
+FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = 0.2  # Flag if (max-min)/avg response length exceeds this ratio
+# ID / integer enumeration (IDOR detection)
+ID_ENUMERATION_COUNT = 10  # Number of integer IDs to probe (1 .. N)
+ID_ENUMERATION_SUCCESS_THRESHOLD = 2  # Min distinct IDs that must return data to flag IDOR
+
 """For each request"""
 REQUEST_TIMEOUT = 120  # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds

