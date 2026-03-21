@@ -201,14 +201,20 @@ class TestIDEnumerationDetector(unittest.TestCase):
         self._orig_skip = config.SKIP_ENUMERATION_ATTACKS
         self._orig_count = config.ID_ENUMERATION_COUNT
         self._orig_threshold = config.ID_ENUMERATION_SUCCESS_THRESHOLD
+        self._orig_scope_heuristic = config.ID_ENUMERATION_SCOPE_HEURISTIC
         config.SKIP_ENUMERATION_ATTACKS = False
         config.ID_ENUMERATION_COUNT = 5
         config.ID_ENUMERATION_SUCCESS_THRESHOLD = 2
+        # Disable scope classification for probe/flag unit tests — scope guard
+        # behaviour is covered by TestIDEnumerationDetectorScopeGuard in
+        # test_endpoint_classifier.py.
+        config.ID_ENUMERATION_SCOPE_HEURISTIC = False
 
     def tearDown(self):
         config.SKIP_ENUMERATION_ATTACKS = self._orig_skip
         config.ID_ENUMERATION_COUNT = self._orig_count
         config.ID_ENUMERATION_SUCCESS_THRESHOLD = self._orig_threshold
+        config.ID_ENUMERATION_SCOPE_HEURISTIC = self._orig_scope_heuristic
 
     def test_skips_when_disabled(self):
         config.SKIP_ENUMERATION_ATTACKS = True

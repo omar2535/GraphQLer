@@ -118,6 +118,7 @@ FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = 0.2  # Flag if (max-min)/avg response
 # ID / integer enumeration (IDOR detection)
 ID_ENUMERATION_COUNT = 10  # Number of integer IDs to probe (1 .. N)
 ID_ENUMERATION_SUCCESS_THRESHOLD = 2  # Min distinct IDs that must return data to flag IDOR
+ID_ENUMERATION_SCOPE_HEURISTIC = True  # Classify endpoint scope (private/public) before running enumeration; skip public endpoints to avoid false positives
 
 """For each request"""
 REQUEST_TIMEOUT = 120  # in seconds
