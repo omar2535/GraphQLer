@@ -8,12 +8,22 @@ Equivalent of GraphQLMap's GRAPHQL_INCREMENT_N mode:
 Detection logic
 ---------------
 For each Int or ID field (first match per node):
-  1. Send ID_ENUMERATION_COUNT requests with values 1, 2, … N.
-  2. Count how many responses contain non-null data.
-  3. If count >= ID_ENUMERATION_SUCCESS_THRESHOLD → flag as IDOR potential.
+  1. Classify the endpoint as "private", "public", or "unknown" using
+     EndpointPrivacyClassifier (heuristic + optional LLM).
+     - "public"  → skip (catalogue endpoints trivially return all items).
+     - "unknown" → skip (conservative default to avoid false positives).
+     - "private" → proceed.
+  2. Send ID_ENUMERATION_COUNT requests with values 1, 2, … N.
+  3. Count how many responses contain non-null data.
+  4. If count >= ID_ENUMERATION_SUCCESS_THRESHOLD → flag as IDOR potential.
 
 Flagged as *potentially* vulnerable only — a confirmed finding requires manual
 verification that the objects returned belong to different owners.
+
+Scope classification can be disabled by setting
+``ID_ENUMERATION_SCOPE_HEURISTIC = False`` in config, which causes the
+detector to run on every endpoint regardless of inferred scope (not
+recommended — produces many false positives on public APIs).
 """
 
 from typing import Type, override
@@ -27,6 +37,7 @@ from graphqler.utils.stats import Stats
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.fuzzer.engine.detectors.detector import Detector
+from graphqler.fuzzer.engine.detectors.field_fuzzing.endpoint_classifier import EndpointPrivacyClassifier
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,6 +128,15 @@ class IDEnumerationDetector(Detector):
         if not id_fields:
             return (False, False)
 
+        # Scope guard: skip catalogue / public endpoints to avoid false positives.
+        if config.ID_ENUMERATION_SCOPE_HEURISTIC:
+            return_type_name, return_type_fields = self._get_return_type_info()
+            scope = EndpointPrivacyClassifier().classify(
+                self.name, return_type_name, return_type_fields
+            )
+            if scope != "private":
+                return (False, False)
+
         # Use the first ID / Int field found
         target_field = id_fields[0]
         success_count, payloads_used = self._probe_ids(target_field)
@@ -142,6 +162,37 @@ class IDEnumerationDetector(Detector):
         return (self.confirmed_vulnerable, self.potentially_vulnerable)
 
     # ── Private helpers ───────────────────────────────────────────────────────
+
+    def _get_return_type_info(self) -> tuple[str, list[str]]:
+        """Return (return_type_name, list_of_field_names) for this node.
+
+        Walks the ``output`` wrapper chain (NON_NULL → LIST → OBJECT) to find
+        the concrete object type name, then looks it up in ``api.objects`` to
+        collect its field names.  Falls back to empty values on any error.
+        """
+        try:
+            if self.graphql_type == "Query":
+                output = self.api.queries[self.name].get("output", {})
+            else:
+                output = self.api.mutations[self.name].get("output", {})
+
+            # Walk wrapper kinds until OBJECT is found
+            node = output
+            type_name = ""
+            while node:
+                if node.get("kind") == "OBJECT":
+                    type_name = node.get("name") or node.get("type") or ""
+                    break
+                node = node.get("ofType")
+
+            if not type_name:
+                return ("", [])
+
+            object_def = self.api.objects.get(type_name, {})
+            fields = [f["name"] for f in object_def.get("fields", []) if "name" in f]
+            return (type_name, fields)
+        except (KeyError, AttributeError, TypeError):
+            return ("", [])
 
     def _get_node_inputs(self) -> dict:
         try:
