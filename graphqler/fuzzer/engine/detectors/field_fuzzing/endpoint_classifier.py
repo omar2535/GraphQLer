@@ -96,7 +96,7 @@ _OWNERSHIP_FIELD_PATTERNS: tuple[str, ...] = (
 )
 
 # Score thresholds (raw integer score based on token hits)
-_PRIVATE_THRESHOLD = 3   # score >= this  → "private"
+_PRIVATE_THRESHOLD = 2   # score >= this  → "private"
 _PUBLIC_THRESHOLD = -1   # score <= this  → "public"
 
 

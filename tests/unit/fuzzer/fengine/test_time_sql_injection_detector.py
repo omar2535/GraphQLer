@@ -16,8 +16,8 @@ from graphqler import config
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
-def _make_detector(elapsed: float):
-    """Return a configured TimeSQLInjectionDetector whose elapsed_time is pre-set."""
+def _make_detector(elapsed: float, baseline: float = 0.0):
+    """Return a configured TimeSQLInjectionDetector with pre-set timing attributes."""
     api = MagicMock()
     api.url = "http://localhost/graphql"
     node = MagicMock()
@@ -26,6 +26,8 @@ def _make_detector(elapsed: float):
 
     detector = TimeSQLInjectionDetector(api=api, node=node, objects_bucket=objects_bucket, graphql_type="Query")
     detector.elapsed_time = elapsed
+    detector.baseline_time = baseline
+    detector.time_delta = max(0.0, elapsed - baseline)
     detector.payload = "{ searchUser(username: \"1' AND SLEEP(3)--\") { id } }"
     return detector
 
@@ -121,19 +123,19 @@ class TestTimeSQLInjectionDetector(unittest.TestCase):
     # --- _get_evidence ---
 
     def test_evidence_contains_elapsed_when_confirmed(self):
-        det = _make_detector(elapsed=3.1)
+        det = _make_detector(elapsed=3.1, baseline=0.0)
         evidence = det._get_evidence(None, MagicMock())
         self.assertIn("3.10s", evidence)
         self.assertIn("threshold", evidence)
 
     def test_evidence_describes_slow_response_when_potential(self):
-        det = _make_detector(elapsed=1.8)
+        det = _make_detector(elapsed=1.8, baseline=0.0)
         evidence = det._get_evidence(None, MagicMock())
         self.assertIn("1.80s", evidence)
         self.assertIn("below confirmed threshold", evidence)
 
     def test_evidence_empty_when_fast(self):
-        det = _make_detector(elapsed=0.2)
+        det = _make_detector(elapsed=0.2, baseline=0.0)
         evidence = det._get_evidence(None, MagicMock())
         self.assertEqual(evidence, "")
 
@@ -161,12 +163,14 @@ class TestTimeSQLInjectionDetector(unittest.TestCase):
 
         detector = TimeSQLInjectionDetector(api=api, node=node, objects_bucket=objects_bucket, graphql_type="Query")
 
-        # Patch time.monotonic so that elapsed appears as 3.0s
+        # Patch time.monotonic to simulate: fast baseline (0.1s), slow injection (3.1s)
+        # 4 calls total: baseline_start, baseline_end, injection_start, injection_end
+        timestamps = [1000.0, 1000.1, 1000.1, 1003.1]
         call_count = [0]
-        base = 1000.0
         def fake_monotonic():
+            val = timestamps[min(call_count[0], len(timestamps) - 1)]
             call_count[0] += 1
-            return base if call_count[0] == 1 else base + 3.0
+            return val
         with patch("graphqler.fuzzer.engine.detectors.time_sql_injection.time_sql_injection_detector.time.monotonic", side_effect=fake_monotonic):
             confirmed, potential = detector.detect()
 

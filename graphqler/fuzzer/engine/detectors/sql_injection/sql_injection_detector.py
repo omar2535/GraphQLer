@@ -127,11 +127,10 @@ class SQLInjectionDetector(Detector):
         return any(pattern in response_text_lower for pattern in SQL_ERROR_PATTERNS)
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
-        if graphql_response is None or 'data' not in graphql_response or graphql_response['data'] is None:
-            return False
-        # Flag if the server returned data successfully on an injection payload (possible blind SQLi)
-        if request_response.status_code == 200 and graphql_response['data'] and any(keyword in self.payload for keyword in SQL_INJECTION_STRINGS):
-            return True
+        # The broad "data returned on injection payload" check has been removed because any
+        # endpoint using parameterised queries will return HTTP 200 + data, producing constant
+        # false positives.  Blind SQL injection is covered by TimeSQLInjectionDetector, which
+        # uses a baseline-controlled timing oracle instead.
         return False
 
     def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
@@ -139,6 +138,4 @@ class SQLInjectionDetector(Detector):
         for pattern in SQL_ERROR_PATTERNS:
             if pattern in response_text_lower:
                 return f"matched SQL error pattern: '{pattern}'"
-        if self._is_potentially_vulnerable(graphql_response, request_response):
-            return "server returned data on SQL injection payload (potential blind SQLi)"
         return ""

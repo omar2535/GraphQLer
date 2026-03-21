@@ -31,7 +31,7 @@ class HTMLInjectionGetter(Getter):
 class HTMLInjectionDetector(Detector):
     @property
     def DETECTION_NAME(self) -> str:
-        return "Path Injection"
+        return "HTML Injection"
 
     @property
     def detect_only_once_for_api(self) -> bool:
@@ -49,9 +49,12 @@ class HTMLInjectionDetector(Detector):
         return False
 
     def _is_potentially_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
-        return 'data' in graphql_response and '"<h1>Hello world!</h1>"' in self.payload and request_response.status_code == 200
+        # Only flag when the server actually *reflects* the HTML payload in the response body,
+        # not merely when it returns HTTP 200 with data (which any field accepting strings would do).
+        html_payload = "<h1>Hello world!</h1>"
+        return request_response.status_code == 200 and html_payload in request_response.text
 
     def _get_evidence(self, graphql_response: dict, request_response: requests.Response) -> str:
         if self._is_potentially_vulnerable(graphql_response, request_response):
-            return "HTML injection payload accepted by server (data returned with HTML payload present)"
+            return "HTML payload <h1>Hello world!</h1> reflected in server response — potential HTML/XSS injection"
         return ""

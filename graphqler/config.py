@@ -114,7 +114,7 @@ SKIP_ENUMERATION_ATTACKS = True  # Disabled by default (sends many requests per 
 # Charset used for field-level enumeration fuzzing (printable ASCII minus obvious injection chars)
 FIELD_CHARSET = "0123456789abcdefghijklmnopqrstuvwxyz"
 MAX_CHARSET_FUZZ_FIELDS = 3  # Max string fields to fuzz per node
-FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = 0.2  # Flag if (max-min)/avg response length exceeds this ratio
+FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = 0.5  # Flag if (max-min)/avg response length exceeds this ratio (raised from 0.2 to reduce FPs; paired with near-empty fraction check in detector)
 # ID / integer enumeration (IDOR detection)
 ID_ENUMERATION_COUNT = 10  # Number of integer IDs to probe (1 .. N)
 ID_ENUMERATION_SUCCESS_THRESHOLD = 2  # Min distinct IDs that must return data to flag IDOR

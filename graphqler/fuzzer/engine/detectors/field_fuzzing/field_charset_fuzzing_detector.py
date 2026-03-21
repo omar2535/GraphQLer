@@ -177,7 +177,18 @@ class FieldCharsetFuzzingDetector(Detector):
         avg_len = sum(non_zero) / len(non_zero)
         if avg_len == 0:
             return False
-        return (max_len - min_len) / avg_len > config.FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD
+        # TODO: extract _resolve_scalar_type() into a shared helper module and reuse it
+        # here and in id_enumeration_detector.py to keep scalar unwrapping consistent.
+        spread = (max_len - min_len) / avg_len
+        if spread <= config.FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD:
+            return False
+        # Require that at least some responses are much shorter than average —
+        # this distinguishes a boolean oracle (some chars match, others don't) from a
+        # search API that returns different *counts* of records (all non-zero, but varying
+        # in size).  A genuine blind oracle will have near-empty responses for non-matching
+        # characters.
+        near_empty_fraction = sum(1 for length in non_zero if length < avg_len * 0.3) / len(non_zero)
+        return near_empty_fraction >= 0.1
 
     # Not used (detect() is fully overridden) but required by ABC
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
