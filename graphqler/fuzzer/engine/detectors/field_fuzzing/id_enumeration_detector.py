@@ -34,6 +34,7 @@ from graphqler.utils import plugins_handler
 from graphqler.utils.api import API
 from graphqler.utils.objects_bucket import ObjectsBucket
 from graphqler.utils.stats import Stats
+from graphqler.utils.response_utils import is_non_empty_result
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.fuzzer.engine.detectors.detector import Detector
@@ -220,9 +221,16 @@ class IDEnumerationDetector(Detector):
                     self.api.url, payload
                 )
                 Stats().add_http_status_code(self.name, request_response.status_code)
-
                 if request_response.status_code == 200 and isinstance(graphql_response.get("data"), dict):
-                    if any(v is not None for v in graphql_response["data"].values()):
+                    data = graphql_response["data"]
+                    field_result = data.get(self.name)
+
+                    is_hit = (
+                        is_non_empty_result(field_result)
+                        if self.name in data
+                        else any(is_non_empty_result(v) for v in data.values())
+                    )
+                    if is_hit:
                         success_count += 1
             except Exception:
                 pass
