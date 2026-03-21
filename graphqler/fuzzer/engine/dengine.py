@@ -4,7 +4,7 @@ from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
 
-from .detectors import api_detectors, injection_detectors, misc_detectors
+from .detectors import api_detectors, injection_detectors, misc_detectors, enumeration_detectors
 from .detectors.detector import Detector
 
 
@@ -53,6 +53,9 @@ class DEngine:
         if not config.SKIP_MISC_ATTACKS:
             self.__run_misc_detections(node, objects_bucket, graphql_type)
 
+        if not config.SKIP_ENUMERATION_ATTACKS:
+            self.__run_enumeration_detections(node, objects_bucket, graphql_type)
+
     def __run_misc_detections(self, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
         """Runs miscellaneous detections
 
@@ -82,6 +85,25 @@ class DEngine:
         """
         for injection_detector in injection_detectors:
             detector = injection_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            if not self.__should_run_detection(detector, node.name):
+                continue
+            try:
+                is_vulnerable, potentially_vulnerable = detector.detect()
+                self.logger.info(f"Detector {detector.DETECTION_NAME} finished detecting - is_vulnerable: {is_vulnerable} - potentially_vulnerable: {potentially_vulnerable}")
+                self.__add_ran_node(node.name, detector.DETECTION_NAME)
+            except Exception as e:
+                self.logger.error(f"Detector {detector.DETECTION_NAME} failed with error: {e}")
+
+    def __run_enumeration_detections(self, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
+        """Runs field enumeration detections (charset fuzzing and ID enumeration / IDOR).
+
+        Args:
+            node (Node): The node object
+            objects_bucket (ObjectsBucket): The objects bucket
+            graphql_type (str): The type of the GraphQL operation
+        """
+        for enum_detector in enumeration_detectors:
+            detector = enum_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
             if not self.__should_run_detection(detector, node.name):
                 continue
             try:
