@@ -16,6 +16,7 @@ EXTRACTED_DIR_NAME = "extracted"
 COMPILED_DIR_NAME = "compiled"
 EVAL_DIR_NAME = "eval"
 ENDPOINT_RESULTS_DIR_NAME = "endpoint_results"
+DETECTIONS_DIR_NAME = "detections"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
 CONFIG_FILE_NAME = "config.toml"
@@ -135,3 +136,7 @@ IDOR_SECONDARY_AUTH = None              # Attacker/secondary auth token (e.g. "B
 SKIP_IDOR_CHAIN_FUZZING = False         # Set True to disable the chain-based IDOR phase entirely
 IDOR_HEURISTIC_CONFIDENCE_THRESHOLD = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
 IDOR_USE_LLM_FALLBACK = False           # When True, use LLM classifier for low-confidence chains
+
+"""For arbitrary runtime profiles (multi-auth, custom headers, etc.)"""
+PROFILES = {}
+

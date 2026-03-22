@@ -5,7 +5,7 @@ from typing import cast
 import networkx
 
 from graphqler import config
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
 
@@ -113,7 +113,8 @@ class TopologicalChainStrategy(BaseChainStrategy):
             subgraph = cast(networkx.DiGraph, graph.subgraph(chain_node_set))
             sorted_nodes = self._safe_topo_sort(subgraph)
 
-            chains.append(Chain(nodes=sorted_nodes))
+            steps = [ChainStep(node=n) for n in sorted_nodes]
+            chains.append(Chain(steps=steps))
 
         return chains
 

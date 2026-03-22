@@ -10,17 +10,17 @@ Detectors exercised:
 
 import os
 import shutil
-import unittest
 
 from graphqler import __main__, config
 from tests.integration.utils.run_api import run_node_project, wait_for_server
+from tests.integration.utils.base import GraphQLerIntegrationTestCase
 from tests.integration.utils.stats import (
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
 
 
-class TestSSRFAPI(unittest.TestCase):
+class TestSSRFAPI(GraphQLerIntegrationTestCase):
     PORT = 4003
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-ssrf-api/"
@@ -50,7 +50,7 @@ class TestSSRFAPI(unittest.TestCase):
     # ── Compilation ──────────────────────────────────────────────────────────
 
     def test_compile_generates_introspection_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
+        self._compile()
         introspection_path = os.path.join(self.PATH, config.INTROSPECTION_RESULT_FILE_NAME)
         self.assertTrue(os.path.exists(introspection_path))
         self.assertGreater(os.path.getsize(introspection_path), 0)
@@ -58,15 +58,15 @@ class TestSSRFAPI(unittest.TestCase):
     # ── Fuzzing ──────────────────────────────────────────────────────────────
 
     def test_fuzz_generates_stats_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
+        self._compile()
+        self._fuzz()
         stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
     def test_fuzz_generates_json_stats_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
+        self._compile()
+        self._fuzz()
         json_path = os.path.join(self.PATH, "stats.json")
         self.assertTrue(os.path.exists(json_path))
         self.assertGreater(os.path.getsize(json_path), 0)
@@ -74,8 +74,8 @@ class TestSSRFAPI(unittest.TestCase):
     # ── SSRF detection ────────────────────────────────────────────────────────
 
     def _run_and_get_vulns(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
+        self._compile()
+        self._fuzz()
         return get_vulnerabilities_from_stats(self.PATH)
 
     def test_ssrf_injection_detected(self):

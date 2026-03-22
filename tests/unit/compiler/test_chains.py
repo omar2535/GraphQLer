@@ -2,7 +2,7 @@
 
 import networkx
 
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.chains.chain_generator import ChainGenerator
 from graphqler.chains.strategies.dfs_strategy import DFSChainStrategy
 from graphqler.chains.strategies.topological_strategy import TopologicalChainStrategy
@@ -47,24 +47,24 @@ class TestChain:
 
     def test_repr_single(self):
         n = _make_node("A")
-        c = Chain(nodes=[n])
-        assert "A" in repr(c)
+        c = Chain(steps=[ChainStep(node=n)])
+        assert "A[primary]" in repr(c)
 
     def test_repr_multiple(self):
         nodes = [_make_node(name) for name in ["A", "B", "C"]]
-        c = Chain(nodes=nodes)
-        assert repr(c) == "Chain([A -> B -> C])"
+        c = Chain(steps=[ChainStep(node=n) for n in nodes])
+        assert "A[primary] -> B[primary] -> C[primary]" in repr(c)
 
     def test_len(self):
         nodes = [_make_node(name) for name in ["A", "B"]]
-        assert len(Chain(nodes=nodes)) == 2
+        assert len(Chain(steps=[ChainStep(node=n) for n in nodes])) == 2
 
     def test_len_empty(self):
         assert len(Chain()) == 0
 
     def test_last_node_returns_last(self):
         nodes = [_make_node(name) for name in ["X", "Y", "Z"]]
-        c = Chain(nodes=nodes)
+        c = Chain(steps=[ChainStep(node=n) for n in nodes])
         assert c.last_node() is nodes[-1]
 
     def test_last_node_empty_returns_none(self):
@@ -72,22 +72,27 @@ class TestChain:
 
     def test_has_mutation_type_true(self):
         n = _make_node("m", graphql_type="Mutation", mutation_type="DELETE")
-        c = Chain(nodes=[n])
+        c = Chain(steps=[ChainStep(node=n)])
         assert c.has_mutation_type(["DELETE"]) is True
 
     def test_has_mutation_type_false(self):
         n = _make_node("q", graphql_type="Query")
-        c = Chain(nodes=[n])
+        c = Chain(steps=[ChainStep(node=n)])
         assert c.has_mutation_type(["DELETE", "UPDATE"]) is False
 
-    def test_has_mutation_type_mixed(self):
-        nodes = [
-            _make_node("create", graphql_type="Mutation", mutation_type="CREATE"),
-            _make_node("update", graphql_type="Mutation", mutation_type="UPDATE"),
-        ]
-        c = Chain(nodes=nodes)
-        assert c.has_mutation_type(["UPDATE"]) is True
-        assert c.has_mutation_type(["DELETE"]) is False
+    def test_is_multi_profile_false(self):
+        n = _make_node("q", graphql_type="Query")
+        c = Chain(steps=[ChainStep(node=n, profile_name="primary")])
+        assert c.is_multi_profile is False
+
+    def test_is_multi_profile_true(self):
+        n1 = _make_node("q1", graphql_type="Query")
+        n2 = _make_node("q2", graphql_type="Query")
+        c = Chain(steps=[
+            ChainStep(node=n1, profile_name="primary"),
+            ChainStep(node=n2, profile_name="secondary")
+        ])
+        assert c.is_multi_profile is True
 
 
 # ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import networkx
 import yaml
 
 from graphqler import config
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.graph.node import Node
 
 
@@ -57,9 +57,7 @@ class ChainGenerator:
         """Persist each strategy's chains to its own YAML file under ``<save_path>/compiled/chains/``.
 
         The filename is taken from ``strategy.file_name``.
-        Regular chains are stored as ``{nodes: [...names...]}``.
-        IDOR chains additionally include ``idor_split_index``, ``idor_confidence``,
-        and ``idor_reason``.
+        Regular chains are stored as a list of steps, each with a node name and a profile name.
 
         Args:
             save_path (str): Root output directory.
@@ -70,20 +68,17 @@ class ChainGenerator:
         for strategy, chains in self._results:
             data = []
             for chain in chains:
-                entry: dict = {"nodes": [n.name for n in chain.nodes]}
-                if chain.split_index is not None:
-                    entry["idor_split_index"] = chain.split_index
-                    entry["idor_confidence"] = round(chain.confidence, 4)
-                    entry["idor_reason"] = chain.reason
+                entry: dict = {
+                    "steps": [{"node": step.node.name, "profile": step.profile_name} for step in chain.steps],
+                    "confidence": round(chain.confidence, 4),
+                    "reason": chain.reason,
+                }
                 data.append(entry)
             with open(chains_dir / strategy.file_name, "w") as f:
                 yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
     def load_from_yaml(self, save_path: str, graph: networkx.DiGraph) -> list[Chain]:
         """Load chains from all YAML files under ``<save_path>/compiled/chains/``.
-
-        Entries containing ``idor_split_index`` are restored as chains with
-        ``split_index`` set; all others become regular :class:`Chain` objects.
 
         Args:
             save_path (str): Root output directory.
@@ -104,16 +99,30 @@ class ChainGenerator:
             with open(chain_file, "r") as f:
                 data = yaml.safe_load(f) or []
             for entry in data:
-                nodes = [node_map[name] for name in entry.get("nodes", []) if name in node_map]
-                if "idor_split_index" in entry:
+                steps = []
+                # Handle new format (list of steps)
+                if "steps" in entry:
+                    for step_data in entry["steps"]:
+                        node_name = step_data["node"]
+                        profile_name = step_data.get("profile", step_data.get("context", "primary"))
+                        if node_name in node_map:
+                            steps.append(ChainStep(node=node_map[node_name], profile_name=profile_name))
+                # Handle old format (flat list of nodes) for backward compatibility during transition
+                elif "nodes" in entry:
+                    split_index = entry.get("idor_split_index")
+                    for i, node_name in enumerate(entry["nodes"]):
+                        if node_name in node_map:
+                            profile = "primary"
+                            if split_index is not None and i >= split_index:
+                                profile = "secondary"
+                            steps.append(ChainStep(node=node_map[node_name], profile_name=profile))
+
+                if steps:
                     chains.append(Chain(
-                        nodes=nodes,
-                        split_index=entry["idor_split_index"],
-                        confidence=entry.get("idor_confidence", 0.0),
-                        reason=entry.get("idor_reason", ""),
+                        steps=steps,
+                        confidence=entry.get("idor_confidence", entry.get("confidence", 0.0)),
+                        reason=entry.get("idor_reason", entry.get("reason", "")),
                     ))
-                else:
-                    chains.append(Chain(nodes=nodes))
 
         self._chains = chains
         return self._chains

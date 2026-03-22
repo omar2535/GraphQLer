@@ -7,7 +7,7 @@ import logging
 import networkx
 
 from graphqler import config
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.chains.idor import heuristic_idor_classifier, llm_idor_classifier
 from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
@@ -33,9 +33,6 @@ class IDORChainStrategy(BaseChainStrategy):
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Evaluate *source_chains* and return IDOR candidate chains.
 
-        Returns regular :class:`Chain` objects with ``split_index`` set to indicate
-        where primary-token execution ends and secondary-token testing begins.
-
         Args:
             graph (networkx.DiGraph): Accepted for interface compatibility; not used.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
@@ -43,7 +40,7 @@ class IDORChainStrategy(BaseChainStrategy):
             filter_mutation_type (list[str] | None): Accepted for interface compatibility; not used.
 
         Returns:
-            A (possibly empty) list of chains with ``split_index`` set.
+            A (possibly empty) list of chains where steps are associated with primary/secondary profiles.
             Returns an empty list immediately when IDOR secondary auth is not configured.
         """
         if not self.is_enabled() or source_chains is None:
@@ -88,30 +85,34 @@ class IDORChainStrategy(BaseChainStrategy):
     @staticmethod
     def _is_candidate(chain: Chain) -> bool:
         """Quick pre-filter: skip chains that can never be IDOR candidates."""
-        if len(chain.nodes) < 2:
+        if len(chain.steps) < 2:
             return False
-        has_create = any(n.mutation_type == "CREATE" for n in chain.nodes)
+        has_create = any(step.node.mutation_type == "CREATE" for step in chain.steps)
         if not has_create:
             return False
-        last_create = max((i for i, n in enumerate(chain.nodes) if n.mutation_type == "CREATE"),
+        last_create = max((i for i, step in enumerate(chain.steps) if step.node.mutation_type == "CREATE"),
                           default=-1)
-        return last_create < len(chain.nodes) - 1
+        return last_create < len(chain.steps) - 1
 
     @staticmethod
     def _last_create_split(chain: Chain) -> int:
         """Return split_index = last CREATE index + 1, or 0 if no CREATE found."""
         idx = -1
-        for i, n in enumerate(chain.nodes):
-            if n.mutation_type == "CREATE":
+        for i, step in enumerate(chain.steps):
+            if step.node.mutation_type == "CREATE":
                 idx = i
         return idx + 1 if idx >= 0 else 0
 
     @staticmethod
     def _make_idor_chain(chain: Chain, split_index: int, confidence: float, reason: str) -> Chain:
+        steps = []
+        for i, step in enumerate(chain.steps):
+            profile = "primary" if i < split_index else "secondary"
+            steps.append(ChainStep(node=step.node, profile_name=profile))
+
         return Chain(
-            nodes=chain.nodes,
+            steps=steps,
             name=chain.name,
-            split_index=split_index,
             confidence=confidence,
             reason=reason,
         )

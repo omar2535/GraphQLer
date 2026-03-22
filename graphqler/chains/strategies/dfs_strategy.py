@@ -2,7 +2,7 @@
 
 import networkx
 
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
 
@@ -60,7 +60,8 @@ class DFSChainStrategy(BaseChainStrategy):
             return  # stop recursion — this node and its subtree are excluded
 
         new_path = current_path + [node]
-        chains.append(Chain(nodes=new_path))
+        steps = [ChainStep(node=n) for n in new_path]
+        chains.append(Chain(steps=steps))
 
         for neighbor in graph.successors(node):
             if neighbor not in new_path:  # avoid cycles

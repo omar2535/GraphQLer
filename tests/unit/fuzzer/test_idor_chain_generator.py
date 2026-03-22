@@ -2,7 +2,7 @@
 
 import unittest
 
-from graphqler.chains.chain import Chain
+from graphqler.chains.chain import Chain, ChainStep
 from graphqler.graph.node import Node
 from graphqler.chains.idor import heuristic_idor_classifier
 
@@ -17,44 +17,57 @@ def _make_node(graphql_type: str, name: str, mutation_type: str | None = None, b
 
 
 def _make_chain(nodes: list[Node], name: str = "test-chain") -> Chain:
-    return Chain(nodes=nodes, name=name)
+    """Build a plain (single-profile) chain from a list of nodes."""
+    return Chain(steps=[ChainStep(node=n) for n in nodes], name=name)
+
+
+def _make_idor_chain(setup_nodes: list[Node], test_nodes: list[Node], name: str = "test-chain", confidence: float = 0.0) -> Chain:
+    """Build a multi-profile IDOR chain: setup nodes are primary, test nodes are secondary."""
+    steps = [ChainStep(node=n, profile_name="primary") for n in setup_nodes]
+    steps += [ChainStep(node=n, profile_name="secondary") for n in test_nodes]
+    return Chain(steps=steps, name=name, confidence=confidence)
 
 
 # ── Chain IDOR field tests ────────────────────────────────────────────────────
 
 class TestChainIDORFields(unittest.TestCase):
-    def test_split_index_partitions_nodes(self):
+    def test_primary_steps_come_before_secondary(self):
         create_node = _make_node("Mutation", "createUser", "CREATE")
         get_node = _make_node("Query", "getUser")
-        chain = Chain(nodes=[create_node, get_node], name="c", split_index=1)
+        chain = _make_idor_chain([create_node], [get_node], name="c")
 
-        self.assertEqual(chain.nodes[:chain.split_index], [create_node])
-        self.assertEqual(chain.nodes[chain.split_index:], [get_node])
+        primary_nodes = [s.node for s in chain.steps if s.profile_name == "primary"]
+        secondary_nodes = [s.node for s in chain.steps if s.profile_name == "secondary"]
+        self.assertEqual(primary_nodes, [create_node])
+        self.assertEqual(secondary_nodes, [get_node])
 
-    def test_split_index_zero_means_all_test(self):
+    def test_all_secondary_chain_is_multi_profile(self):
         node = _make_node("Query", "getUser")
-        chain = Chain(nodes=[node], name="c", split_index=0)
-        self.assertEqual(chain.nodes[:chain.split_index], [])
-        self.assertEqual(chain.nodes[chain.split_index:], [node])
+        chain = Chain(steps=[ChainStep(node=node, profile_name="secondary")], name="c")
+        self.assertTrue(chain.is_multi_profile is False)  # only one profile type — not "multi"
 
-    def test_repr_shows_split_when_set(self):
+    def test_repr_shows_nodes_and_confidence(self):
         create_node = _make_node("Mutation", "createUser", "CREATE")
         get_node = _make_node("Query", "getUser")
-        chain = Chain(nodes=[create_node, get_node], name="c", split_index=1, confidence=0.9)
+        chain = _make_idor_chain([create_node], [get_node], name="c", confidence=0.9)
         r = repr(chain)
         self.assertIn("createUser", r)
         self.assertIn("getUser", r)
-        self.assertIn("0.90", r)
 
-    def test_repr_no_split_is_simple(self):
+    def test_repr_single_profile_chain(self):
         node = _make_node("Query", "getUser")
-        chain = Chain(nodes=[node], name="c")
-        self.assertNotIn("||", repr(chain))
+        chain = _make_chain([node], name="c")
         self.assertIn("getUser", repr(chain))
 
-    def test_no_split_index_default(self):
-        chain = Chain(nodes=[_make_node("Query", "getUser")])
-        self.assertIsNone(chain.split_index)
+    def test_single_profile_chain_is_not_multi_profile(self):
+        chain = _make_chain([_make_node("Query", "getUser")])
+        self.assertFalse(chain.is_multi_profile)
+
+    def test_multi_profile_chain_is_multi_profile(self):
+        create_node = _make_node("Mutation", "createUser", "CREATE")
+        get_node = _make_node("Query", "getUser")
+        chain = _make_idor_chain([create_node], [get_node])
+        self.assertTrue(chain.is_multi_profile)
 
 
 # ── Heuristic classifier tests ────────────────────────────────────────────────

@@ -295,12 +295,13 @@ def graphql_introspect():
 
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
     print("=== IDOR Test API ===")
     print("Tokens:")
     print("  Alice (victim)  : Bearer alice_token_abc123")
     print("  Bob   (attacker): Bearer bob_token_xyz789")
     print("")
-    print("IDOR-vulnerable: getNote, updateNote, deleteNote, getOrder, deleteOrder")
-    print("Secure:          myNotes, myOrders")
+    print(f"GraphQL endpoint: http://localhost:{port}/graphql")
     print("")
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

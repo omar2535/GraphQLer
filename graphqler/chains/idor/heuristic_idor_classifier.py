@@ -190,32 +190,33 @@ def classify(chain: Chain) -> tuple[float, int, str]:
             with the secondary / attacker token).
           - ``reason`` is a human-readable explanation of the score.
     """
-    nodes = chain.nodes
+    steps = chain.steps
 
-    if len(nodes) < 2:
+    if len(steps) < 2:
         return 0.0, 0, "chain too short (need at least 2 nodes)"
 
     # Find the last CREATE mutation
     last_create_idx: int | None = None
-    for i, node in enumerate(nodes):
-        if node.graphql_type == "Mutation" and node.mutation_type == "CREATE":
+    for i, step in enumerate(steps):
+        if step.node.graphql_type == "Mutation" and step.node.mutation_type == "CREATE":
             last_create_idx = i
 
     if last_create_idx is None:
         return 0.0, 0, "no CREATE mutation in chain"
 
     split_index = last_create_idx + 1
-    if split_index >= len(nodes):
+    if split_index >= len(steps):
         return 0.0, 0, "CREATE mutation is the last node — nothing to test"
 
-    create_node = nodes[last_create_idx]
+    create_node = steps[last_create_idx].node
     create_output = _resolve_output_type(create_node)
 
     # Evaluate every test node; keep the best-scoring Query or Mutation
     best_conf = 0.0
     best_reasons: list[str] = []
 
-    for test_node in nodes[split_index:]:
+    for step in steps[split_index:]:
+        test_node = step.node
         if test_node.graphql_type not in ("Query", "Mutation"):
             continue
         conf, reasons = _score_test_node(test_node, create_output)

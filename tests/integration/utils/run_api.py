@@ -43,6 +43,36 @@ def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Po
     return process
 
 
+def run_python_project(path: str, port: str) -> subprocess.Popen:
+    """Runs a Python (uv) project and sets the PORT environment variable.
+
+    Runs ``uv sync`` to install dependencies, then starts ``uv run python app.py``
+    as a background process.
+
+    Args:
+        path (str): The path to the project directory (must contain app.py and pyproject.toml).
+        port (str): The port to expose via the PORT environment variable.
+
+    Returns:
+        subprocess.Popen: The background server process.
+    """
+    env = os.environ.copy()
+    env["PORT"] = port
+
+    uv_cmd = shutil.which("uv")
+    if uv_cmd is None:
+        raise RuntimeError("uv command not found. Please ensure uv is installed.")
+
+    subprocess.run([uv_cmd, "sync", "-q"], cwd=path, check=True, env=env)
+
+    process = subprocess.Popen(
+        [uv_cmd, "run", "python", "app.py"],
+        cwd=path,
+        env=env,
+    )
+    return process
+
+
 def wait_for_server(url, timeout=30):
     """Wait for the server to start by continuously checking the given URL.
 
