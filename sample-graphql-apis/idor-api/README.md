@@ -5,7 +5,7 @@ A deliberately vulnerable GraphQL API for testing GraphQLer's IDOR detection.
 ## Quick start
 
 ```bash
-cd tests/test-apis/idor-api
+cd sample-graphql-apis/idor-api
 ./start.sh
 # API is live at http://localhost:8000/graphql
 ```
@@ -13,7 +13,7 @@ cd tests/test-apis/idor-api
 Or manually:
 
 ```bash
-cd tests/test-apis/idor-api
+cd sample-graphql-apis/idor-api
 uv sync
 uv run python app.py
 ```

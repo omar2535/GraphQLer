@@ -1,7 +1,7 @@
 import unittest
 from graphqler import core
 from graphqler.utils.config_handler import parse_config
-from tests.integration.utils.run_api import run_node_project, wait_for_server
+from tests.e2e.utils.run_api import run_node_project, wait_for_server
 import os
 
 
@@ -9,8 +9,8 @@ class TestCore(unittest.TestCase):
     PORT = 4001
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-user-wallet-api/"
-    API_PATH = "tests/test-apis/user-wallet-api"
-    CONFIG_PATH = "tests/test-apis/test_configs/user_wallet_api_config.toml"
+    API_PATH = "sample-graphql-apis/user-wallet-api"
+    CONFIG_PATH = "sample-graphql-apis/test_configs/user_wallet_api_config.toml"
     process = None
     process_pid = None
 

@@ -79,5 +79,5 @@ uv run pytest tests/unit/
 **Integration tests:**
 
 ```sh
-uv run pytest tests/integration/
+uv run pytest tests/e2e/
 ```

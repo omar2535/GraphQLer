@@ -44,7 +44,7 @@ To run integration tests, you will have to first set up the sample APIs by runni
 **Food delivery API:**
 
 ```sh
-cd tests/test-apis/food-delivery-api
+cd sample-graphql-apis/food-delivery-api
 npm install
 node dbinitializer.js
 node server.js

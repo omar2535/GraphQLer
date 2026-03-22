@@ -2,9 +2,9 @@ import os
 import shutil
 
 from graphqler import __main__, config
-from tests.integration.utils.run_api import run_python_project, wait_for_server
-from tests.integration.utils.base import GraphQLerIntegrationTestCase
-from tests.integration.utils.stats import (
+from tests.e2e.utils.run_api import run_python_project, wait_for_server
+from tests.e2e.utils.base import GraphQLerIntegrationTestCase
+from tests.e2e.utils.stats import (
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
@@ -14,8 +14,8 @@ class TestIDORApi(GraphQLerIntegrationTestCase):
     PORT = 4006
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-idor-api/"
-    API_PATH = "tests/test-apis/idor-api"
-    CONFIG_PATH = "tests/test-apis/test_configs/idor_api_config.toml"
+    API_PATH = "sample-graphql-apis/idor-api"
+    CONFIG_PATH = "sample-graphql-apis/test_configs/idor_api_config.toml"
     process = None
     process_pid = None
 

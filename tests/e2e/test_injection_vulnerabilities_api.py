@@ -1,33 +1,33 @@
-"""Integration tests for the api-security-api.
+"""Integration tests for the injection-vulnerabilities-api.
 
-Verifies that GraphQLer's API-level security detectors correctly flag the
-intentionally misconfigured endpoints in tests/test-apis/api-security-api/.
+Verifies that GraphQLer's injection detectors correctly flag the intentionally
+vulnerable endpoints exposed by sample-graphql-apis/injection-vulnerabilities-api/.
 
 Detectors exercised:
-  - Introspection Enabled   (Apollo Server started with introspection: true)
-  - Field Suggestions Enabled (Apollo Server returns "Did you mean…" hints)
-  - Query Deny Bypass        (middleware blocks `adminUsers` by name but not
-                               by alias: `s: adminUsers`)
+  - SQL Injection   (searchPosts — raw string interpolated into SQLite query)
+  - XSS Injection   (createPost / getPost — content reflected verbatim)
+  - Path Injection  (readFile — path traversal to /etc/passwd)
+  - OS Command Injection (executeCommand — shell passthrough)
 """
 
 import os
 import shutil
 
 from graphqler import __main__, config
-from tests.integration.utils.run_api import run_node_project, wait_for_server
-from tests.integration.utils.base import GraphQLerIntegrationTestCase
-from tests.integration.utils.stats import (
+from tests.e2e.utils.run_api import run_node_project, wait_for_server
+from tests.e2e.utils.base import GraphQLerIntegrationTestCase
+from tests.e2e.utils.stats import (
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
 
 
-class TestAPISecurityAPI(GraphQLerIntegrationTestCase):
-    PORT = 4004
+class TestInjectionVulnerabilitiesAPI(GraphQLerIntegrationTestCase):
+    PORT = 4002
     URL = f"http://localhost:{PORT}/graphql"
-    PATH = "ci-test-api-security-api/"
-    API_PATH = "tests/test-apis/api-security-api"
-    CONFIG_PATH = "tests/test-apis/test_configs/api_security_api_config.toml"
+    PATH = "ci-test-injection-vulnerabilities-api/"
+    API_PATH = "sample-graphql-apis/injection-vulnerabilities-api"
+    CONFIG_PATH = "sample-graphql-apis/test_configs/injection_vulnerabilities_api_config.toml"
     process = None
     process_pid = None
 
@@ -73,30 +73,37 @@ class TestAPISecurityAPI(GraphQLerIntegrationTestCase):
         self.assertTrue(os.path.exists(json_path))
         self.assertGreater(os.path.getsize(json_path), 0)
 
-    # ── Security detection ────────────────────────────────────────────────────
+    # ── Injection detection ───────────────────────────────────────────────────
 
     def _run_and_get_vulns(self):
         self._compile()
         self._fuzz()
         return get_vulnerabilities_from_stats(self.PATH)
 
-    def test_introspection_enabled_detected(self):
+    def test_sql_injection_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Introspection Enabled"),
-            f"Expected introspection-enabled to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "SQL Injection (SQLi) Injection"),
+            f"Expected SQL injection to be flagged. Got: {vulns}",
         )
 
-    def test_field_suggestions_enabled_detected(self):
+    def test_xss_injection_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Field Suggestions Enabled"),
-            f"Expected field-suggestions-enabled to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Cross-Site Scripting (XSS) Injection"),
+            f"Expected XSS to be flagged. Got: {vulns}",
         )
 
-    def test_query_deny_bypass_detected(self):
+    def test_path_injection_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Query deny bypass"),
-            f"Expected query-deny-bypass to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Path Injection"),
+            f"Expected path injection to be flagged. Got: {vulns}",
+        )
+
+    def test_os_command_injection_detected(self):
+        vulns = self._run_and_get_vulns()
+        self.assertTrue(
+            is_detection_flagged(vulns, "OS Command Injection"),
+            f"Expected OS command injection to be flagged. Got: {vulns}",
         )
