@@ -22,12 +22,14 @@ class DFSChainStrategy(BaseChainStrategy):
     file_name = "regular.yml"
 
     def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+                 source_chains: list[Chain] | None = None,
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Run DFS from each starter node and collect all prefix chains.
 
         Args:
             graph (networkx.DiGraph): The dependency graph.
             starter_nodes (list[Node]): Nodes to begin DFS from.
+            source_chains (list[Chain] | None): Accepted for interface compatibility; not used.
             filter_mutation_type (list[str] | None): Mutation types to exclude.
                 Nodes whose ``mutation_type`` is in this list (and their entire subtrees)
                 will be skipped. Pass ``None`` or ``[]`` to include all nodes.

@@ -12,7 +12,7 @@ from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
-from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy
+from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy, Chain
 from graphqler.graph import GraphGenerator
 from graphqler import config
 from clairvoyance.cli import blind_introspection
@@ -208,13 +208,8 @@ class Compiler:
     def run_chain_generation_and_save(self):
         """Builds the dependency graph, runs each configured strategy, and persists the chains.
 
-        The compiler decides which strategies to run:
-        - Always runs :class:`TopologicalChainStrategy` for regular fuzzing chains.
-        - Runs :class:`IDORChainStrategy` when ``config.IDOR_SECONDARY_AUTH`` is set
-          and IDOR chain fuzzing is not disabled.
-
-        The :class:`ChainGenerator` accumulates the results and writes one YAML file per
-        strategy under ``<output>/compiled/chains/``.
+        The compiler decides which strategies to run based on :meth:`BaseChainStrategy.is_enabled`.
+        Results accumulate across all active strategies.
         """
         dependency_graph = GraphGenerator(self.save_path).get_dependency_graph()
         in_degrees = dict(dependency_graph.in_degree())
@@ -225,16 +220,25 @@ class Compiler:
         min_degree = min(in_degrees.values())
         starter_nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
 
-        # Regular chains
-        topo_strategy = TopologicalChainStrategy()
-        regular_chains = self.chain_generator.generate_with_strategy(topo_strategy, dependency_graph, starter_nodes)
-        self.logger.info(f"Generated {len(regular_chains)} regular chains")
+        strategies = [
+            TopologicalChainStrategy(),
+            IDORChainStrategy(),
+        ]
 
-        # IDOR chains (derived from regular chains)
-        if config.IDOR_SECONDARY_AUTH and not config.SKIP_IDOR_CHAIN_FUZZING:
-            idor_strategy = IDORChainStrategy()
-            idor_chains = self.chain_generator.generate_with_strategy(idor_strategy, regular_chains)
-            self.logger.info(f"Generated {len(idor_chains)} IDOR candidate chain(s)")
+        regular_chains: list[Chain] = []
+        for strategy in strategies:
+            if not strategy.is_enabled():
+                continue
+
+            chains = self.chain_generator.generate_with_strategy(
+                strategy, dependency_graph, starter_nodes, regular_chains
+            )
+
+            # If this was the first strategy, its output becomes the 'source' for others
+            if not regular_chains:
+                regular_chains = chains
+
+            self.logger.info(f"Generated {len(chains)} chains with {strategy.__class__.__name__}")
 
         self.chain_generator.save_to_yaml(self.save_path)
         self.logger.info(f"Chains saved to {self.save_path}/{config.CHAINS_DIR_NAME}/")
