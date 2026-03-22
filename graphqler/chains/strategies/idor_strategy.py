@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import logging
 
+import networkx
+
 from graphqler import config
 from graphqler.chains.chain import Chain
 from graphqler.chains.idor import heuristic_idor_classifier, llm_idor_classifier
+from graphqler.chains.strategies.base_strategy import BaseChainStrategy
+from graphqler.graph.node import Node
 
 logger = logging.getLogger(__name__)
 
 
-class IDORChainStrategy:
+class IDORChainStrategy(BaseChainStrategy):
     """Derives IDOR candidate chains from an already-generated list of regular chains.
 
     Unlike graph-traversal strategies, this strategy takes the output of another
@@ -24,20 +28,25 @@ class IDORChainStrategy:
 
     file_name = "idor.yml"
 
-    def generate(self, source_chains: list[Chain]) -> list[Chain]:
+    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+                 source_chains: list[Chain] | None = None,
+                 filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Evaluate *source_chains* and return IDOR candidate chains.
 
         Returns regular :class:`Chain` objects with ``split_index`` set to indicate
         where primary-token execution ends and secondary-token testing begins.
 
         Args:
+            graph (networkx.DiGraph): Accepted for interface compatibility; not used.
+            starter_nodes (list[Node]): Accepted for interface compatibility; not used.
             source_chains: Regular chains produced by a graph-based strategy.
+            filter_mutation_type (list[str] | None): Accepted for interface compatibility; not used.
 
         Returns:
             A (possibly empty) list of chains with ``split_index`` set.
             Returns an empty list immediately when IDOR secondary auth is not configured.
         """
-        if not config.IDOR_SECONDARY_AUTH or config.SKIP_IDOR_CHAIN_FUZZING:
+        if not self.is_enabled() or source_chains is None:
             return []
 
         candidates: list[Chain] = []

@@ -59,31 +59,38 @@ class TopologicalChainStrategy(BaseChainStrategy):
 
     file_name = "regular.yml"
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node], filter_mutation_type: list[str] | None = None) -> list[Chain]:
+    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node], source_chains: list[Chain] | None = None, filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Run the standard 3-pass filtering strategy and return all chains combined.
 
         Args:
             graph (networkx.DiGraph): The dependency graph.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
+            source_chains (list[Chain] | None): Accepted for interface compatibility; not used.
+            filter_mutation_type (list[str] | None): Mutation types to exclude from all passes.
 
         Returns:
             list[Chain]: Concatenation of all passes in order.
         """
-        if config.DISABLE_MUTATIONS:
-            return self._generate_with_filter(graph, starter_nodes, filter_mutation_type=_ALL_MUTATION_TYPES)
+        def merge(p):
+            return list(set(p) | set(filter_mutation_type or []))
 
-        pass1 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
-        pass2 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
-        pass3 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=[])
+        if config.DISABLE_MUTATIONS:
+            return self._generate_with_filter(graph, starter_nodes, source_chains, filter_mutation_type=merge(_ALL_MUTATION_TYPES))
+
+        pass1 = self._generate_with_filter(graph, starter_nodes, source_chains, filter_mutation_type=merge(["UPDATE", "DELETE", "UNKNOWN"]))
+        pass2 = self._generate_with_filter(graph, starter_nodes, source_chains, filter_mutation_type=merge(["DELETE", "UNKNOWN"]))
+        pass3 = self._generate_with_filter(graph, starter_nodes, source_chains, filter_mutation_type=merge([]))
         return pass1 + pass2 + pass3
 
     def _generate_with_filter(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+                               source_chains: list[Chain] | None = None,
                                filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Generate one self-sufficient chain per non-filtered node.
 
         Args:
             graph (networkx.DiGraph): The dependency graph.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
+            source_chains (list[Chain] | None): Accepted for interface compatibility; not used.
             filter_mutation_type (list[str] | None): Mutation types to exclude.
 
         Returns:
