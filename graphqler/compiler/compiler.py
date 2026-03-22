@@ -12,7 +12,7 @@ from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
-from graphqler.chains import ChainGenerator
+from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy
 from graphqler.graph import GraphGenerator
 from graphqler import config
 from clairvoyance.cli import blind_introspection
@@ -206,11 +206,15 @@ class Compiler:
         write_dict_to_yaml(queries, self.compiled_queries_save_path)
 
     def run_chain_generation_and_save(self):
-        """Builds the dependency graph from compiled files, generates chains via the configured
-        :class:`ChainGenerator`, and persists them as a YAML file for human inspection.
+        """Builds the dependency graph, runs each configured strategy, and persists the chains.
 
-        The generated chains are also available via ``self.chain_generator.chains`` for
-        immediate inspection without reloading from disk.
+        The compiler decides which strategies to run:
+        - Always runs :class:`TopologicalChainStrategy` for regular fuzzing chains.
+        - Runs :class:`IDORChainStrategy` when ``config.IDOR_SECONDARY_AUTH`` is set
+          and IDOR chain fuzzing is not disabled.
+
+        The :class:`ChainGenerator` accumulates the results and writes one YAML file per
+        strategy under ``<output>/compiled/chains/``.
         """
         dependency_graph = GraphGenerator(self.save_path).get_dependency_graph()
         in_degrees = dict(dependency_graph.in_degree())
@@ -221,8 +225,16 @@ class Compiler:
         min_degree = min(in_degrees.values())
         starter_nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
 
-        self.chain_generator.generate(dependency_graph, starter_nodes)
-        self.logger.info(f"Generated {len(self.chain_generator.chains)} chains")
+        # Regular chains
+        topo_strategy = TopologicalChainStrategy()
+        regular_chains = self.chain_generator.generate_with_strategy(topo_strategy, dependency_graph, starter_nodes)
+        self.logger.info(f"Generated {len(regular_chains)} regular chains")
+
+        # IDOR chains (derived from regular chains)
+        if config.IDOR_SECONDARY_AUTH and not config.SKIP_IDOR_CHAIN_FUZZING:
+            idor_strategy = IDORChainStrategy()
+            idor_chains = self.chain_generator.generate_with_strategy(idor_strategy, regular_chains)
+            self.logger.info(f"Generated {len(idor_chains)} IDOR candidate chain(s)")
 
         self.chain_generator.save_to_yaml(self.save_path)
-        self.logger.info(f"Chains saved to {self.save_path}/{config.CHAINS_FILE_NAME}")
+        self.logger.info(f"Chains saved to {self.save_path}/{config.CHAINS_DIR_NAME}/")

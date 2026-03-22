@@ -19,6 +19,8 @@ class DFSChainStrategy(BaseChainStrategy):
     DFS stops at those nodes and does not recurse into their subtrees.
     """
 
+    file_name = "regular.yml"
+
     def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Run DFS from each starter node and collect all prefix chains.

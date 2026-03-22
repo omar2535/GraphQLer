@@ -12,8 +12,12 @@ class BaseChainStrategy(ABC):
     """Abstract base class for dependency-chain generation strategies.
 
     Subclasses implement :meth:`generate` to produce a list of :class:`Chain` objects
-    from the dependency graph and a set of starter nodes.
+    from the dependency graph and a set of starter nodes, and declare a :attr:`file_name`
+    that determines where the chains are persisted under the ``compiled/chains/`` folder.
     """
+
+    #: Filename (relative to ``compiled/chains/``) for persisting this strategy's output.
+    file_name: str
 
     @abstractmethod
     def generate(self,

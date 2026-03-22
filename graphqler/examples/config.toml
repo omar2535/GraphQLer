@@ -59,6 +59,30 @@ SKIP_MISC_ATTACKS = false # This mode is for when we want to skip the miscellane
 REQUEST_TIMEOUT = 120  # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds
 
+# ── Chain-based IDOR detection (cross-user access testing) ───────────────────
+# When IDOR_SECONDARY_AUTH is set, the compiler generates IDOR candidate chains
+# during compilation and saves them to chains.yml.  The fuzzer then runs the
+# setup nodes with the primary token (victim) so that resources are created,
+# and the test nodes with the secondary token (attacker) to check for IDOR.
+#
+# Usage:
+#   Set IDOR_SECONDARY_AUTH to the attacker's Bearer token, OR pass it via the
+#   --idor-auth CLI flag (which takes precedence).
+#
+# Heuristic scoring signals (0.0–1.0):
+#   +0.5  CREATE mutation output type matches the test node's input type
+#   +0.3  test node name contains private-resource keywords (user/order/profile…)
+#   +0.2  test node accepts an ID/Int parameter
+#   -0.2  test node name contains public-resource keywords (list/public/catalog…)
+#
+# Chains scoring below IDOR_HEURISTIC_CONFIDENCE_THRESHOLD are sent to the LLM
+# classifier when IDOR_USE_LLM_FALLBACK = true (requires USE_LLM = true).
+# ──────────────────────────────────────────────────────────────────────────────
+IDOR_SECONDARY_AUTH = ""              # Attacker/secondary Bearer token; empty = IDOR phase skipped
+SKIP_IDOR_CHAIN_FUZZING = false       # Set true to disable the IDOR phase even when a secondary token is configured
+IDOR_HEURISTIC_CONFIDENCE_THRESHOLD = 0.5  # Chains below this score trigger LLM fallback (when enabled)
+IDOR_USE_LLM_FALLBACK = false         # Use LLM classifier for low-confidence chains (requires USE_LLM = true)
+
 # For custom skipping specific nodes"""
 SKIP_NODES = []
 

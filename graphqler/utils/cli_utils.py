@@ -15,6 +15,20 @@ def set_auth_token_constant(auth_argument: str) -> None:
         config.AUTHORIZATION = f"Bearer {auth_argument}"
 
 
+def set_idor_auth_token_constant(auth_argument: str) -> None:
+    """Sets the secondary (attacker) auth token used for chain-based IDOR testing.
+       If the value already contains a space (e.g. "Bearer …"), it is used as-is;
+       otherwise it is prefixed with "Bearer ".
+
+    Args:
+        auth_argument (str): The secondary auth token argument
+    """
+    if len(auth_argument.split(" ")) >= 2:
+        config.IDOR_SECONDARY_AUTH = auth_argument
+    else:
+        config.IDOR_SECONDARY_AUTH = f"Bearer {auth_argument}"
+
+
 def is_compiled(path: str | Path) -> bool:
     """Checks if the compiled directory exists
 

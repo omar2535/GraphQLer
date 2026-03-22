@@ -1,6 +1,6 @@
 
-"""Regular mutation materializer:
-Materializes a mutation that is ready to be sent off
+"""Maximal payload materializer:
+Materializes a payload that is ready to be sent off
 """
 
 from .materializer import Materializer
@@ -19,13 +19,13 @@ class MaximalPayloadMaterializer(Materializer):
         super().__init__(self.api, self.fail_on_hard_dependency_not_met, max_depth=MAX_OUTPUT_SELECTOR_DEPTH, getter=self.getters)
 
     def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
-        """Materializes the mutation with parameters filled in
+        """Materializes the payload with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()
 
         Args:
             name (str): The name of either the mutation or query
-            objects_bucket (dict): The bucket of objects that have already been created
+            objects_bucket (ObjectsBucket): The bucket of objects that have already been created
             graphql_type (str): The type of the graphql operation (Query or Mutation)
 
         Returns:

@@ -4,45 +4,44 @@ Graphler - main start
 
 import sys
 import argparse
-import pprint
 import importlib.metadata
-import cloudpickle as pickle
 
 from graphqler.compiler.compiler import Compiler
-from graphqler.fuzzer import Fuzzer, IDORFuzzer
+from graphqler.fuzzer import Fuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
-from graphqler.utils.cli_utils import set_auth_token_constant, is_compiled
+from graphqler.utils.cli_utils import set_auth_token_constant, set_idor_auth_token_constant, is_compiled
 from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path
 from graphqler.utils.file_utils import get_or_create_directory
 from graphqler import config
 
-
-def run_compile_mode(path: str, url: str):
+def run_compile_mode(compiler: Compiler, path: str, url: str):
     """Runs the full compilation pipeline by delegating to compile-graph then compile-chains.
 
     Args:
+        compiler (Compiler): An instance of the Compiler class to use for compilation.  
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
     print("(C) In compile mode!")
-    run_compile_graph_mode(path, url)
-    run_compile_chains_mode(path)
+    run_compile_graph_mode(compiler, path, url)
+    run_compile_chains_mode(compiler, path, url)
     print("(C) Complete compilation phase")
 
 
-def run_compile_graph_mode(path: str, url: str):
+def run_compile_graph_mode(compiler: Compiler, path: str, url: str):
     """Runs only the introspection / parsing / resolving steps and generates the dependency graph.
 
     Use this when you want to regenerate the dependency graph without re-running
     chain generation, or when you plan to run ``compile-chains`` separately.
 
     Args:
+        compiler (Compiler): An instance of the Compiler class to use for compilation.
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
     print("(C) In compile-graph mode!")
-    Compiler(path, url).run()
+    compiler.run()
 
     print("(C) Finished compiling, starting graph generator")
     graph_generator = GraphGenerator(path)
@@ -53,16 +52,17 @@ def run_compile_graph_mode(path: str, url: str):
     print("(C) Complete graph compilation phase (chains not generated)")
 
 
-def run_compile_chains_mode(path: str):
+def run_compile_chains_mode(compiler: Compiler, path: str, url: str):
     """Generates (or re-generates) fuzzing chains from an already-compiled graph.
 
     Requires that ``compile`` or ``compile-graph`` has been run first so that the
     compiled YAML files and dependency graph are present on disk.
 
     Args:
+        compiler (Compiler): An instance of the Compiler class to use for chain generation.
         path (str): Directory used during the original compilation.
+        url (str): URL of the target
     """
-    from graphqler.chains import ChainGenerator
 
     print("(C) In compile-chains mode!")
     dependency_graph = GraphGenerator(path).get_dependency_graph()
@@ -71,20 +71,15 @@ def run_compile_chains_mode(path: str):
         print("(C) Dependency graph is empty — no chains generated")
         return
 
-    min_degree = min(in_degrees.values())
-    starter_nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
-
-    chain_generator = ChainGenerator()
-    chain_generator.generate(dependency_graph, starter_nodes)
-    chain_generator.save_to_yaml(path)
-    print(f"(C) Generated {len(chain_generator.chains)} chains")
+    compiler.run_chain_generation_and_save()
     print("(C) Chain generation complete")
 
 
-def run_fuzz_mode(path: str, url: str):
+def run_fuzz_mode(fuzzer: Fuzzer, path: str, url: str):
     """Runs the program in fuzz mode
 
     Args:
+        fuzzer (Fuzzer): An instance of the Fuzzer class to run
         path (str): Directory for all compilation outputs to be saved to
         url (str): URL of the target
     """
@@ -98,25 +93,19 @@ def run_fuzz_mode(path: str, url: str):
 
     if config.USE_DEPENDENCY_GRAPH:
         print("(F) Running in dependency graph mode")
-        Fuzzer(path, url).run()
-    else:
-        print("(F) Not using dependency graph")
-        Fuzzer(path, url).run_no_dfs()
+        fuzzer.run()
 
     print("(F) Complete fuzzing phase")
 
 
 def run_idor_mode(path: str, url: str):
-    print("(F) Running IDOR fuzzer")
-    try:
-        with open(f"{path}/{config.OBJECTS_BUCKET_PICKLE_FILE_NAME}", "rb") as f:
-            objects_bucket = pickle.load(f)
-            possible_idor_nodes = IDORFuzzer(path, url, objects_bucket).run()
-            print("Possible IDOR nodes:")
-            pprint.pprint(possible_idor_nodes)
-    except FileNotFoundError:
-        print("(F) Error: objects_bucket.pkl not found")
-        return
+    """Run only the IDOR chain phase (no regular fuzzing).
+
+    Requires a prior --mode compile run with --idor-auth set so that
+    IDOR chains were generated into compiled/chains/idor.yml.
+    """
+    print("(F) Running IDOR-only phase (skipping regular fuzzing)")
+    Fuzzer(path, url).run_idor_only()
 
 
 def run_single_mode(path: str, url: str, name: str):
@@ -149,10 +138,6 @@ def main(args: dict):
     if 'proxy' in args and args['proxy']:
         config.PROXY = args['proxy']
 
-    # Set auth token if provided
-    if 'auth' in args and args['auth']:
-        set_auth_token_constant(args['auth'])
-
     # Parse config if provided
     if 'config' in args and args['config']:
         print("(P) Using provided config file")
@@ -170,6 +155,14 @@ def main(args: dict):
     if 'plugins_path' in args and args['plugins_path']:
         config.PLUGINS_PATH = args['plugins_path']
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
+
+    # CLI overrides — applied after set_config so they always win over the config file
+    if 'auth' in args and args['auth']:
+        set_auth_token_constant(args['auth'])
+
+    if args.get('idor_auth'):
+        set_idor_auth_token_constant(args['idor_auth'])
+        print("(P) IDOR secondary auth token set")
 
     # Apply LLM CLI overrides — these take precedence over config file values
     if args.get('use_llm'):
@@ -189,18 +182,22 @@ def main(args: dict):
         config.DISABLE_MUTATIONS = True
         print("(P) Mutation fuzzing disabled — only Query chains will be generated")
 
+    # Initialize the compiler and fuzzer
+    compiler = Compiler(args['path'], args['url'])
     # Start the program
     if args['mode'] == "compile":
-        run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
+        run_compile_mode(compiler, config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "compile-graph":
-        run_compile_graph_mode(config.OUTPUT_DIRECTORY, args['url'])
+        run_compile_graph_mode(compiler, config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "compile-chains":
-        run_compile_chains_mode(config.OUTPUT_DIRECTORY)
+        run_compile_chains_mode(compiler, config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "fuzz":
-        run_fuzz_mode(config.OUTPUT_DIRECTORY, args['url'])
+        fuzzer = Fuzzer(args['path'], args['url'])
+        run_fuzz_mode(fuzzer, config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "run":
-        run_compile_mode(config.OUTPUT_DIRECTORY, args['url'])
-        run_fuzz_mode(config.OUTPUT_DIRECTORY, args['url'])
+        run_compile_mode(compiler, config.OUTPUT_DIRECTORY, args['url'])
+        fuzzer = Fuzzer(args['path'], args['url'])
+        run_fuzz_mode(fuzzer, config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "idor":
         run_idor_mode(config.OUTPUT_DIRECTORY, args['url'])
     elif args['mode'] == "single":
@@ -225,6 +222,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="TOML configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "compile-graph", "compile-chains", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
+    parser.add_argument("--idor-auth", help="secondary (attacker) auth token for chain-based IDOR testing. Example: 'Bearer secondtoken'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
