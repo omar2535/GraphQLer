@@ -65,7 +65,7 @@ class TimeSQLInjectionDetector(Detector):
             t0 = time.monotonic()
             plugins_handler.get_request_utils().send_graphql_request(self.api.url, benign_payload)
             self.baseline_time = time.monotonic() - t0
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError):
             self.baseline_time = 0.0
 
         # ── Step 2: injection payload ──────────────────────────────────────────

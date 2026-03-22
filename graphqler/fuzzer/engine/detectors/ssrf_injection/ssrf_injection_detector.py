@@ -2,7 +2,7 @@ from typing import Type
 
 import requests
 
-from .ssrf_injection_materialilzer import SSRFInjectionMaterializer
+from .ssrf_injection_materializer import SSRFInjectionMaterializer
 from ..detector import Detector
 
 # Response patterns that may indicate internal service data leakage via SSRF

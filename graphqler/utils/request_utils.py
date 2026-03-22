@@ -138,7 +138,7 @@ def parse_response(response_text: str) -> dict:
     try:
         json_text = json.loads(response_text)
         return json_text
-    except Exception:
+    except (json.JSONDecodeError, ValueError):
         return {"errors": [response_text]}
 
 

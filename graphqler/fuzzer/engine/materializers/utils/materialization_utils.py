@@ -33,7 +33,7 @@ def is_valid_object_materialization(materialized_str: str) -> bool:
         parsed_obj = parse(dummy_payload)
         print_ast(parsed_obj).strip()
         return True
-    except Exception:
+    except (SyntaxError, ValueError, TypeError):
         return False
 
 

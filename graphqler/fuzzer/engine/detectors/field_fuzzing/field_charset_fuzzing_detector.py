@@ -150,7 +150,7 @@ class FieldCharsetFuzzingDetector(Detector):
         mat = _FixedStringMaterializer(api=self.api, target_field=field_name, value=value, max_depth=3)
         try:
             payload, _ = mat.get_payload(self.name, self.objects_bucket, self.graphql_type)
-        except Exception:
+        except (ValueError, KeyError, AttributeError):
             payload = ""
         return payload
 
@@ -164,7 +164,7 @@ class FieldCharsetFuzzingDetector(Detector):
             )
             Stats().add_http_status_code(self.name, request_response.status_code)
             return len(request_response.text)
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError, AttributeError):
             return 0
 
     def _field_shows_variance(self, field_name: str) -> bool:

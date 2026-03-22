@@ -1,23 +1,23 @@
 """Simple parser abstract class"""
 
+from abc import ABC, abstractmethod
 
-class Parser:
+
+class Parser(ABC):
     def __init__(self):
         pass
 
+    @abstractmethod
     def parse(self, introspection_data: dict) -> dict:
-        """Abtract parse method, should be overriden by children classes
+        """Parse the introspection data and return a structured dict.
 
         Args:
-            introspection_result (dict): The introspection data
-
-        Raises:
-            Exception: Throws exception if this method isn't overriden by child class
+            introspection_data (dict): The full introspection JSON response.
 
         Returns:
-            dict: The parse result
+            dict: Parsed result keyed by GraphQL type name.
         """
-        raise Exception("Should not call parse on base Parser class")
+        ...
 
     def extract_oftype(self, field: dict) -> dict | None:
         """Extract the ofType. Assume that at the lowest level, nested ofType will always be null

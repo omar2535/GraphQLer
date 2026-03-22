@@ -1,4 +1,14 @@
-"""DFS-based chain generation strategy."""
+"""DFS-based chain generation strategy.
+
+Note: The default compiler pipeline uses :class:`TopologicalChainStrategy`, which produces
+fully self-sufficient chains with all transitive dependencies included.  ``DFSChainStrategy``
+is an alternative that generates prefix-path chains (A, A→B, A→B→C separately) and is
+available for callers that prefer this style.  To use it, call::
+
+    generator.generate_with_strategy(DFSChainStrategy(), graph, starter_nodes)
+
+in place of (or alongside) the topological strategy.
+"""
 
 import networkx
 
@@ -17,9 +27,14 @@ class DFSChainStrategy(BaseChainStrategy):
 
     Nodes whose ``mutation_type`` is in *filter_mutation_type* are excluded from chains;
     DFS stops at those nodes and does not recurse into their subtrees.
+
+    .. note::
+        Uses a distinct filename (``dfs_regular.yml``) so that it does not overwrite
+        the ``regular.yml`` output produced by :class:`TopologicalChainStrategy` when
+        both strategies are run in the same pipeline.
     """
 
-    file_name = "regular.yml"
+    file_name = "dfs_regular.yml"
 
     def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
                  source_chains: list[Chain] | None = None,
