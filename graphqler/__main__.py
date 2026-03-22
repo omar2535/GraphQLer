@@ -89,11 +89,13 @@ def run_fuzz_mode(fuzzer: Fuzzer, path: str, url: str):
 
     print("(F) Starting fuzzer")
     if not config.USE_OBJECTS_BUCKET:
-        print("(F) Not using Objects Bucket")
+        print("(F) Ablation mode: objects bucket disabled — no state tracking across requests")
+    if not config.USE_DEPENDENCY_GRAPH:
+        print("(F) Ablation mode: dependency graph disabled — running all nodes without chain ordering")
+    if config.MAX_FUZZING_ITERATIONS != 1:
+        print(f"(F) Running up to {config.MAX_FUZZING_ITERATIONS} chain iteration(s)")
 
-    if config.USE_DEPENDENCY_GRAPH:
-        print("(F) Running in dependency graph mode")
-        fuzzer.run()
+    fuzzer.run()
 
     print("(F) Complete fuzzing phase")
 
@@ -199,6 +201,20 @@ def main(args: dict):
         config.DISABLE_MUTATIONS = True
         print("(P) Mutation fuzzing disabled — only Query chains will be generated")
 
+    # Apply ablation CLI overrides
+    if args.get('no_objects_bucket'):
+        config.USE_OBJECTS_BUCKET = False
+        print("(P) Ablation: objects bucket disabled")
+    if args.get('no_dependency_graph'):
+        config.USE_DEPENDENCY_GRAPH = False
+        print("(P) Ablation: dependency graph guidance disabled")
+    if args.get('max_iterations') is not None:
+        config.MAX_FUZZING_ITERATIONS = args['max_iterations']
+        print(f"(P) Max chain iterations set to {config.MAX_FUZZING_ITERATIONS}")
+    if args.get('allow_deletion'):
+        config.ALLOW_DELETION_OF_OBJECTS = True
+        print("(P) Deletion of objects from bucket enabled")
+
     # Initialize the compiler and fuzzer
     compiler = Compiler(args['path'], args['url'])
     # Start the program
@@ -249,6 +265,13 @@ if __name__ == "__main__":
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
     parser.add_argument("--llm-max-retries", help="number of retries when LLM returns non-JSON (default: 2)", type=int, required=False)
     parser.add_argument("--disable-mutations", help="only generate and run Query chains — all Mutation nodes are excluded from fuzzing", action="store_true", default=False)
+
+    # Ablation / research flags
+    parser.add_argument("--no-objects-bucket", help="ablation: disable the objects bucket — requests carry no state from prior responses", action="store_true", default=False)
+    parser.add_argument("--no-dependency-graph", help="ablation: disable dependency-graph chain ordering — all nodes run independently without chaining", action="store_true", default=False)
+    parser.add_argument("--max-iterations", help=f"number of times to iterate through all chains (default: {config.MAX_FUZZING_ITERATIONS})", type=int, required=False)
+    parser.add_argument("--allow-deletion", help="remove objects from the bucket when a DELETE mutation succeeds (default: off)", action="store_true", default=False)
+
     parser.add_argument("--version", help="display version", action="store_true")
 
     args = parser.parse_args()
