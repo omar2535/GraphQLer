@@ -11,7 +11,7 @@ Constributing is simple:
 ## Development
 
 The development environment follows the same steps as the installation guide, so we refer to it there.
-The only main point is to use the **poetry** installation instead of the docker installation.
+The only main point is to use the **uv** installation instead of the docker installation.
 
 Here is a sample vscode debug configuration:
 
@@ -39,7 +39,7 @@ Here is a sample vscode debug configuration:
 
 ## Running tests
 
-To run integration tests, you will have to first set up the sample APIs by running the following:
+To run end-to-end tests, you will have to first set up the sample APIs by running the following:
 
 **Food delivery API:**
 
