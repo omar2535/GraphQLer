@@ -1,31 +1,33 @@
-"""Integration tests for the nosql-time-sql-api.
+"""Integration tests for the api-security-api.
 
-Verifies that GraphQLer's injection detectors correctly flag the intentionally
-vulnerable endpoints exposed by tests/test-apis/nosql-time-sql-api/.
+Verifies that GraphQLer's API-level security detectors correctly flag the
+intentionally misconfigured endpoints in sample-graphql-apis/api-security-api/.
 
 Detectors exercised:
-  - NoSQL Injection       (searchUsers — MongoDB-operator bypass / MongoServerError)
-  - Time-based SQL Injection (timeSqlQuery — SLEEP / pg_sleep / WAITFOR DELAY)
+  - Introspection Enabled   (Apollo Server started with introspection: true)
+  - Field Suggestions Enabled (Apollo Server returns "Did you mean…" hints)
+  - Query Deny Bypass        (middleware blocks `adminUsers` by name but not
+                               by alias: `s: adminUsers`)
 """
 
 import os
 import shutil
 
 from graphqler import __main__, config
-from tests.integration.utils.run_api import run_node_project, wait_for_server
-from tests.integration.utils.base import GraphQLerIntegrationTestCase
-from tests.integration.utils.stats import (
+from tests.e2e.utils.run_api import run_node_project, wait_for_server
+from tests.e2e.utils.base import GraphQLerIntegrationTestCase
+from tests.e2e.utils.stats import (
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
 
 
-class TestNoSQLTimeSQLAPI(GraphQLerIntegrationTestCase):
-    PORT = 4005
+class TestAPISecurityAPI(GraphQLerIntegrationTestCase):
+    PORT = 4004
     URL = f"http://localhost:{PORT}/graphql"
-    PATH = "ci-test-nosql-time-sql-api/"
-    API_PATH = "tests/test-apis/nosql-time-sql-api"
-    CONFIG_PATH = "tests/test-apis/test_configs/nosql_time_sql_api_config.toml"
+    PATH = "ci-test-api-security-api/"
+    API_PATH = "sample-graphql-apis/api-security-api"
+    CONFIG_PATH = "sample-graphql-apis/test_configs/api_security_api_config.toml"
     process = None
     process_pid = None
 
@@ -64,35 +66,37 @@ class TestNoSQLTimeSQLAPI(GraphQLerIntegrationTestCase):
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
-    # ── Injection detection ───────────────────────────────────────────────────
+    def test_fuzz_generates_json_stats_file(self):
+        self._compile()
+        self._fuzz()
+        json_path = os.path.join(self.PATH, "stats.json")
+        self.assertTrue(os.path.exists(json_path))
+        self.assertGreater(os.path.getsize(json_path), 0)
 
-    _cached_vulns = None
+    # ── Security detection ────────────────────────────────────────────────────
 
     def _run_and_get_vulns(self):
-        if self.__class__._cached_vulns is None:
-            self._compile()
-            self._fuzz()
-            self.__class__._cached_vulns = get_vulnerabilities_from_stats(self.PATH)
-        return self.__class__._cached_vulns
+        self._compile()
+        self._fuzz()
+        return get_vulnerabilities_from_stats(self.PATH)
 
-    def test_nosql_injection_detected(self):
+    def test_introspection_enabled_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "NoSQL Injection (NoSQLi)"),
-            f"Expected NoSQL injection to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Introspection Enabled"),
+            f"Expected introspection-enabled to be flagged. Got: {vulns}",
         )
 
-    def test_time_based_sql_injection_detected(self):
+    def test_field_suggestions_enabled_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Time-based SQL Injection (Blind SQLi)"),
-            f"Expected time-based SQL injection to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Field Suggestions Enabled"),
+            f"Expected field-suggestions-enabled to be flagged. Got: {vulns}",
         )
 
-    def test_time_based_sql_injection_confirmed(self):
-        """The time delay must be long enough that the detector confirms (not just flags) the vuln."""
+    def test_query_deny_bypass_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Time-based SQL Injection (Blind SQLi)", confirmed=True),
-            f"Expected time-based SQL injection to be *confirmed*. Got: {vulns}",
+            is_detection_flagged(vulns, "Query deny bypass"),
+            f"Expected query-deny-bypass to be flagged. Got: {vulns}",
         )

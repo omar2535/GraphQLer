@@ -1,33 +1,31 @@
-"""Integration tests for the injection-vulnerabilities-api.
+"""Integration tests for the nosql-time-sql-api.
 
 Verifies that GraphQLer's injection detectors correctly flag the intentionally
-vulnerable endpoints exposed by tests/test-apis/injection-vulnerabilities-api/.
+vulnerable endpoints exposed by sample-graphql-apis/nosql-time-sql-api/.
 
 Detectors exercised:
-  - SQL Injection   (searchPosts — raw string interpolated into SQLite query)
-  - XSS Injection   (createPost / getPost — content reflected verbatim)
-  - Path Injection  (readFile — path traversal to /etc/passwd)
-  - OS Command Injection (executeCommand — shell passthrough)
+  - NoSQL Injection       (searchUsers — MongoDB-operator bypass / MongoServerError)
+  - Time-based SQL Injection (timeSqlQuery — SLEEP / pg_sleep / WAITFOR DELAY)
 """
 
 import os
 import shutil
 
 from graphqler import __main__, config
-from tests.integration.utils.run_api import run_node_project, wait_for_server
-from tests.integration.utils.base import GraphQLerIntegrationTestCase
-from tests.integration.utils.stats import (
+from tests.e2e.utils.run_api import run_node_project, wait_for_server
+from tests.e2e.utils.base import GraphQLerIntegrationTestCase
+from tests.e2e.utils.stats import (
     get_vulnerabilities_from_stats,
     is_detection_flagged,
 )
 
 
-class TestInjectionVulnerabilitiesAPI(GraphQLerIntegrationTestCase):
-    PORT = 4002
+class TestNoSQLTimeSQLAPI(GraphQLerIntegrationTestCase):
+    PORT = 4005
     URL = f"http://localhost:{PORT}/graphql"
-    PATH = "ci-test-injection-vulnerabilities-api/"
-    API_PATH = "tests/test-apis/injection-vulnerabilities-api"
-    CONFIG_PATH = "tests/test-apis/test_configs/injection_vulnerabilities_api_config.toml"
+    PATH = "ci-test-nosql-time-sql-api/"
+    API_PATH = "sample-graphql-apis/nosql-time-sql-api"
+    CONFIG_PATH = "sample-graphql-apis/test_configs/nosql_time_sql_api_config.toml"
     process = None
     process_pid = None
 
@@ -66,44 +64,35 @@ class TestInjectionVulnerabilitiesAPI(GraphQLerIntegrationTestCase):
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
-    def test_fuzz_generates_json_stats_file(self):
-        self._compile()
-        self._fuzz()
-        json_path = os.path.join(self.PATH, "stats.json")
-        self.assertTrue(os.path.exists(json_path))
-        self.assertGreater(os.path.getsize(json_path), 0)
-
     # ── Injection detection ───────────────────────────────────────────────────
 
+    _cached_vulns = None
+
     def _run_and_get_vulns(self):
-        self._compile()
-        self._fuzz()
-        return get_vulnerabilities_from_stats(self.PATH)
+        if self.__class__._cached_vulns is None:
+            self._compile()
+            self._fuzz()
+            self.__class__._cached_vulns = get_vulnerabilities_from_stats(self.PATH)
+        return self.__class__._cached_vulns
 
-    def test_sql_injection_detected(self):
+    def test_nosql_injection_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "SQL Injection (SQLi) Injection"),
-            f"Expected SQL injection to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "NoSQL Injection (NoSQLi)"),
+            f"Expected NoSQL injection to be flagged. Got: {vulns}",
         )
 
-    def test_xss_injection_detected(self):
+    def test_time_based_sql_injection_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Cross-Site Scripting (XSS) Injection"),
-            f"Expected XSS to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Time-based SQL Injection (Blind SQLi)"),
+            f"Expected time-based SQL injection to be flagged. Got: {vulns}",
         )
 
-    def test_path_injection_detected(self):
+    def test_time_based_sql_injection_confirmed(self):
+        """The time delay must be long enough that the detector confirms (not just flags) the vuln."""
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "Path Injection"),
-            f"Expected path injection to be flagged. Got: {vulns}",
-        )
-
-    def test_os_command_injection_detected(self):
-        vulns = self._run_and_get_vulns()
-        self.assertTrue(
-            is_detection_flagged(vulns, "OS Command Injection"),
-            f"Expected OS command injection to be flagged. Got: {vulns}",
+            is_detection_flagged(vulns, "Time-based SQL Injection (Blind SQLi)", confirmed=True),
+            f"Expected time-based SQL injection to be *confirmed*. Got: {vulns}",
         )
