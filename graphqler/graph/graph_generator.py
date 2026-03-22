@@ -48,22 +48,25 @@ class GraphGenerator:
         """Generates the graph, creating nodes and creating edges between nodes.
         3 types of nodes (Objects, Queries, Mutations)
         """
+        compiled_queries = self.compiled_queries or {}
+        compiled_mutations = self.compiled_mutations or {}
+        compiled_objects = self.compiled_objects or {}
 
         """1. Create query nodes"""
         query_nodes = {}
-        for query_name, query_body in self.compiled_queries.items():
+        for query_name, query_body in compiled_queries.items():
             query_nodes[query_name] = Node("Query", query_name, query_body)
 
         """2. Create mutation nodes"""
         mutation_nodes = {}
-        for mutation_name, mutation_body in self.compiled_mutations.items():
+        for mutation_name, mutation_body in compiled_mutations.items():
             mutation_node = Node("Mutation", mutation_name, mutation_body)
             mutation_node.set_mutation_type(mutation_body["mutationType"])
             mutation_nodes[mutation_name] = mutation_node
 
         """3. Create object nodes"""
         object_nodes = {}
-        for object_name, object_body in self.compiled_objects.items():
+        for object_name, object_body in compiled_objects.items():
             object_nodes[object_name] = Node("Object", object_name, object_body)
 
         """4. Add all nodes to the graph"""

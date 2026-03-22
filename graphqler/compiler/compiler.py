@@ -7,7 +7,7 @@
 
 from pathlib import Path
 from graphqler.utils import plugins_handler
-from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file
+from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file, intialize_file_if_not_exists
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
@@ -73,9 +73,9 @@ class Compiler:
         initialize_file(self.enum_list_save_path)
         initialize_file(self.union_list_save_path)
         initialize_file(self.interface_list_save_path)
-        initialize_file(self.compiled_objects_save_path)
-        initialize_file(self.compiled_mutations_save_path)
-        initialize_file(self.compiled_queries_save_path)
+        intialize_file_if_not_exists(self.compiled_objects_save_path)
+        intialize_file_if_not_exists(self.compiled_mutations_save_path)
+        intialize_file_if_not_exists(self.compiled_queries_save_path)
 
     def run(self):
         """The only function required to be run from the caller, will perform:
