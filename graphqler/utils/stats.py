@@ -120,6 +120,9 @@ class Stats :
         initialize_file(Path(working_dir) / json_file_name)
         self.json_file_path = Path(working_dir) / json_file_name
 
+        # Eval/ablation directory (written only when ablation flags are active)
+        self.eval_dir = Path(working_dir) / config.EVAL_DIR_NAME
+
         # Do the endpoint results directory
         self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
         recreate_path(self.endpoint_results_dir)
@@ -359,7 +362,80 @@ class Stats :
         with open(json_path, "w") as f:
             json.dump(report, f, indent=4)
 
-    def save_endpoint_results(self):
+    def save_eval_summary(self):
+        """Saves an ablation/evaluation summary to the ``eval/`` directory.
+
+        Only writes when at least one non-default ablation flag is active
+        (``USE_OBJECTS_BUCKET=False``, ``USE_DEPENDENCY_GRAPH=False``, or
+        ``MAX_FUZZING_ITERATIONS != 1``).  Each call appends a timestamped
+        entry so multiple runs can be compared side-by-side.
+        """
+        eval_dir = getattr(self, "eval_dir", None)
+        if eval_dir is None:
+            return
+
+        is_ablation = (
+            not config.USE_OBJECTS_BUCKET
+            or not config.USE_DEPENDENCY_GRAPH
+            or config.MAX_FUZZING_ITERATIONS != 1
+        )
+        if not is_ablation:
+            return
+
+        eval_dir = Path(eval_dir)
+        eval_dir.mkdir(parents=True, exist_ok=True)
+
+        covered, total, coverage_frac = self.get_coverage_rate()
+        failed, _, negative_frac = self.get_negative_coverage_rate()
+
+        entry = {
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "ablation_config": {
+                "USE_OBJECTS_BUCKET": config.USE_OBJECTS_BUCKET,
+                "USE_DEPENDENCY_GRAPH": config.USE_DEPENDENCY_GRAPH,
+                "MAX_FUZZING_ITERATIONS": config.MAX_FUZZING_ITERATIONS,
+                "DISABLE_MUTATIONS": config.DISABLE_MUTATIONS,
+                "ALLOW_DELETION_OF_OBJECTS": config.ALLOW_DELETION_OF_OBJECTS,
+            },
+            "results": {
+                "time_taken_seconds": round(time.time() - self.start_time, 2),
+                "number_of_queries": self.number_of_queries,
+                "number_of_mutations": self.number_of_mutations,
+                "number_of_objects": self.number_of_objects,
+                "number_of_successes": self.number_of_successes,
+                "number_of_failures": self.number_of_failures,
+                "operation_coverage": {"covered": covered, "total": total, "rate": round(coverage_frac, 4)},
+                "negative_coverage": {"failed": failed, "total": total, "rate": round(negative_frac, 4)},
+                "vulnerabilities_found": {
+                    vuln: {node: info.get("is_vulnerable", False) for node, info in nodes.items()}
+                    for vuln, nodes in self.vulnerabilities.items()
+                },
+            },
+        }
+
+        # Append to a cumulative JSONL file so multiple runs stack up
+        runs_file = eval_dir / "ablation_runs.jsonl"
+        with open(runs_file, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+        # Also write a human-readable summary
+        summary_file = eval_dir / "ablation_summary.txt"
+        with open(summary_file, "a") as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"Run at: {entry['timestamp']}\n")
+            f.write(f"  USE_OBJECTS_BUCKET    : {config.USE_OBJECTS_BUCKET}\n")
+            f.write(f"  USE_DEPENDENCY_GRAPH  : {config.USE_DEPENDENCY_GRAPH}\n")
+            f.write(f"  MAX_FUZZING_ITERATIONS: {config.MAX_FUZZING_ITERATIONS}\n")
+            f.write(f"  DISABLE_MUTATIONS     : {config.DISABLE_MUTATIONS}\n")
+            f.write(f"  ALLOW_DELETION        : {config.ALLOW_DELETION_OF_OBJECTS}\n")
+            f.write("Results:\n")
+            f.write(f"  Time taken    : {entry['results']['time_taken_seconds']}s\n")
+            f.write(f"  Coverage      : {covered}/{total} ({coverage_frac * 100:.1f}%)\n")
+            f.write(f"  Neg. coverage : {failed}/{total} ({negative_frac * 100:.1f}%)\n")
+            f.write(f"  Successes     : {self.number_of_successes}\n")
+            f.write(f"  Failures      : {self.number_of_failures}\n")
+            if self.vulnerabilities:
+                f.write(f"  Vulnerabilities: {list(self.vulnerabilities.keys())}\n")
         """Reads the results, for each node in the node name -> results, create a directory for the
            result type, then a file for the response code, and append the payload and the response to the file.
         """

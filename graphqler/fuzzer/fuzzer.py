@@ -112,6 +112,7 @@ class Fuzzer(object):
         self.logger.info("Completed fuzzing")
         self.stats.print_results()
         self.stats.save()
+        self.stats.save_eval_summary()
         self.objects_bucket.save()
 
     def run_idor_only(self):
@@ -159,21 +160,35 @@ class Fuzzer(object):
 
     def __run_fuzz(self, queue: multiprocessing.Queue):
         """Runs the fuzzer using pre-generated chains. Steps:
-        1. Execute all chains in order (regular and IDOR; each is self-contained)
-        2. Run any nodes not covered by the chains (island nodes)
+        1. Execute all chains up to MAX_FUZZING_ITERATIONS times (or until MAX_TIME)
+        2. Run any nodes not covered by chains (island nodes) — once only
         3. Run detections on the overall API
         4. Finish
+
+        When USE_DEPENDENCY_GRAPH=False (ablation baseline), skip chain ordering entirely
+        and run all nodes directly without any dependency guidance.
 
         Args:
             queue (multiprocessing.Queue): Queue for communicating back to the parent process
         """
         self.stats.start_time = time.time()
 
-        if self.chains:
-            self.logger.info(f"Running {len(self.chains)} pre-generated chains")
-            for chain in self.chains:
-                self.__run_chain(chain)
-            self.logger.info("Completed all chains")
+        if not config.USE_DEPENDENCY_GRAPH:
+            # Ablation baseline: no graph guidance — execute every node independently
+            self.logger.info("USE_DEPENDENCY_GRAPH=False: running all nodes directly (ablation mode — no chain ordering)")
+            print("(F) Ablation mode: dependency graph disabled — running all nodes without chain ordering")
+            uncovered_nodes = list(self.dependency_graph.nodes)
+        elif self.chains:
+            max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
+            self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
+            for iteration in range(max_iter):
+                if time.time() - self.stats.start_time >= config.MAX_TIME:
+                    self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
+                    break
+                self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
+                for chain in self.chains:
+                    self.__run_chain(chain)
+            self.logger.info("Completed all chain iterations")
 
             chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
             uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
@@ -195,6 +210,7 @@ class Fuzzer(object):
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
         self.stats.print_results()
         self.stats.save()
+        self.stats.save_eval_summary()
         self.objects_bucket.save()
 
     def __run_chain(self, chain: Chain):
