@@ -8,6 +8,7 @@ from .query_deny_bypass.query_deny_bypass_detector import QueryDenyBypassDetecto
 from .path_injection.path_injection_detector import PathInjectionDetector
 from .field_fuzzing.field_charset_fuzzing_detector import FieldCharsetFuzzingDetector
 from .field_fuzzing.id_enumeration_detector import IDEnumerationDetector
+from .idor_chain_detector import IDORChainDetector as IDORChainDetector
 
 from .introspection.introspection_detector import IntrospectionDetector
 from .field_suggestion.field_suggestion_detector import FieldSuggestionsDetector

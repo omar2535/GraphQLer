@@ -157,11 +157,23 @@ def main(args: dict):
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
 
     # CLI overrides — applied after set_config so they always win over the config file
-    if 'auth' in args and args['auth']:
-        set_auth_token_constant(args['auth'])
+    if args.get('auth'):
+        # Multi-auth support: --auth profile=token or just --auth token (defaults to primary)
+        for auth_entry in args['auth']:
+            if "=" in auth_entry:
+                profile_name, token = auth_entry.split("=", 1)
+                config.PROFILES[profile_name] = token
+                if profile_name == "primary":
+                    set_auth_token_constant(token)
+                elif profile_name == "secondary":
+                    set_idor_auth_token_constant(token)
+            else:
+                config.PROFILES["primary"] = auth_entry
+                set_auth_token_constant(auth_entry)
 
     if args.get('idor_auth'):
         set_idor_auth_token_constant(args['idor_auth'])
+        config.PROFILES["secondary"] = args['idor_auth']
         print("(P) IDOR secondary auth token set")
 
     # Apply LLM CLI overrides — these take precedence over config file values
@@ -221,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument("--path", help=f"directory location for files to be saved-to/used-from. Defaults to {config.OUTPUT_DIRECTORY}", required=False)
     parser.add_argument("--config", help="TOML configuration file for the program", required=False)
     parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "compile-graph", "compile-chains", "fuzz", "idor", "run", "single"], required=True)
-    parser.add_argument("--auth", help="authentication token Example: 'Bearer arandompat-abcdefgh'", required=False)
+    parser.add_argument("--auth", help="authentication token(s). Can be 'token' or 'profile=token'. Multiple allowed.", action="append", required=False)
     parser.add_argument("--idor-auth", help="secondary (attacker) auth token for chain-based IDOR testing. Example: 'Bearer secondtoken'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)

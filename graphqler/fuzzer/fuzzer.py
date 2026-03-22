@@ -8,14 +8,13 @@
 """
 
 import multiprocessing
-import random
 import threading
 import time
 
 import typing
 
 from graphqler import config
-from graphqler.chains import Chain, ChainGenerator
+from graphqler.chains import Chain, ChainGenerator, ChainStep
 from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
@@ -25,6 +24,8 @@ from graphqler.utils.stats import Stats
 from .engine.fengine import FEngine
 from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
+from .engine.types.profile import RuntimeProfile
+from .engine.detectors import IDORChainDetector
 
 
 class Fuzzer(object):
@@ -44,6 +45,24 @@ class Fuzzer(object):
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
+        self.idor_detector = IDORChainDetector()
+
+        # Initialize runtime profiles
+        self.profiles: dict[str, RuntimeProfile] = {
+            "primary": RuntimeProfile(name="primary", auth_token=config.AUTHORIZATION),
+            "secondary": RuntimeProfile(name="secondary", auth_token=config.IDOR_SECONDARY_AUTH),
+        }
+        # Add any other profiles defined in config.PROFILES
+        for name, profile_data in getattr(config, "PROFILES", {}).items():
+            if isinstance(profile_data, dict):
+                self.profiles[name] = RuntimeProfile(
+                    name=name,
+                    auth_token=profile_data.get("auth_token"),
+                    headers=profile_data.get("headers", {}),
+                    variables=profile_data.get("variables", {})
+                )
+            elif isinstance(profile_data, str):
+                self.profiles[name] = RuntimeProfile(name=name, auth_token=profile_data)
 
         if objects_bucket:
             self.objects_bucket = objects_bucket
@@ -62,10 +81,10 @@ class Fuzzer(object):
         """Main function to run the fuzzer"""
         queue = multiprocessing.Queue()
         if config.DEBUG:
-            p = threading.Thread(target=self.__run_steps, args=(queue,))
+            p = threading.Thread(target=self.__run_fuzz, args=(queue,))
             p.daemon = True
         else:
-            p = multiprocessing.Process(target=self.__run_steps, args=(queue,))
+            p = multiprocessing.Process(target=self.__run_fuzz, args=(queue,))
         p.start()
         p.join(config.MAX_TIME)
 
@@ -121,7 +140,7 @@ class Fuzzer(object):
         """Run only IDOR chains (no regular fuzzing, no island nodes, no API-level detections)."""
         self.stats.start_time = time.time()
 
-        idor_chains = [c for c in self.chains if c.split_index is not None]
+        idor_chains = [c for c in self.chains if c.is_multi_profile]
 
         if not idor_chains:
             print("(F) No IDOR chains found — run with --mode compile first and ensure --idor-auth is set")
@@ -138,7 +157,7 @@ class Fuzzer(object):
         self.stats.save()
         self.objects_bucket.save()
 
-    def __run_steps(self, queue: multiprocessing.Queue):
+    def __run_fuzz(self, queue: multiprocessing.Queue):
         """Runs the fuzzer using pre-generated chains. Steps:
         1. Execute all chains in order (regular and IDOR; each is self-contained)
         2. Run any nodes not covered by the chains (island nodes)
@@ -179,54 +198,47 @@ class Fuzzer(object):
         self.objects_bucket.save()
 
     def __run_chain(self, chain: Chain):
-        """Executes every node in the chain sequentially using a fresh, isolated ObjectsBucket.
+        """Executes every step in the chain sequentially using a fresh, isolated ObjectsBucket.
 
         Each chain is fully self-sufficient, so its bucket starts completely empty.
-        For IDOR chains (``chain.split_index`` is set), nodes before the split run with the
-        primary auth token; nodes from the split onward run with the secondary (attacker) token.
-        A successful response from a secondary-token node is flagged as a potential IDOR.
-        This guarantees true isolation between chains.
+        Each step specifies its runtime profile name, which maps to a RuntimeProfile object
+        containing auth tokens and other variables.
 
         Args:
             chain (Chain): The chain to execute.
         """
-        fresh_bucket: ObjectsBucket = ObjectsBucket.__wrapped__(self.api)
-        split = chain.split_index if chain.split_index is not None else len(chain.nodes)
+        bucket_cls = typing.cast(typing.Any, getattr(ObjectsBucket, "__wrapped__", ObjectsBucket))
+        fresh_bucket: ObjectsBucket = bucket_cls(self.api)
+        results: list[tuple[ChainStep, Result]] = []
 
         self.logger.info(f"Running chain: {chain}")
-        for i, node in enumerate(chain.nodes):
+        for i, step in enumerate(chain.steps):
+            node = step.node
             if node.name in config.SKIP_NODES:
                 continue
 
-            visit_path = list(chain.nodes[: i + 1])
-            is_test_phase = i >= split
+            visit_path = [s.node for s in chain.steps[: i + 1]]
 
-            # Transition check: abort if setup produced nothing
-            if is_test_phase and i == split and fresh_bucket.is_empty():
-                self.logger.info("[idor] Setup phase produced no objects — aborting IDOR chain")
+            # IDOR transition check: abort if setup produced nothing before first non-primary node
+            if step.profile_name != "primary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
+                self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
                 break
 
-            if is_test_phase:
-                if not config.IDOR_SECONDARY_AUTH:
-                    continue
-                self.logger.info(f"[idor][test] Running node with secondary token: {node}")
-                _response, result = self.fengine.run_minimal_payload_with_auth(
-                    node.name, fresh_bucket, node.graphql_type, config.IDOR_SECONDARY_AUTH
+            # Select profile
+            profile = self.profiles.get(step.profile_name)
+            if not profile:
+                self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
+                continue
+
+            if step.profile_name != "primary":
+                # Multi-profile test phase
+                self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
+                _response, result = self.fengine.run_minimal_payload_with_profile(
+                    node.name, fresh_bucket, node.graphql_type, profile
                 )
-                if result.success:
-                    self.logger.warning(
-                        f"[idor] POTENTIAL IDOR DETECTED on node '{node.name}' "
-                        f"(chain reason: {chain.reason})"
-                    )
-                    self.stats.add_vulnerability(
-                        "IDOR_CHAIN",
-                        node.name,
-                        is_vulnerable=True,
-                        evidence=f"Secondary auth token received data. Chain reason: {chain.reason}",
-                    )
-                else:
-                    self.logger.info(f"[idor] Node '{node.name}' correctly denied secondary token (not vulnerable)")
+                results.append((step, result))
             else:
+                # Regular primary phase
                 self.stats.print_running_stats()
                 self.logger.info(f"[chain] Running node: {node}")
                 node_start = time.time()
@@ -235,9 +247,13 @@ class Fuzzer(object):
                 self.stats.update_stats_from_result(node, result)
                 self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
                 self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+                results.append((step, result))
                 if not result.success:
                     self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
                     break
+
+        # Post-execution analysis
+        self.idor_detector.detect(chain, results, self.stats)
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -248,142 +264,65 @@ class Fuzzer(object):
         Raises:
             Exception: If the GraphQL type of the node is unknown
         """
-        for current_node in nodes:
+        for node in nodes:
+            if node.name in config.SKIP_NODES:
+                continue
             self.stats.print_running_stats()
-            self.logger.info(f"Running node: {current_node}")
+            self.logger.info(f"[island] Running node: {node}")
             node_start = time.time()
-            _next_visit_path, result = self.__run_node(current_node, [current_node], check_hard_depends_on=False)
-            self.stats.record_node_timing(current_node, time.time() - node_start)
-            self.stats.update_stats_from_result(current_node, result)
+            _next_paths, result = self.__evaluate(node, [node])
+            self.stats.record_node_timing(node, time.time() - node_start)
+            self.stats.update_stats_from_result(node, result)
+            self.__fuzz(node, [node])
+            self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
 
-            if result.success:
-                self.logger.info(f"Node was successful: {current_node}")
-
-    def __run_node(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True) -> tuple[list[list[Node]], Result]:
-        """Runs the node, evaluating it and return the next visit paths.
-           - The return will be based on the positive testing of the node
-           - The side effects will be the fuzzed node and the detection of any vulnerabilities on the node
+    def __evaluate(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
+        """Evaluates the node
 
         Args:
-            node (Node): The node
-            visit_path (list[Node]): The visit path
-            check_hard_depends_on (bool, optional): Whether to check the dependencies. Defaults to True.
+            node (Node): The node to evaluate
+            visit_path (list[Node]): The path of nodes visited so far
+            objects_bucket (ObjectsBucket, optional): The objects bucket to use. Defaults to self.objects_bucket.
 
         Returns:
-            tuple[list[list[Node]], Result]: The results of the positive node evaluation
+            tuple[list[list[Node]], Result]: The next paths to visit, and the result of the evaluation
         """
-        if node.name in config.SKIP_NODES:
-            return ([], Result(ResultEnum.GENERAL_SUCCESS))
-        new_paths_to_evaluate, res = self.__evaluate(node, visit_path, check_hard_depends_on=check_hard_depends_on)
-        self.__fuzz(node, visit_path)
-        self.__detect_vulnerabilities_on_node(node)
-        return (new_paths_to_evaluate, res)
+        if objects_bucket is None:
+            objects_bucket = self.objects_bucket
 
-    def __evaluate(self, node: Node, visit_path: list[Node], check_hard_depends_on: bool = True,
-                   objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
-        """Evaluates the path, performing the following based on the type of node:
-           Case 1: If it's an object node, then we should check if the object is in our bucket. If not, fail, if it is,
-                   then queue up the next neighboring nodes to visit
-           Case 2: If it's an query node or mutation node, run the payload with the required objects, then store the results in the object bucket
-
-        Args:
-            node (Node): Node to be evaluated
-            visit_path (list[Node]): The list of visited paths to arrive at the node
-            check_hard_depends_on (bool): The check hard depends on flag for materializing the object
-            objects_bucket (ObjectsBucket | None): Bucket to use; defaults to self.objects_bucket
-
-        Returns:
-            tuple[list[list[Node]], Result]: A list of the next to_visit paths, and the result of the node evaluation
-        """
-        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
-        neighboring_nodes = self._get_neighboring_nodes(node)
-        new_visit_paths = self._get_new_visit_path_with_neighbors(neighboring_nodes, visit_path)
-
-        if node.graphql_type == "Object" and check_hard_depends_on:
-            if bucket.is_object_in_bucket(node.name):
-                return (new_visit_paths, Result(ResultEnum.GENERAL_SUCCESS))
-            else:
-                return ([], Result(ResultEnum.INTERNAL_FAILURE))
+        if node.graphql_type == "Query":
+            _response, result = self.fengine.run_minimal_payload(node.name, objects_bucket, "Query")
+            return [], result
+        elif node.graphql_type == "Mutation":
+            _response, result = self.fengine.run_minimal_payload(node.name, objects_bucket, "Mutation")
+            return [], result
+        elif node.graphql_type == "Object":
+            return [], Result(ResultEnum.GENERAL_SUCCESS)
         else:
-            _graphql_response, res = self.fengine.run_minimal_payload(node.name, bucket, node.graphql_type, check_hard_depends_on=check_hard_depends_on)
-            if res.success:
-                return (new_visit_paths, res)
-            else:
-                return ([], res)
+            raise Exception(f"Unknown GraphQL type: {node.graphql_type}")
 
     def __fuzz(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None):
-        """Fuzzes a node by running the node and storing the results. Currently runs:
-           - DOS Query / Mutation (from size 0 to MAX_INPUT_DEPTH or HARD_CUTOFF_DEPTH, whichever is smaller)
+        """Fuzzes the node
 
         Args:
             node (Node): The node to fuzz
-            visit_path (list[Node]): The list of visited paths to arrive at the node
-            objects_bucket (ObjectsBucket | None): Bucket to use; defaults to self.objects_bucket
+            visit_path (list[Node]): The path of nodes visited so far
+            objects_bucket (ObjectsBucket, optional): The objects bucket to use. Defaults to self.objects_bucket.
         """
-        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
-        if node.graphql_type not in ["Query", "Mutation"]:
-            return
-        if not config.SKIP_DOS_ATTACKS and config.MAX_FUZZING_ITERATIONS != 0:
-            random_numbers = [random.randint(1, min(config.HARD_CUTOFF_DEPTH, config.MAX_INPUT_DEPTH)) for _ in range(0, config.MAX_FUZZING_ITERATIONS)]
-            random_number = random.choice(random_numbers)
-            self.logger.info(f"Running DOS {node.graphql_type}: {node.name} with depth: {random_number}")
-            results = self.fengine.run_dos_payloads(node.name, bucket, node.graphql_type, random_number)
-            for _graphql_response, res in results:
-                self.stats.update_stats_from_result(node, res)
+        if objects_bucket is None:
+            objects_bucket = self.objects_bucket
 
-        if not config.SKIP_MAXIMAL_PAYLOADS:
-            self.fengine.run_maximal_payload(node.name, bucket, node.graphql_type, check_hard_depends_on=False)
+        if node.graphql_type == "Query" or node.graphql_type == "Mutation":
+            self.fengine.run_maximal_payload(node.name, objects_bucket, node.graphql_type)
+            if not config.SKIP_DOS_ATTACKS:
+                self.fengine.run_dos_payloads(node.name, objects_bucket, node.graphql_type)
 
-    def __detect_vulnerabilities_on_node(self, node: Node, objects_bucket: typing.Optional[ObjectsBucket] = None):
-        bucket = objects_bucket if objects_bucket is not None else self.objects_bucket
-        if node.graphql_type in ["Query", "Mutation"]:
-            self.dengine.run_detections_on_graphql_object(node, bucket, node.graphql_type)
-
-    # ------------------- Helpers -------------------
-
-    def _get_new_visit_path_with_neighbors(self, neighboring_nodes: list[Node], visit_path: list[Node]) -> list[list[Node]]:
-        """Gets the new visit path with the neighbors by creating a new path for each neighboring node
+    def __detect_vulnerabilities_on_node(self, node: Node, objects_bucket: ObjectsBucket):
+        """Detects vulnerabilities on the node
 
         Args:
-            neighboring_nodes (list[Node]): The list of neighboring nodes
-            visit_path (list[Node]): The visit path that the current iteration is on
-
-        Returns:
-            list[list[Node]]: A list of visit_paths where each visit_path is just the visit_path + neighboring_node
+            node (Node): The node to detect vulnerabilities on
+            objects_bucket (ObjectsBucket): The objects bucket to use
         """
-        new_visit_paths = []
-        for node in neighboring_nodes:
-            new_visit_paths.append(visit_path + [node])
-        return new_visit_paths
-
-    def _get_neighboring_nodes(self, node: Node) -> list[Node]:
-        """Get nodes that this node goes out of
-
-        Args:
-            node (Node): The node we want to find that is pointing to this node
-
-        Returns:
-            list[Node]: List of nodes that are dependent on the input node
-        """
-        return [n for n in self.dependency_graph.successors(node)]
-
-    def _get_starter_nodes(self) -> list[Node]:
-        """Gets a list of starter nodes to start the fuzzing with.
-           First, looks for nodes with no incoming edges (in-degree == 0).
-           If none exist, returns nodes with the minimum in-degree.
-
-        Returns:
-            list[Node]: A list of starter nodes
-        """
-        in_degrees = dict(self.dependency_graph.in_degree())
-        if not in_degrees:
-            self.logger.error("No nodes in dependency graph")
-            return []
-
-        min_degree = min(in_degrees.values())
-        nodes = [node for node, degree in in_degrees.items() if degree == min_degree]
-        if nodes:
-            return nodes
-
-        self.logger.error("No starter nodes found, choosing a random node")
-        return [random.choice(list(self.dependency_graph.nodes))]
+        if node.graphql_type == "Query" or node.graphql_type == "Mutation":
+            self.dengine.run_detections_on_graphql_object(node, objects_bucket, node.graphql_type)

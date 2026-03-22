@@ -11,6 +11,8 @@ from graphqler.utils.stats import Stats
 from graphqler.utils import plugins_handler
 from graphqler.fuzzer.engine.types import ResultEnum, Result
 
+from graphqler.utils import detection_writer
+
 from ..materializers.materializer import Materializer
 
 
@@ -90,6 +92,16 @@ class Detector(ABC):
             self.confirmed_vulnerable,
             self.potentially_vulnerable,
             payload=self.payload,
+            evidence=evidence,
+        )
+        detection_writer.write_from_detector(
+            vuln_name=self.DETECTION_NAME,
+            node_name=self.name,
+            is_vulnerable=self.confirmed_vulnerable,
+            potentially_vulnerable=self.potentially_vulnerable,
+            payload=self.payload,
+            graphql_response=graphql_response,
+            status_code=request_response.status_code,
             evidence=evidence,
         )
         return (self.confirmed_vulnerable, self.potentially_vulnerable)

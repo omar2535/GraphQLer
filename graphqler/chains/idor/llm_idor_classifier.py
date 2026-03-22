@@ -41,8 +41,9 @@ def _get_litellm():
 def _describe_chain(chain: Chain, split_index: int) -> str:
     """Build a compact, human-readable description of the chain for the LLM prompt."""
     lines: list[str] = []
-    for i, node in enumerate(chain.nodes):
+    for i, step in enumerate(chain.steps):
         role = "SETUP (primary token)" if i < split_index else "TEST (secondary/attacker token)"
+        node = step.node
         node_type = node.graphql_type
         mut_type = f" [{node.mutation_type}]" if node.mutation_type else ""
         body = node.body or {}

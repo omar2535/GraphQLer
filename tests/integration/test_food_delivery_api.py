@@ -1,12 +1,12 @@
-import unittest
 from graphqler import __main__
 from graphqler import config
 from tests.integration.utils.stats import get_percent_query_mutation_success
 from tests.integration.utils.run_api import run_node_project, wait_for_server
+from tests.integration.utils.base import GraphQLerIntegrationTestCase
 import os
 import shutil
 
-class TestFoodDeliveryAPI(unittest.TestCase):
+class TestFoodDeliveryAPI(GraphQLerIntegrationTestCase):
     PORT = 4000
     URL = f"http://localhost:{PORT}/graphql"
     PATH = "ci-test-food-delivery-api/"
@@ -38,28 +38,28 @@ class TestFoodDeliveryAPI(unittest.TestCase):
             shutil.rmtree(cls.PATH)
 
     def test_run_compile_mode_generates_valid_introspection_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
+        self._compile()
         introspection_path = os.path.join(self.PATH, config.INTROSPECTION_RESULT_FILE_NAME)
         self.assertTrue(os.path.exists(introspection_path))
         self.assertGreater(os.path.getsize(introspection_path), 0)
 
     def test_run_fuzz_mode_generates_valid_stats_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
+        self._compile()
+        self._fuzz()
         stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
     def test_run_single_mode_generates_valid_stats_file(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_single_mode(self.PATH, self.URL, "Query")
+        self._compile()
+        self._single("Query")
         stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         self.assertTrue(os.path.exists(stats_path))
         self.assertGreater(os.path.getsize(stats_path), 0)
 
     def test_run_fuzz_mode_has_success_over_seventy_percent(self):
-        __main__.run_compile_mode(self.PATH, self.URL)
-        __main__.run_fuzz_mode(self.PATH, self.URL)
+        self._compile()
+        self._fuzz()
         stats_path = os.path.join(self.PATH, config.STATS_FILE_NAME)
         percentage = get_percent_query_mutation_success(stats_path)
         self.assertTrue(percentage >= 70)
