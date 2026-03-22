@@ -10,7 +10,7 @@
 </br>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/lint.yml/badge.svg" alt="lint" /></a>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/unit_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/unit_tests.yml/badge.svg?branch=main" alt="unit_test_status" /></a>
-<a href="https://github.com/omar2535/GraphQLer/actions/workflows/integration_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/integration_tests.yml/badge.svg?branch=main" alt="integration_test_status" /></a>
+<a href="https://github.com/omar2535/GraphQLer/actions/workflows/e2e_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/e2e_tests.yml/badge.svg?branch=main" alt="e2e_test_status" /></a>
 </br>
 <a href="https://arxiv.org/pdf/2504.13358"><img src="https://img.shields.io/badge/cs.CR-arXiv%3A2504.13358-B31B1B.svg"></a>
 <a href="https://github.com/omar2535/GraphQLer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
@@ -28,6 +28,8 @@ GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with 
 - **Dependency awareness**: Run queries and mutations based on their natural dependencies
 - **Resource tracking**: Keep track of any objects seen in the API for future use and reconnaisance
 - **Error correction**: Try and fix requests so that the GraphQL API accepts them
+- **Vulnerability detection output**: Every confirmed vulnerability writes a `detections/` folder containing `raw_log.txt` (full request/response chain) and `summary.txt` (chain steps + final payload + response)
+- **IDOR detection**: Automatically detect insecure direct object reference vulnerabilities using dual-profile chain replay
 - **Statistics collection**: Shows your results in a easy-to-read file
 - **Ease of use**: All you need is the endpoint and the authentication token if needed
 - **Customizability**: Change the configuration file to suit your needs, proxy requests through Burp or ZAP if you want
@@ -84,7 +86,7 @@ The compile step can be broken into two finer sub-modes:
 
 A third mode is also included for ease of use, called **run** mode — this runs both compilation and fuzzing in a single command.
 
-A mode in development right now is known as the **idor** mode, which will look for re-used objects that are accessible using another access token. This is in trial right now and requires the user to have run the *compile* and *fuzzing* mode first.
+The **idor** mode detects insecure direct object reference (IDOR) vulnerabilities by replaying compiled chains using a secondary (attacker) token and checking whether protected resources are accessible. It requires the *compile* and *fuzz* modes to have been run first.
 
 ### Compile mode
 
@@ -124,7 +126,7 @@ While fuzzing, statistics related to the GraphQL API and any ongoing request cou
 python -m graphqler --mode idor --url <URL> --path <SAVE_PATH>
 ```
 
-The [insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) mode can be run after **compile** mode and **fuzz** mode is complete. It requires the `objects_bucket.pkl` file to already exist as it uses the objects bucket from a previous run to see if information found/created from a previous run is also reference-able in a new run.
+The [insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) mode can be run after **compile** mode and **fuzz** mode is complete. It requires the `objects_bucket.pkl` file to already exist as it uses the objects bucket from a previous run to see if information found/created from a previous run is also reference-able using a secondary (attacker) access token. Configure the secondary token with `IDOR_SECONDARY_AUTH` in your config file.
 
 ### Run mode
 
@@ -165,6 +167,7 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 | DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
+| IDOR_SECONDARY_AUTH | Secondary (attacker) authentication token for IDOR chain detection (e.g. `"Bearer token2"`). If not set, the IDOR chain phase is skipped. | String | None |
 
 ## AI Features
 

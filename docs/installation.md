@@ -76,7 +76,7 @@ uv run graphqler --version
 uv run pytest tests/unit/
 ```
 
-**Integration tests:**
+**End-to-end tests:**
 
 ```sh
 uv run pytest tests/e2e/
