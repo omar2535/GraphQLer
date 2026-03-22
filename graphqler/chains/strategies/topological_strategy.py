@@ -1,25 +1,27 @@
-"""AllDependencies chain generation strategy."""
+"""Topological chain generation strategy."""
 
 from typing import cast
 
 import networkx
 
+from graphqler import config
 from graphqler.chains.chain import Chain
 from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
 
 # Lower value = earlier in chain within a strongly connected component.
-# Mirrors the 3-pass logic in ChainGenerator:
-#   CREATE runs first (produces objects), then Objects are populated,
-#   then Queries read them, then UPDATE modifies them, DELETE/UNKNOWN run last.
+# CREATE runs first (produces objects), then Objects are populated,
+# then Queries read them, then UPDATE modifies them, DELETE/UNKNOWN run last.
 _NODE_PRIORITY: dict[str, int] = {
     "CREATE": 0,
-    "Object": 1,   # keyed on graphql_type for non-mutation nodes
+    "Object": 1,
     "Query": 2,
     "UPDATE": 3,
     "DELETE": 4,
     "UNKNOWN": 5,
 }
+
+_ALL_MUTATION_TYPES = ["CREATE", "UPDATE", "DELETE", "UNKNOWN"]
 
 
 class TopologicalChainStrategy(BaseChainStrategy):
@@ -45,21 +47,44 @@ class TopologicalChainStrategy(BaseChainStrategy):
     :class:`~graphqler.fuzzer.utils.objects_bucket.ObjectsBucket` will succeed
     because every prerequisite is created earlier in the same chain.
 
-    The *starter_nodes* parameter is accepted for interface compatibility but is
-    ignored — every non-filtered node in the graph gets its own chain.
+    :meth:`generate` runs the standard 3-pass filtering strategy:
+
+    * Pass 1 — CREATE + QUERY only (filter UPDATE, DELETE, UNKNOWN)
+    * Pass 2 — CREATE + QUERY + UPDATE (filter DELETE, UNKNOWN)
+    * Pass 3 — all nodes
+
+    When ``config.DISABLE_MUTATIONS`` is ``True``, only a single query-only pass
+    is performed (all mutation types filtered out).
     """
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
-                 filter_mutation_type: list[str] | None = None) -> list[Chain]:
+    file_name = "regular.yml"
+
+    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node], filter_mutation_type: list[str] | None = None) -> list[Chain]:
+        """Run the standard 3-pass filtering strategy and return all chains combined.
+
+        Args:
+            graph (networkx.DiGraph): The dependency graph.
+            starter_nodes (list[Node]): Accepted for interface compatibility; not used.
+
+        Returns:
+            list[Chain]: Concatenation of all passes in order.
+        """
+        if config.DISABLE_MUTATIONS:
+            return self._generate_with_filter(graph, starter_nodes, filter_mutation_type=_ALL_MUTATION_TYPES)
+
+        pass1 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"])
+        pass2 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=["DELETE", "UNKNOWN"])
+        pass3 = self._generate_with_filter(graph, starter_nodes, filter_mutation_type=[])
+        return pass1 + pass2 + pass3
+
+    def _generate_with_filter(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+                               filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Generate one self-sufficient chain per non-filtered node.
 
         Args:
             graph (networkx.DiGraph): The dependency graph.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
             filter_mutation_type (list[str] | None): Mutation types to exclude.
-                Nodes with a ``mutation_type`` in this list are skipped entirely;
-                they are also removed from ancestor sets of other chains.
-                Pass ``None`` or ``[]`` to include all nodes.
 
         Returns:
             list[Chain]: One chain per non-filtered node in stable order.
@@ -71,7 +96,6 @@ class TopologicalChainStrategy(BaseChainStrategy):
             if node.mutation_type in excluded:
                 continue
 
-            # All transitive predecessors, excluding filtered nodes
             ancestors = cast(set[Node], networkx.ancestors(graph, node))
             valid_ancestors: set[Node] = {
                 a for a in ancestors
@@ -87,19 +111,7 @@ class TopologicalChainStrategy(BaseChainStrategy):
         return chains
 
     def _safe_topo_sort(self, graph: networkx.DiGraph) -> list[Node]:
-        """Topological sort that handles cycles via SCC condensation.
-
-        Uses ``networkx.condensation()`` to collapse cycles into single nodes
-        (always a DAG), topological-sorts the condensation, then expands each
-        SCC back to its member nodes sorted by ``graphql_type`` priority
-        (Mutation → Object → Query) so that creators run before their products.
-
-        Args:
-            graph (networkx.DiGraph): Any directed graph, cyclic or acyclic.
-
-        Returns:
-            list[Node]: Nodes in a valid dependency order.
-        """
+        """Topological sort that handles cycles via SCC condensation."""
         condensation = networkx.condensation(graph)
         result: list[Node] = []
         for cond_node in networkx.topological_sort(condensation):
@@ -110,11 +122,7 @@ class TopologicalChainStrategy(BaseChainStrategy):
 
     @staticmethod
     def _node_sort_key(node: Node) -> tuple[int, str]:
-        """Return a sort key that respects dependency order within an SCC.
-
-        For Mutation nodes the ``mutation_type`` (CREATE/UPDATE/DELETE/UNKNOWN) is used.
-        For all other nodes the ``graphql_type`` (Object/Query) is used.
-        """
+        """Return a sort key that respects dependency order within an SCC."""
         if node.graphql_type == "Mutation":
             key = _NODE_PRIORITY.get(node.mutation_type or "UNKNOWN", 5)
         else:

@@ -25,6 +25,8 @@ class Node:
         """
         if self.graphql_type == "Mutation":
             self.mutation_type = mutation_type
+        else:
+            raise ValueError("Only mutation nodes can have a mutation type")
 
     def __str__(self):
         return f"Node({self.graphql_type} | {self.name})"

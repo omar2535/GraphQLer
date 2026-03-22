@@ -35,7 +35,7 @@ INTERFACE_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/interface_list.yml"
 COMPILED_OBJECTS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_objects.yml"
 COMPILED_MUTATIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_mutations.yml"
 COMPILED_QUERIES_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_queries.yml"
-CHAINS_FILE_NAME = f"{COMPILED_DIR_NAME}/chains.yml"
+CHAINS_DIR_NAME = f"{COMPILED_DIR_NAME}/chains"
 
 """For clairvoyance"""
 WORDLIST_PATH = ""
@@ -129,3 +129,9 @@ SKIP_NODES = []
 
 """For custom headers"""
 CUSTOM_HEADERS = {}
+
+"""For chain-based IDOR detection (cross-user access testing)"""
+IDOR_SECONDARY_AUTH = None              # Attacker/secondary auth token (e.g. "Bearer token2"); if None, chain-based IDOR phase is skipped
+SKIP_IDOR_CHAIN_FUZZING = False         # Set True to disable the chain-based IDOR phase entirely
+IDOR_HEURISTIC_CONFIDENCE_THRESHOLD = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
+IDOR_USE_LLM_FALLBACK = False           # When True, use LLM classifier for low-confidence chains

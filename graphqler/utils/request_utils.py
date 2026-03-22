@@ -89,6 +89,42 @@ def send_graphql_request(url: str, payload: str | dict | list, next: Callable[[d
     return parse_response(response.text), response
 
 
+def send_graphql_request_with_auth(url: str, payload: str | dict | list, auth_override: str) -> tuple[dict, requests.Response]:
+    """Send a GraphQL request using a one-off session with a specific auth token.
+
+    Unlike ``send_graphql_request``, this function does **not** touch the global
+    session, so the primary token is never replaced.  Used by the IDOR fuzzer to
+    test cross-user access with a secondary (attacker) token.
+
+    Args:
+        url (str): URL of the GraphQL server.
+        payload (str | dict | list): GraphQL payload (same semantics as ``send_graphql_request``).
+        auth_override (str): The Authorization header value to use (e.g. "Bearer <token>").
+
+    Returns:
+        tuple[dict, requests.Response]: Parsed GraphQL response dict, raw HTTP response.
+    """
+    global last_request_time
+
+    if isinstance(payload, str):
+        body = {"query": payload}
+    else:
+        body = payload
+
+    time_since_last_request = time.time() - last_request_time
+    if time_since_last_request < config.TIME_BETWEEN_REQUESTS:
+        time.sleep(config.TIME_BETWEEN_REQUESTS - time_since_last_request)
+
+    one_off_session = _create_session_with_auth(auth_override)
+    try:
+        response = one_off_session.post(url=url, json=body, timeout=config.REQUEST_TIMEOUT)
+    finally:
+        one_off_session.close()
+    last_request_time = time.time()
+
+    return parse_response(response.text), response
+
+
 def parse_response(response_text: str) -> dict:
     """Parse the response and try to jsonify it
 
@@ -136,3 +172,29 @@ def create_new_session() -> requests.Session:
         disable_warnings(InsecureRequestWarning)
         session.verify = False
     return session
+
+
+def _create_session_with_auth(auth_token: str) -> requests.Session:
+    """Create a one-off session with an explicit Authorization header.
+
+    Custom headers from ``config.CUSTOM_HEADERS`` are still applied so that
+    any API-specific headers (e.g. X-Api-Key) remain present.
+
+    Args:
+        auth_token (str): The Authorization header value (e.g. "Bearer <token>").
+
+    Returns:
+        requests.Session: A fresh session that is NOT stored globally.
+    """
+    one_off = requests.Session()
+    headers = {"Content-Type": "application/json"}
+    if config.CUSTOM_HEADERS:
+        headers.update(config.CUSTOM_HEADERS)
+    headers["Authorization"] = auth_token
+    one_off.headers.update(headers)
+
+    if config.PROXY:
+        one_off.proxies.update(get_proxies())
+        disable_warnings(InsecureRequestWarning)
+        one_off.verify = False
+    return one_off

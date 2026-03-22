@@ -1,4 +1,4 @@
-"""ChainGenerator: orchestrates chain generation using a pluggable strategy."""
+"""ChainGenerator: generates, saves, and loads dependency chains."""
 
 from pathlib import Path
 
@@ -7,137 +7,113 @@ import yaml
 
 from graphqler import config
 from graphqler.chains.chain import Chain
-from graphqler.chains.strategies.base_strategy import BaseChainStrategy
-from graphqler.chains.strategies.topological_strategy import TopologicalChainStrategy
 from graphqler.graph.node import Node
-
-# All possible mutation_type values assigned to Mutation nodes
-_ALL_MUTATION_TYPES = ["CREATE", "UPDATE", "DELETE", "UNKNOWN"]
 
 
 class ChainGenerator:
-    """Generates and stores dependency chains for later inspection and fuzzer consumption.
+    """Generates, saves, and loads dependency chains.
 
-    The generator applies a **3-pass** strategy (mirroring the original DFS passes) when
-    ``config.DISABLE_MUTATIONS`` is ``False`` (the default):
-
-    * **Pass 1** — chains containing only CREATE / QUERY nodes (UPDATE, DELETE, UNKNOWN filtered out)
-    * **Pass 2** — chains allowing CREATE, QUERY, and UPDATE (DELETE, UNKNOWN filtered out)
-    * **Pass 3** — all chains (no filter)
-
-    All three passes are concatenated into a single list so that the fuzzer can simply
-    iterate through ``chains`` without any additional filtering.
-
-    When ``config.DISABLE_MUTATIONS`` is ``True``, only Query (and Object) chains are
-    produced — all mutation nodes are excluded entirely.
+    The generator is strategy-agnostic: callers (e.g. the :class:`~graphqler.compiler.Compiler`)
+    decide which strategies to use and call :meth:`generate_with_strategy` once per strategy.
+    Results accumulate across calls so that :meth:`save_to_yaml` writes all of them at once.
 
     Usage::
 
         generator = ChainGenerator()
-        chains = generator.generate(dependency_graph, starter_nodes)
-        # chains are also accessible afterwards:
-        print(generator.chains)
-
-    The default strategy is :class:`TopologicalChainStrategy`.  Pass a different
-    :class:`BaseChainStrategy` subclass to use an alternative generation method
-    (e.g. :class:`~graphqler.chains.strategies.dfs_strategy.DFSChainStrategy`).
+        regular_chains = generator.generate_with_strategy(TopologicalChainStrategy(), graph, starter_nodes)
+        generator.generate_with_strategy(IDORChainStrategy(), regular_chains)
+        generator.save_to_yaml(output_path)
     """
 
-    def __init__(self, strategy: BaseChainStrategy | None = None):
-        """Initialise the generator with an optional strategy.
-
-        Args:
-            strategy (BaseChainStrategy | None): Chain generation strategy.
-                Defaults to :class:`DFSChainStrategy` when *None*.
-        """
-        self._strategy: BaseChainStrategy = strategy if strategy is not None else TopologicalChainStrategy()
+    def __init__(self):
         self._chains: list[Chain] = []
+        self._results: list[tuple[object, list[Chain]]] = []
 
     @property
     def chains(self) -> list[Chain]:
-        """The chains produced by the most recent :meth:`generate` call (empty until then)."""
+        """All chains accumulated across all :meth:`generate_with_strategy` calls."""
         return self._chains
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node]) -> list[Chain]:
-        """Generate chains and store them for later inspection.
+    def generate_with_strategy(self, strategy, *args) -> list[Chain]:
+        """Run *strategy* and accumulate its output.
 
-        Applies the 3-pass filtering strategy internally so that the fuzzer receives a
-        single ordered list of chains ready to execute sequentially.
+        The positional *args* are forwarded directly to ``strategy.generate(*args)``,
+        so any strategy signature is supported.
 
         Args:
-            graph (networkx.DiGraph): The compiled dependency graph.
-            starter_nodes (list[Node]): Root nodes to start generation from.
+            strategy: Any object with a ``generate(*args) -> list[Chain]`` method
+                      and a ``file_name: str`` attribute.
+            *args: Arguments forwarded to ``strategy.generate``.
 
         Returns:
-            list[Chain]: The generated chains (same object as :attr:`chains`).
+            list[Chain]: The chains produced by this strategy call.
         """
-        if config.DISABLE_MUTATIONS:
-            # Only produce chains that contain Query/Object nodes — exclude all mutations
-            self._chains = self._strategy.generate(
-                graph, starter_nodes, filter_mutation_type=_ALL_MUTATION_TYPES
-            )
-        else:
-            # Pass 1: CREATE + QUERY only (filter UPDATE, DELETE, UNKNOWN)
-            pass1 = self._strategy.generate(
-                graph, starter_nodes,
-                filter_mutation_type=["UPDATE", "DELETE", "UNKNOWN"],
-            )
-            # Pass 2: CREATE + QUERY + UPDATE (filter DELETE, UNKNOWN)
-            pass2 = self._strategy.generate(
-                graph, starter_nodes,
-                filter_mutation_type=["DELETE", "UNKNOWN"],
-            )
-            # Pass 3: all nodes
-            pass3 = self._strategy.generate(
-                graph, starter_nodes,
-                filter_mutation_type=[],
-            )
-            self._chains = pass1 + pass2 + pass3
-
-        return self._chains
+        chains = strategy.generate(*args)
+        self._results.append((strategy, chains))
+        self._chains.extend(chains)
+        return chains
 
     def save_to_yaml(self, save_path: str) -> None:
-        """Persist the generated chains to a YAML file for human inspection and optional editing.
+        """Persist each strategy's chains to its own YAML file under ``<save_path>/compiled/chains/``.
 
-        Each chain is stored as a list of node names.  On reload the names are
-        resolved back to :class:`~graphqler.graph.node.Node` objects using the
-        dependency graph.
+        The filename is taken from ``strategy.file_name``.
+        Regular chains are stored as ``{nodes: [...names...]}``.
+        IDOR chains additionally include ``idor_split_index``, ``idor_confidence``,
+        and ``idor_reason``.
 
         Args:
-            save_path (str): Root output directory (same directory used for compilation).
+            save_path (str): Root output directory.
         """
-        chains_path = Path(save_path) / config.CHAINS_FILE_NAME
-        chains_path.parent.mkdir(parents=True, exist_ok=True)
-        data = [{"nodes": [n.name for n in chain.nodes]} for chain in self._chains]
-        with open(chains_path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        chains_dir = Path(save_path) / config.CHAINS_DIR_NAME
+        chains_dir.mkdir(parents=True, exist_ok=True)
+
+        for strategy, chains in self._results:
+            data = []
+            for chain in chains:
+                entry: dict = {"nodes": [n.name for n in chain.nodes]}
+                if chain.split_index is not None:
+                    entry["idor_split_index"] = chain.split_index
+                    entry["idor_confidence"] = round(chain.confidence, 4)
+                    entry["idor_reason"] = chain.reason
+                data.append(entry)
+            with open(chains_dir / strategy.file_name, "w") as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
     def load_from_yaml(self, save_path: str, graph: networkx.DiGraph) -> list[Chain]:
-        """Load chains from a previously saved YAML file and populate :attr:`chains`.
+        """Load chains from all YAML files under ``<save_path>/compiled/chains/``.
 
-        Node names in the YAML are resolved to :class:`~graphqler.graph.node.Node`
-        objects using *graph*.  Any name that no longer exists in the graph is
-        silently skipped so that hand-edited files do not crash the fuzzer.
+        Entries containing ``idor_split_index`` are restored as chains with
+        ``split_index`` set; all others become regular :class:`Chain` objects.
 
         Args:
-            save_path (str): Root output directory (same directory used for compilation).
+            save_path (str): Root output directory.
             graph (networkx.DiGraph): The dependency graph used to look up Node objects.
 
         Returns:
-            list[Chain]: The loaded chains (same object as :attr:`chains`).
+            list[Chain]: The loaded chains.
         """
-        chains_path = Path(save_path) / config.CHAINS_FILE_NAME
-        if not chains_path.exists():
+        chains_dir = Path(save_path) / config.CHAINS_DIR_NAME
+        if not chains_dir.exists():
             self._chains = []
             return self._chains
 
         node_map: dict[str, Node] = {node.name: node for node in graph.nodes()}
-        with open(chains_path, "r") as f:
-            data = yaml.safe_load(f) or []
+        chains: list[Chain] = []
 
-        self._chains = [
-            Chain(nodes=[node_map[name] for name in entry.get("nodes", []) if name in node_map])
-            for entry in data
-        ]
+        for chain_file in sorted(chains_dir.glob("*.yml")):
+            with open(chain_file, "r") as f:
+                data = yaml.safe_load(f) or []
+            for entry in data:
+                nodes = [node_map[name] for name in entry.get("nodes", []) if name in node_map]
+                if "idor_split_index" in entry:
+                    chains.append(Chain(
+                        nodes=nodes,
+                        split_index=entry["idor_split_index"],
+                        confidence=entry.get("idor_confidence", 0.0),
+                        reason=entry.get("idor_reason", ""),
+                    ))
+                else:
+                    chains.append(Chain(nodes=nodes))
+
+        self._chains = chains
         return self._chains
-

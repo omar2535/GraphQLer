@@ -14,6 +14,7 @@ from graphqler.utils.parser_utils import get_output_type
 from graphqler.utils import plugins_handler
 from graphqler.utils.singleton import singleton
 from graphqler.utils.stats import Stats
+from graphqler.utils import request_utils as _request_utils
 
 from .exceptions import HardDependencyNotMetException
 from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, dos_materializers
@@ -25,7 +26,7 @@ from .utils import check_is_data_empty
 @singleton
 class FEngine(object):
     def __init__(self, api: API):
-        """The intiialization of the FEnginer
+        """The intiialization of the FEngine
 
         Args:
             api (API): The API object
@@ -48,6 +49,26 @@ class FEngine(object):
         self.logger.info(f"Running minimal payload: {name}")
         materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
+
+    def run_minimal_payload_with_auth(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, auth_override: str) -> tuple[dict, "Result"]:
+        """Materializes a regular payload and sends it using a specific auth token.
+
+        This is used by the IDOR fuzzer to test cross-user access: the payload is
+        built from the shared ``objects_bucket`` (populated by the primary user), but
+        the HTTP request carries the secondary (attacker) token.
+
+        Args:
+            name (str): The name of the query or mutation.
+            objects_bucket (ObjectsBucket): Object bucket from the primary-token setup run.
+            graphql_type (str): "Query" or "Mutation".
+            auth_override (str): Authorization header value for the attacker token.
+
+        Returns:
+            tuple[dict, Result]: The GraphQL response dict and the result.
+        """
+        self.logger.info(f"Running minimal payload with auth override: {name}")
+        materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False)
+        return self.__run_payload_with_auth(name, objects_bucket, materializer, graphql_type, auth_override)
 
     def run_maximal_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
         """Runs the maximal payload (either Query or Mutation), and returns a new objects bucket
@@ -103,6 +124,52 @@ class FEngine(object):
         else:
             self.logger.warning(f"Unknown GraphQL type: {graphql_type} for {name}")
             return ({}, Result(ResultEnum.INTERNAL_FAILURE))
+
+    def __run_payload_with_auth(self, name: str, objects_bucket: ObjectsBucket, materializer: Materializer, graphql_type: str, auth_override: str) -> tuple[dict, Result]:
+        """Materialize a payload and send it with an explicit auth token override.
+
+        Used exclusively by the IDOR fuzzer — the payload is built normally (using the
+        shared ObjectsBucket) but the HTTP request is signed with the attacker token.
+        The ObjectsBucket is intentionally *not* updated here to avoid polluting the
+        primary-user state.
+
+        Args:
+            name (str): The name of the query or mutation.
+            objects_bucket (ObjectsBucket): Bucket populated by the primary-user setup run.
+            materializer (Materializer): Materializer to use for payload generation.
+            graphql_type (str): "Query" or "Mutation".
+            auth_override (str): Authorization header value (attacker token).
+
+        Returns:
+            tuple[dict, Result]: The GraphQL response dict and the result.
+        """
+        result = Result()
+        try:
+            payload_string, _ = materializer.get_payload(name, objects_bucket, graphql_type)
+            result.payload = payload_string
+            self.logger.info(f"[IDOR/{name}] Sending payload with secondary token:\n {payload_string}")
+            graphql_response, request_response = _request_utils.send_graphql_request_with_auth(self.api.url, payload_string, auth_override)
+            result.status_code = request_response.status_code
+            result.graphql_response = graphql_response
+            result.raw_response_text = request_response.text
+            if not graphql_response or result.has_errors:
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            if not result.has_data or result.data.get(name) is None:
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+                return (graphql_response, result)
+            result.result_enum = ResultEnum.HAS_DATA_SUCCESS
+            return (graphql_response, result)
+        except HardDependencyNotMetException as e:
+            self.logger.info(f"[IDOR/{name}] Hard dependency not met: {e}")
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return ({}, result)
+        except Exception as e:
+            self.logger.info(f"[IDOR/{name}] Exception: {e}")
+            self.logger.debug(traceback.format_exc())
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return ({}, result)
+
 
     def __run_mutation(self, endpoint_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:

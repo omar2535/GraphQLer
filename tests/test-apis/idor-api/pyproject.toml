@@ -1,0 +1,9 @@
+[project]
+name = "idor-api"
+version = "1.0.0"
+description = "Deliberately vulnerable GraphQL API for testing GraphQLer's IDOR detection"
+requires-python = ">=3.12"
+dependencies = [
+    "Flask>=3.0.0",
+    "graphene>=3.3.0",
+]
