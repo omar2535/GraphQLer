@@ -229,6 +229,12 @@ class Fuzzer(object):
             if not profile:
                 self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
                 continue
+            if step.profile_name != "primary" and not profile.auth_token:
+                self.logger.warning(
+                    f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
+                    f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
+                )
+                break
 
             if step.profile_name != "primary":
                 # Multi-profile test phase

@@ -77,8 +77,8 @@ class TestIDORApi(GraphQLerIntegrationTestCase):
     def test_idor_chain_detected(self):
         vulns = self._run_and_get_vulns()
         self.assertTrue(
-            is_detection_flagged(vulns, "IDOR_CHAIN", confirmed=True),
-            f"Expected IDOR_CHAIN to be confirmed. Got: {vulns}",
+            is_detection_flagged(vulns, "IDOR_CHAIN"),
+            f"Expected IDOR_CHAIN to be flagged as potentially vulnerable. Got: {vulns}",
         )
 
     def test_idor_detection_files_written(self):

@@ -212,7 +212,8 @@ class IDEnumerationDetector(Detector):
             mat = _FixedIntMaterializer(api=self.api, target_field=field_name, value=i, max_depth=3)
             try:
                 payload, _ = mat.get_payload(self.name, self.objects_bucket, self.graphql_type)
-            except Exception:
+            except Exception as e:
+                self.detector_logger.debug(f"Payload generation failed for ID {i}: {e}")
                 continue
 
             payloads_used.append(payload)
@@ -232,8 +233,8 @@ class IDEnumerationDetector(Detector):
                     )
                     if is_hit:
                         success_count += 1
-            except Exception:
-                pass
+            except Exception as e:
+                self.detector_logger.debug(f"Request failed for ID {i}: {e}")
 
         return success_count, payloads_used
 

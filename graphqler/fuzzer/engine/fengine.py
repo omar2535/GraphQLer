@@ -238,7 +238,7 @@ class FEngine(object):
                 self.logger.error(f"[{endpoint_name}] No data in response: {graphql_response}")
                 result.result_enum = ResultEnum.EXTERNAL_FAILURE
                 return (graphql_response, result)
-            if result.data[endpoint_name] is None or check_is_data_empty(result.data):
+            if endpoint_name not in result.data or result.data[endpoint_name] is None or check_is_data_empty(result.data):
                 # Special case, this could indicate a failure or could also not, based on how GraphQLer is configured
                 self.logger.info(f"[{endpoint_name}] Mutation returned no data: {graphql_response} -- returning early")
                 if config.NO_DATA_COUNT_AS_SUCCESS:

@@ -127,7 +127,7 @@ def write_from_chain(
     with open(d / "summary.txt", "w") as f:
         f.write("=== Detection Summary ===\n")
         f.write(f"Vulnerability : {vuln_name}\n")
-        f.write("Status        : CONFIRMED\n")
+        f.write("Status        : POTENTIAL\n")
         f.write(f"Node          : {detected_node_name}\n")
         if evidence:
             f.write(f"Evidence      : {evidence}\n")

@@ -21,26 +21,38 @@ class Stats :
     file_path = "/tmp/stats.txt"  # This gets overriden by the set_file_path function
     endpoint_results_dir = "/tmp/endpoint_results"
     unique_responses_file_path = "/tmp/unique_responses.txt"
-    start_time: float = time.time()
+    start_time: float = 0.0
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     failed_nodes: dict[str, int] = {}
-    results: dict[str, set[Result]] = {}    # Mapping of query/muation to results for that node
+    results: dict[str, set[Result]] = {}    # Mapping of query/mutation to results for that node
     unique_responses: dict[str, list[str]] = {}  # Mapping of response to endpoints (query/mutation)
     number_of_queries: int = 0
     number_of_mutations: int = 0
     number_of_objects: int = 0
     number_of_successes: int = 0
     number_of_failures: int = 0
-    vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potentiall or confirmed vulnerability
+    vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potential or confirmed vulnerability
     node_timings: dict[str, list[float]] = {}  # Mapping of node name to list of elapsed times in seconds
 
     # Detection stats
     is_introspection_available: bool = False
 
     def __init__(self):
+        self.start_time = time.time()
         self.http_status_codes = {}
+        self.successful_nodes = {}
+        self.failed_nodes = {}
+        self.results = {}
+        self.unique_responses = {}
+        self.number_of_queries = 0
+        self.number_of_mutations = 0
+        self.number_of_objects = 0
+        self.number_of_successes = 0
+        self.number_of_failures = 0
+        self.vulnerabilities = {}
         self.node_timings = {}
+        self.is_introspection_available = False
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:

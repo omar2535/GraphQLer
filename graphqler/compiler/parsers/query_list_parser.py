@@ -44,7 +44,7 @@ class QueryListParser(Parser):
         for query in queries:
             query_name = query["name"]
             query_args = self.__extract_arg_info(query["args"])
-            return_type = {"kind": query["type"]["kind"], "name": query["type"]["name"], "ofType": self.extract_oftype(query["type"]), "type": query["type"]["name"]}
+            return_type = {"kind": query["type"].get("kind"), "name": query["type"].get("name"), "ofType": self.extract_oftype(query["type"]), "type": query["type"].get("name")}
 
             query_info_dict[query_name] = {
                 "name": query_name,
