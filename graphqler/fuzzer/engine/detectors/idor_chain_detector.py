@@ -15,6 +15,14 @@ class IDORChainDetector:
     A vulnerability is flagged if a step executed with the 'secondary' profile
     returns data that was (presumably) created or identified by steps executed
     with the 'primary' profile.
+
+    .. note::
+        This class intentionally does **not** extend :class:`~graphqler.fuzzer.engine.detectors.detector.Detector`.
+        The ``Detector`` ABC is designed for single-node, single-request analysis: it receives one node,
+        one materializer, and sends one request.  IDOR chain detection operates across an entire
+        multi-step chain after all requests have already been executed, so it has a fundamentally
+        different call site (``Fuzzer.__run_chain``) and a different interface (``detect(chain, results, stats)``).
+        Forcing it into the ``Detector`` hierarchy would require significant compromises to both APIs.
     """
 
     def detect(self, chain: Chain, results: list[tuple[ChainStep, Result]], stats: Stats) -> None:

@@ -86,7 +86,7 @@ class NoSQLInjectionDetector(Detector):
                 self.baseline_has_data = any(v is not None for v in baseline_gql["data"].values())
             else:
                 self.baseline_has_data = False
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError, KeyError, AttributeError):
             self.baseline_has_data = True  # assume baseline has data → blind check skipped
 
         # ── Step 2: injection payload (standard flow) ─────────────────────────
