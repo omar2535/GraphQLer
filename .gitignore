@@ -36,3 +36,4 @@ codeql/
 node_modules/
 ci-test-api-security-api/
 ci-test*
+data.db

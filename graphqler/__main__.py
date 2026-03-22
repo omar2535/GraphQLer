@@ -157,6 +157,11 @@ def main(args: dict):
         print(f"(P) Using plugins from {config.PLUGINS_PATH}")
 
     # CLI overrides — applied after set_config so they always win over the config file
+    # Re-assert --path here so that a config file containing OUTPUT_DIRECTORY does not
+    # silently override the directory the user explicitly specified on the command line.
+    if 'path' in args and args['path']:
+        config.OUTPUT_DIRECTORY = args['path']
+
     if args.get('auth'):
         # Multi-auth support: --auth profile=token or just --auth token (defaults to primary)
         for auth_entry in args['auth']:

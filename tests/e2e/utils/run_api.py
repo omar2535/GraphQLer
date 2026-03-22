@@ -76,6 +76,9 @@ def run_python_project(path: str, port: str) -> subprocess.Popen:
 def wait_for_server(url, timeout=30):
     """Wait for the server to start by continuously checking the given URL.
 
+    Accepts any HTTP response as "ready" — GraphQL servers commonly return 400
+    for plain GET requests, which still means they are listening.
+
     Args:
         url (str): The URL to check.
         timeout (int): Maximum time to wait for the server to start in seconds.
@@ -87,7 +90,7 @@ def wait_for_server(url, timeout=30):
     while time.time() - start_time < timeout:
         try:
             response = requests.get(url)
-            if response.status_code == 200:
+            if response.status_code < 500:
                 return True
         except requests.exceptions.ConnectionError:
             pass

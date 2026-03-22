@@ -2,7 +2,8 @@ const {ApolloServer} = require("apollo-server-express");
 const {v4} = require("uuid");
 const express = require("express");
 const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database("./data.db");
+const path = require('path');
+const db = new sqlite3.Database(path.join(__dirname, "data.db"));
 
 const typeDefs = `
 type Restaurant {

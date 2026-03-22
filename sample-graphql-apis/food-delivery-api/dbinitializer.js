@@ -1,7 +1,8 @@
 const sqlite3 = require("sqlite3").verbose();
 const fs = require("fs");
 
-const dbFile = "./data.db";
+const path = require('path');
+const dbFile = path.join(__dirname, "data.db");
 
 
 const createRestaurantTableStmt = `
