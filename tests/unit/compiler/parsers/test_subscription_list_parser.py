@@ -1,6 +1,5 @@
 """Unit tests for SubscriptionListParser."""
 
-import pytest
 from graphqler.compiler.parsers.subscription_list_parser import SubscriptionListParser
 
 

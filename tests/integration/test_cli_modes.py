@@ -126,7 +126,7 @@ class TestCLIModes(unittest.TestCase):
     def test_compile_graph_mode_creates_introspection_and_compiled_files(self):
         """compile-graph creates schema files but does NOT produce chains."""
         result = self._compile_graph()
-        self.assertEqual(result.returncode, 0, f"compile-graph failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile-graph failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_compiled_graph()
 
     def test_compile_graph_mode_does_not_create_chains(self):
@@ -147,21 +147,21 @@ class TestCLIModes(unittest.TestCase):
         """compile-chains (run after compile-graph) produces chain YAML files."""
         self._compile_graph()
         result = self._compile_chains()
-        self.assertEqual(result.returncode, 0, f"compile-chains failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile-chains failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_chains_exist()
 
     def test_compile_chains_on_empty_directory_exits_cleanly(self):
         """compile-chains with no prior graph handles an empty graph without crashing."""
         result = self._compile_chains()
         # Should exit 0 (it prints a warning and returns early, not sys.exit(1))
-        self.assertEqual(result.returncode, 0, f"compile-chains crashed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile-chains crashed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
 
     # ── full compile mode ─────────────────────────────────────────────────────
 
     def test_compile_mode_creates_graph_and_chains(self):
         """compile = compile-graph + compile-chains; all artifacts must exist."""
         result = self._compile()
-        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_compiled_graph()
         self._assert_chains_exist()
 
@@ -177,7 +177,7 @@ class TestCLIModes(unittest.TestCase):
         """fuzz (after compile) produces stats.txt and a fuzzer log."""
         self._compile()
         result = self._fuzz()
-        self.assertEqual(result.returncode, 0, f"fuzz failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"fuzz failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_fuzz_output()
 
     def test_fuzz_mode_without_compile_exits_with_error(self):
@@ -192,7 +192,7 @@ class TestCLIModes(unittest.TestCase):
     def test_run_mode_compiles_and_fuzzes(self):
         """run = compile + fuzz; all graph, chain, and fuzz artifacts must exist."""
         result = self._run()
-        self.assertEqual(result.returncode, 0, f"run mode failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"run mode failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_compiled_graph()
         self._assert_chains_exist()
         self._assert_fuzz_output()
@@ -202,13 +202,13 @@ class TestCLIModes(unittest.TestCase):
     def test_sub_mode_pipeline_graph_chains_fuzz(self):
         """Running compile-graph then compile-chains then fuzz is equivalent to compile + fuzz."""
         r1 = self._compile_graph()
-        self.assertEqual(r1.returncode, 0, f"compile-graph failed:\n{r1.stderr}")
+        self.assertEqual(r1.returncode, 0, f"compile-graph failed:\nSTDOUT: {r1.stdout}\nSTDERR: {r1.stderr}")
 
         r2 = self._compile_chains()
-        self.assertEqual(r2.returncode, 0, f"compile-chains failed:\n{r2.stderr}")
+        self.assertEqual(r2.returncode, 0, f"compile-chains failed:\nSTDOUT: {r2.stdout}\nSTDERR: {r2.stderr}")
 
         r3 = self._fuzz()
-        self.assertEqual(r3.returncode, 0, f"fuzz failed:\n{r3.stderr}")
+        self.assertEqual(r3.returncode, 0, f"fuzz failed:\nSTDOUT: {r3.stdout}\nSTDERR: {r3.stderr}")
 
         self._assert_compiled_graph()
         self._assert_chains_exist()
@@ -219,7 +219,7 @@ class TestCLIModes(unittest.TestCase):
     def test_disable_mutations_flag_still_produces_chains(self):
         """--disable-mutations should still produce chain files (queries only)."""
         result = self._compile(extra_args=["--disable-mutations"])
-        self.assertEqual(result.returncode, 0, f"compile --disable-mutations failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile --disable-mutations failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_chains_exist()
 
     def test_disable_mutations_produces_fewer_chains_than_full_compile(self):
@@ -290,7 +290,6 @@ class TestSubscriptionSupport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        node_cmd = shutil.which("node")
         cls.process = run_node_project(SUB_API_PATH, [], str(SUB_PORT))
         cls.process_pid = cls.process.pid
         ready = wait_for_server(SUB_URL, timeout=30)
@@ -317,14 +316,14 @@ class TestSubscriptionSupport(unittest.TestCase):
     def test_compile_creates_compiled_subscriptions_file(self):
         """Compile mode should produce compiled/compiled_subscriptions.yml."""
         result = _run_cli_sub(self.path, "compile")
-        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         sub_file = os.path.join(self.path, "compiled", "compiled_subscriptions.yml")
         self.assertTrue(os.path.exists(sub_file), f"compiled_subscriptions.yml not found at {sub_file}")
 
     def test_compile_subscriptions_file_contains_expected_subscriptions(self):
         """compiled_subscriptions.yml must contain both subscription definitions."""
         result = _run_cli_sub(self.path, "compile")
-        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         sub_file = os.path.join(self.path, "compiled", "compiled_subscriptions.yml")
         with open(sub_file) as f:
             content = f.read()
@@ -334,7 +333,7 @@ class TestSubscriptionSupport(unittest.TestCase):
     def test_compile_subscription_parameter_file_is_created(self):
         """Compile mode should also produce extracted/subscription_parameter_list.yml."""
         result = _run_cli_sub(self.path, "compile")
-        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        self.assertEqual(result.returncode, 0, f"compile failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         param_file = os.path.join(self.path, "extracted", "subscription_parameter_list.yml")
         self.assertTrue(os.path.exists(param_file), f"subscription_parameter_list.yml not found at {param_file}")
 
@@ -344,16 +343,16 @@ class TestSubscriptionSupport(unittest.TestCase):
         """Fuzzing with --subscriptions enabled should not raise an uncaught exception."""
         # First compile
         compile_result = _run_cli_sub(self.path, "compile")
-        self.assertEqual(compile_result.returncode, 0, f"compile failed:\n{compile_result.stderr}")
+        self.assertEqual(compile_result.returncode, 0, f"compile failed:\nSTDOUT: {compile_result.stdout}\nSTDERR: {compile_result.stderr}")
 
         # Then fuzz with subscriptions enabled
         fuzz_result = _run_cli_sub(self.path, "fuzz", extra_args=["--subscriptions"])
-        self.assertEqual(fuzz_result.returncode, 0, f"fuzz --subscriptions failed:\n{fuzz_result.stderr}")
+        self.assertEqual(fuzz_result.returncode, 0, f"fuzz --subscriptions failed:\nSTDOUT: {fuzz_result.stdout}\nSTDERR: {fuzz_result.stderr}")
 
     def test_fuzz_without_subscriptions_flag_still_works(self):
         """Without --subscriptions, subscription nodes are skipped and fuzzing should succeed."""
         compile_result = _run_cli_sub(self.path, "compile")
-        self.assertEqual(compile_result.returncode, 0, f"compile failed:\n{compile_result.stderr}")
+        self.assertEqual(compile_result.returncode, 0, f"compile failed:\nSTDOUT: {compile_result.stdout}\nSTDERR: {compile_result.stderr}")
 
         fuzz_result = _run_cli_sub(self.path, "fuzz")
-        self.assertEqual(fuzz_result.returncode, 0, f"fuzz (no subscriptions) failed:\n{fuzz_result.stderr}")
+        self.assertEqual(fuzz_result.returncode, 0, f"fuzz (no subscriptions) failed:\nSTDOUT: {fuzz_result.stdout}\nSTDERR: {fuzz_result.stderr}")
