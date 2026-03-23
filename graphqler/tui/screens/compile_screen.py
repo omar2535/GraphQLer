@@ -55,7 +55,7 @@ class CompileScreen(Screen):
         if selected is None:
             self._set_status("Please select a compile mode.", error=True)
             return
-        mode = selected.id.replace("rb-", "").replace("-", "-")  # maps directly: rb-compile → compile
+        mode = selected.id.replace("rb-", "")  # e.g. rb-compile-graph → compile-graph
 
         if mode != "compile-chains" and not url:
             self._set_status("URL is required for this mode.", error=True)
@@ -86,8 +86,8 @@ class CompileScreen(Screen):
                 graph_gen = GraphGenerator(path)
                 graph = graph_gen.get_dependency_graph()
                 graph_gen.draw_dependency_graph()
-                node_count = len(graph.nodes)
-                edge_count = len(graph.edges)
+                node_count = len(getattr(graph, "nodes", []))
+                edge_count = len(getattr(graph, "edges", []))
                 self.app.call_from_thread(
                     self._set_status,
                     f"Graph built: {node_count} nodes, {edge_count} edges",

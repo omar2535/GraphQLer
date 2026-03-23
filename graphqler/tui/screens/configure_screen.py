@@ -13,6 +13,58 @@ from textual.containers import Horizontal, ScrollableContainer
 from graphqler import config
 from graphqler.utils.config_handler import set_config
 
+# ── Form field maps ────────────────────────────────────────────────────────────
+# Each entry drives both value reading in _save() and removes per-field code.
+#
+# _INPUT_MAP  : (widget_id, config_key, coerce)
+#   coerce is a callable applied to the stripped string value; returning None
+#   means "leave as None / empty string maps to None".
+#
+# _SWITCH_MAP : (widget_id, config_key, invert)
+#   invert=True means the switch is labelled as the opposite of the config flag
+#   (e.g. "Enable Subscriptions" maps to SKIP_SUBSCRIPTIONS = not switch.value)
+
+def _str_or_none(v: str):
+    return v or None
+
+def _try_int(v: str):
+    try:
+        return int(v)
+    except ValueError:
+        return None
+
+def _try_float(v: str):
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+_INPUT_MAP: tuple[tuple, ...] = (
+    # (widget_id,        config_key,               coerce_fn)
+    ("inp-path",         "OUTPUT_DIRECTORY",        str),
+    ("inp-auth",         "AUTHORIZATION",           _str_or_none),
+    ("inp-idor-auth",    "IDOR_SECONDARY_AUTH",     _str_or_none),
+    ("inp-proxy",        "PROXY",                   _str_or_none),
+    ("inp-timeout",      "REQUEST_TIMEOUT",         _try_int),
+    ("inp-rate",         "TIME_BETWEEN_REQUESTS",   _try_float),
+    ("inp-max-iter",     "MAX_FUZZING_ITERATIONS",  _try_int),
+    ("inp-max-time",     "MAX_TIME",                _try_int),
+    ("inp-llm-model",    "LLM_MODEL",               str),
+    ("inp-llm-key",      "LLM_API_KEY",             str),
+    ("inp-llm-url",      "LLM_BASE_URL",            str),
+)
+
+_SWITCH_MAP: tuple[tuple, ...] = (
+    # (widget_id,              config_key,                  invert)
+    ("sw-disable-mutations",   "DISABLE_MUTATIONS",         False),
+    ("sw-allow-deletion",      "ALLOW_DELETION_OF_OBJECTS", False),
+    ("sw-subscriptions",       "SKIP_SUBSCRIPTIONS",        True),   # UI says "Enable", config says "Skip"
+    ("sw-skip-dos",            "SKIP_DOS_ATTACKS",          False),
+    ("sw-skip-injection",      "SKIP_INJECTION_ATTACKS",    False),
+    ("sw-use-llm",             "USE_LLM",                   False),
+    ("sw-llm-report",          "LLM_ENABLE_REPORTER",       False),
+)
+
 
 class ConfigureScreen(Screen):
     """Scrollable settings form for the GraphQLer TUI."""
@@ -107,110 +159,40 @@ class ConfigureScreen(Screen):
     def _save(self) -> None:
         """Apply form values to config module and persist to config.toml."""
         try:
-            url = self.query_one("#inp-url", Input).value.strip()
-            path = self.query_one("#inp-path", Input).value.strip() or config.OUTPUT_DIRECTORY
-            auth = self.query_one("#inp-auth", Input).value.strip()
-            idor_auth = self.query_one("#inp-idor-auth", Input).value.strip()
-            proxy = self.query_one("#inp-proxy", Input).value.strip()
-            timeout = self.query_one("#inp-timeout", Input).value.strip()
-            rate = self.query_one("#inp-rate", Input).value.strip()
-            max_iter = self.query_one("#inp-max-iter", Input).value.strip()
-            max_time = self.query_one("#inp-max-time", Input).value.strip()
-            disable_mutations = self.query_one("#sw-disable-mutations", Switch).value
-            allow_deletion = self.query_one("#sw-allow-deletion", Switch).value
-            subscriptions_on = self.query_one("#sw-subscriptions", Switch).value
-            skip_dos = self.query_one("#sw-skip-dos", Switch).value
-            skip_injection = self.query_one("#sw-skip-injection", Switch).value
-            use_llm = self.query_one("#sw-use-llm", Switch).value
-            llm_model = self.query_one("#inp-llm-model", Input).value.strip()
-            llm_key = self.query_one("#inp-llm-key", Input).value.strip()
-            llm_url = self.query_one("#inp-llm-url", Input).value.strip()
-            llm_report = self.query_one("#sw-llm-report", Switch).value
+            new_cfg: dict = {}
+
+            # Text inputs — read, strip, coerce, skip if coerce returns None
+            for widget_id, config_key, coerce in _INPUT_MAP:
+                raw = self.query_one(f"#{widget_id}", Input).value.strip()
+                value = coerce(raw)
+                if value is not None or coerce is _str_or_none:
+                    new_cfg[config_key] = value
+
+            # Switches — read bool, optionally invert
+            for widget_id, config_key, invert in _SWITCH_MAP:
+                value = self.query_one(f"#{widget_id}", Switch).value
+                new_cfg[config_key] = (not value) if invert else value
+
         except Exception as exc:
             self._set_status(f"Error reading form: {exc}", error=True)
             return
 
-        # Apply to live config
-        new_cfg: dict = {
-            "OUTPUT_DIRECTORY": path,
-            "AUTHORIZATION": auth or None,
-            "IDOR_SECONDARY_AUTH": idor_auth or None,
-            "PROXY": proxy or None,
-            "DISABLE_MUTATIONS": disable_mutations,
-            "ALLOW_DELETION_OF_OBJECTS": allow_deletion,
-            "SKIP_SUBSCRIPTIONS": not subscriptions_on,
-            "SKIP_DOS_ATTACKS": skip_dos,
-            "SKIP_INJECTION_ATTACKS": skip_injection,
-            "USE_LLM": use_llm,
-            "LLM_MODEL": llm_model,
-            "LLM_API_KEY": llm_key,
-            "LLM_BASE_URL": llm_url,
-            "LLM_ENABLE_REPORTER": llm_report,
-        }
-        try:
-            new_cfg["REQUEST_TIMEOUT"] = int(timeout)
-        except ValueError:
-            pass
-        try:
-            new_cfg["TIME_BETWEEN_REQUESTS"] = float(rate)
-        except ValueError:
-            pass
-        try:
-            new_cfg["MAX_FUZZING_ITERATIONS"] = int(max_iter)
-        except ValueError:
-            pass
-        try:
-            new_cfg["MAX_TIME"] = int(max_time)
-        except ValueError:
-            pass
-
         set_config(new_cfg)
-        config.TUI_LAST_URL = url
+        config.TUI_LAST_URL = self.query_one("#inp-url", Input).value.strip()
 
         # Persist to disk
         try:
             import os
 
+            path = new_cfg.get("OUTPUT_DIRECTORY", config.OUTPUT_DIRECTORY)
             os.makedirs(path, exist_ok=True)
             config_path = f"{path}/{config.CONFIG_FILE_NAME}"
-            self._write_toml(config_path)
+            from graphqler.utils.config_handler import write_config_to_toml
+
+            write_config_to_toml(config_path)
             self._set_status(f"Saved to {config_path}", error=False)
         except Exception as exc:
             self._set_status(f"Saved to memory (could not write file: {exc})", error=True)
-
-    def _write_toml(self, path: str) -> None:
-        """Write current config values to a TOML file."""
-        lines = [
-            "# GraphQLer configuration — generated by TUI\n",
-            f'DEBUG = {"true" if config.DEBUG else "false"}\n',
-            f'\nOUTPUT_DIRECTORY = "{config.OUTPUT_DIRECTORY}"\n',
-            f'\nAUTHORIZATION = "{config.AUTHORIZATION or ""}"\n',
-            f'IDOR_SECONDARY_AUTH = "{config.IDOR_SECONDARY_AUTH or ""}"\n',
-            f'PROXY = "{config.PROXY or ""}"\n',
-            f"\nREQUEST_TIMEOUT = {config.REQUEST_TIMEOUT}\n",
-            f"TIME_BETWEEN_REQUESTS = {config.TIME_BETWEEN_REQUESTS}\n",
-            f"\nMAX_FUZZING_ITERATIONS = {config.MAX_FUZZING_ITERATIONS}\n",
-            f"MAX_TIME = {config.MAX_TIME}\n",
-            f"DISABLE_MUTATIONS = {'true' if config.DISABLE_MUTATIONS else 'false'}\n",
-            f"ALLOW_DELETION_OF_OBJECTS = {'true' if config.ALLOW_DELETION_OF_OBJECTS else 'false'}\n",
-            f"SKIP_SUBSCRIPTIONS = {'true' if config.SKIP_SUBSCRIPTIONS else 'false'}\n",
-            f"SKIP_DOS_ATTACKS = {'true' if config.SKIP_DOS_ATTACKS else 'false'}\n",
-            f"SKIP_INJECTION_ATTACKS = {'true' if config.SKIP_INJECTION_ATTACKS else 'false'}\n",
-            f"SKIP_MISC_ATTACKS = {'true' if config.SKIP_MISC_ATTACKS else 'false'}\n",
-            f"\nUSE_LLM = {'true' if config.USE_LLM else 'false'}\n",
-            f'LLM_MODEL = "{config.LLM_MODEL}"\n',
-            f'LLM_API_KEY = "{config.LLM_API_KEY}"\n',
-            f'LLM_BASE_URL = "{config.LLM_BASE_URL}"\n',
-            f"LLM_ENABLE_REPORTER = {'true' if config.LLM_ENABLE_REPORTER else 'false'}\n",
-            f"LLM_MAX_RETRIES = {config.LLM_MAX_RETRIES}\n",
-            "\nUSE_OBJECTS_BUCKET = true\n",
-            "USE_DEPENDENCY_GRAPH = true\n",
-            "\nSKIP_NODES = []\n",
-            "\n[CUSTOM_HEADERS]\n",
-            'Accept = "application/json"\n',
-        ]
-        with open(path, "w") as fh:
-            fh.writelines(lines)
 
     def _set_status(self, message: str, error: bool = False) -> None:
         try:

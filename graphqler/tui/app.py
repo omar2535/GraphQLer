@@ -23,9 +23,11 @@ class GraphQLerApp(App):
         self._splash = splash
 
     def on_mount(self) -> None:
+        from graphqler import config as _config
         from graphqler.tui.screens.home_screen import HomeScreen
         from graphqler.tui.screens.splash_screen import SplashScreen, should_show_splash
 
+        _config.TUI_MODE = True  # tell the fuzzer to use threads, not multiprocessing
         self._install_print_capture()
         self.push_screen(HomeScreen())
         if self._splash and should_show_splash():

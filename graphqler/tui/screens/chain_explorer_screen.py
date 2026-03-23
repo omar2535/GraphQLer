@@ -123,7 +123,7 @@ class ChainExplorerScreen(Screen):
         selected_chain = self._chains[idx]
         config.TUI_LAST_URL = url
         config.OUTPUT_DIRECTORY = path
-        config.DEBUG = True  # force threading for callbacks
+        config.DEBUG = config.TUI_MODE  # force threading for callbacks
 
         self._set_status(f"Executing chain: {selected_chain.name or f'chain-{idx}'}…")
         try:

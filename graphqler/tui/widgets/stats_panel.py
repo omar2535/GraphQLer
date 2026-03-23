@@ -58,12 +58,13 @@ class StatsPanel(Widget):
 
     def update_from_stats(self, stats, start_time: float | None = None) -> None:
         """Refresh all counters from a Stats object."""
-        totals = stats.number_of_successes + stats.number_of_failures
-        self._set("stat-requests", str(totals))
-        self._set("stat-successes", str(stats.number_of_successes))
-        self._set("stat-failures", str(stats.number_of_failures))
-        findings = len(stats.vulnerabilities) if stats.vulnerabilities else 0
-        self._set("stat-findings", str(findings))
+        successes = getattr(stats, "number_of_successes", 0)
+        failures = getattr(stats, "number_of_failures", 0)
+        vulns = getattr(stats, "vulnerabilities", None) or {}
+        self._set("stat-requests", str(successes + failures))
+        self._set("stat-successes", str(successes))
+        self._set("stat-failures", str(failures))
+        self._set("stat-findings", str(len(vulns)))
         if start_time is not None:
             elapsed = int(time.time() - start_time)
             mins, secs = divmod(elapsed, 60)
