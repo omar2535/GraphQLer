@@ -72,7 +72,7 @@ flowchart TD
         direction LR
         YAML_RAW["Raw YAML\nobjects · queries · mutations\nenums · unions · interfaces\ninput_objects"]
         YAML_COMPILED["Compiled YAML\ncompiled/objects.yaml\ncompiled/queries.yaml\ncompiled/mutations.yaml"]
-        CHAINS_YAML["compiled/chains.yaml"]
+        CHAINS_YAML["Chain YAML\ncompiled/chains/\n  regular.yml · idor.yml · ..."]
         GRAPH_PNG["dependency_graph.png"]
         INTROSPECTION_JSON["introspection_result.json"]
         STATS_FILES["stats.txt · stats.json\nlogs/fuzzer.log"]

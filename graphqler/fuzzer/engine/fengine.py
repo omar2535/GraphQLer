@@ -188,11 +188,8 @@ class FEngine(object):
             result.payload = payload_string
             self.logger.info(f"[{profile.name}/{name}] Sending payload with profile '{profile.name}':\n {payload_string}")
             
-            # Use profile headers
-            headers = profile.get_headers()
-            auth_token = headers.get("Authorization", "")
-            
-            graphql_response, request_response = _request_utils.send_graphql_request_with_auth(self.api.url, payload_string, auth_token)
+            # Use full profile headers (Authorization + any extra profile-specific headers)
+            graphql_response, request_response = _request_utils.send_graphql_request_with_headers(self.api.url, payload_string, profile.get_headers())
             result.status_code = request_response.status_code
             result.graphql_response = graphql_response
             result.raw_response_text = request_response.text
