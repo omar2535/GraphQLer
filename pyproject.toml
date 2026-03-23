@@ -18,10 +18,6 @@ dependencies = [
     "networkx>=3.6.1",
     "litellm>=1.67.0",
     "websockets>=14.0",
-]
-
-[project.optional-dependencies]
-tui = [
     "textual>=6.0.0,<8.0.0",
 ]
 

@@ -13,18 +13,23 @@ class GraphQLerApp(App):
     CSS_PATH = "graphqler.tcss"
     BINDINGS = [
         ("ctrl+q", "quit", "Quit"),
+        ("ctrl+c", "quit", "Quit"),
         ("escape", "go_back", "Back"),
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, splash: bool = True, **kwargs):
         super().__init__(*args, **kwargs)
         self._original_print = None
+        self._splash = splash
 
     def on_mount(self) -> None:
         from graphqler.tui.screens.home_screen import HomeScreen
+        from graphqler.tui.screens.splash_screen import SplashScreen, should_show_splash
 
         self._install_print_capture()
         self.push_screen(HomeScreen())
+        if self._splash and should_show_splash():
+            self.push_screen(SplashScreen())
 
     def on_unmount(self) -> None:
         self._restore_print()

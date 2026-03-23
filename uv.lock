@@ -487,13 +487,9 @@ dependencies = [
     { name = "networkx" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "textual" },
     { name = "urllib3" },
     { name = "websockets" },
-]
-
-[package.optional-dependencies]
-tui = [
-    { name = "textual" },
 ]
 
 [package.dev-dependencies]
@@ -520,11 +516,10 @@ requires-dist = [
     { name = "networkx", specifier = ">=3.6.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "textual", marker = "extra == 'tui'", specifier = ">=6.0.0,<8.0.0" },
+    { name = "textual", specifier = ">=6.0.0,<8.0.0" },
     { name = "urllib3", specifier = ">=2.6.3" },
     { name = "websockets", specifier = ">=14.0" },
 ]
-provides-extras = ["tui"]
 
 [package.metadata.requires-dev]
 dev = [

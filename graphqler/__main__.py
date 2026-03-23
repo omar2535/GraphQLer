@@ -255,13 +255,8 @@ if __name__ == "__main__":
 
     # Launch TUI when called with no arguments
     if len(sys.argv) == 1:
-        try:
-            from graphqler.tui.app import GraphQLerApp
-        except ImportError:
-            print("The GraphQLer TUI requires the 'tui' optional extra.")
-            print("Install it with:  uv sync --extra tui")
-            print("                  pip install graphqler[tui]")
-            sys.exit(1)
+        from graphqler.tui.app import GraphQLerApp
+
         GraphQLerApp().run()
         sys.exit(0)
 
