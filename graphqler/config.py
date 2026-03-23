@@ -150,3 +150,7 @@ PROFILES = {}
 # TUI-only: last URL entered in the TUI (not persisted to config.toml, not used by CLI)
 TUI_LAST_URL = ""
 
+# TUI-only: when True the fuzzer must use threads (not multiprocessing) so that
+# callbacks and log capture work inside the Textual event loop.  Set by the TUI
+# at startup; never written to config.toml and never read by the CLI.
+TUI_MODE = False

@@ -34,7 +34,7 @@ class FuzzScreen(Screen):
         self._start_time: float | None = None
 
     def compose(self) -> ComposeResult:
-        mode_label = {"fuzz": "Fuzz", "run": "Run (Compile + Fuzz)", "idor": "IDOR Fuzz"}[self._mode]
+        mode_label = {"fuzz": "Fuzz", "run": "Run (Compile + Fuzz)", "idor": "IDOR Fuzz"}.get(self._mode, self._mode.title())
         yield Header()
         with Vertical():
             with Vertical(classes="run-controls"):
@@ -94,7 +94,7 @@ class FuzzScreen(Screen):
         from graphqler.utils.file_utils import get_or_create_directory
         from graphqler.utils.stats import Stats
 
-        config.DEBUG = True  # force threading so callbacks work
+        config.DEBUG = config.TUI_MODE  # force threading so callbacks work
         try:
             get_or_create_directory(path)
             stats = Stats()
