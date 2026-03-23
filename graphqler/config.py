@@ -60,6 +60,7 @@ LLM_BASE_URL = ""                       # Custom base URL (required for Ollama a
 LLM_RESOLVER_FALLBACK_TO_ID = True      # Fall back to classic ID-based resolver if LLM call fails
 LLM_RESOLVER_SAVE_COMPARISON = True     # Save a side-by-side comparison JSON of LLM vs classic results
 LLM_MAX_RETRIES = 2                     # How many times to retry when the LLM returns non-JSON
+LLM_REPORT_FILE_NAME = "report.md"     # File written by LLMReporter at end of fuzzing (requires USE_LLM=True)
 
 """For the linker"""
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"

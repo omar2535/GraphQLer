@@ -26,6 +26,7 @@ from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
 from .engine.types.profile import RuntimeProfile
 from .engine.detectors import IDORChainDetector
+from .reporters import LLMReporter
 
 
 class Fuzzer(object):
@@ -204,6 +205,9 @@ class Fuzzer(object):
         # Detections
         self.dengine.run_detections_on_api()
         self.logger.info("Completed running detections on the overall API")
+
+        # LLM report
+        LLMReporter(self.save_path, self.url).generate()
 
         # Finish
         self.logger.info("Completed fuzzing")

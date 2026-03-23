@@ -218,7 +218,7 @@ class TestCallLLMRetry(unittest.TestCase):
         mock.choices[0].message.content = content
         return mock
 
-    @patch("graphqler.compiler.resolvers.llm.llm_resolver.config")
+    @patch("graphqler.utils.llm_utils.config")
     def test_succeeds_on_second_attempt(self, mock_cfg):
         mock_cfg.LLM_MODEL = "gpt-4o-mini"
         mock_cfg.LLM_API_KEY = ""
@@ -235,7 +235,7 @@ class TestCallLLMRetry(unittest.TestCase):
 
         self.assertEqual(result, {"ok": True})
 
-    @patch("graphqler.compiler.resolvers.llm.llm_resolver.config")
+    @patch("graphqler.utils.llm_utils.config")
     def test_raises_after_all_retries_exhausted(self, mock_cfg):
         mock_cfg.LLM_MODEL = "gpt-4o-mini"
         mock_cfg.LLM_API_KEY = ""
@@ -250,7 +250,7 @@ class TestCallLLMRetry(unittest.TestCase):
             with self.assertRaises(ValueError):
                 resolver.call_llm("sys", "user")
 
-    @patch("graphqler.compiler.resolvers.llm.llm_resolver.config")
+    @patch("graphqler.utils.llm_utils.config")
     def test_correction_turn_appended_to_messages(self, mock_cfg):
         mock_cfg.LLM_MODEL = "gpt-4o-mini"
         mock_cfg.LLM_API_KEY = ""
@@ -282,7 +282,7 @@ class TestLLMMutationObjectResolver(unittest.TestCase):
         mock_response.choices[0].message.content = json.dumps(payload)
         return mock_response
 
-    @patch("graphqler.compiler.resolvers.llm.llm_resolver.config")
+    @patch("graphqler.utils.llm_utils.config")
     def test_happy_path_llm_result_is_used(self, mock_cfg):
         mock_cfg.LLM_MODEL = "gpt-4o-mini"
         mock_cfg.LLM_API_KEY = ""
@@ -311,7 +311,7 @@ class TestLLMMutationObjectResolver(unittest.TestCase):
         graphqler_config.LLM_RESOLVER_FALLBACK_TO_ID = True
         try:
             import litellm
-            with patch("graphqler.compiler.resolvers.llm.llm_resolver.config") as mock_cfg:
+            with patch("graphqler.utils.llm_utils.config") as mock_cfg:
                 mock_cfg.LLM_MODEL = "gpt-4o-mini"
                 mock_cfg.LLM_API_KEY = ""
                 mock_cfg.LLM_BASE_URL = ""
@@ -333,7 +333,7 @@ class TestLLMMutationObjectResolver(unittest.TestCase):
         graphqler_config.LLM_RESOLVER_FALLBACK_TO_ID = False
         try:
             import litellm
-            with patch("graphqler.compiler.resolvers.llm.llm_resolver.config") as mock_cfg:
+            with patch("graphqler.utils.llm_utils.config") as mock_cfg:
                 mock_cfg.LLM_MODEL = "gpt-4o-mini"
                 mock_cfg.LLM_API_KEY = ""
                 mock_cfg.LLM_BASE_URL = ""
@@ -357,7 +357,7 @@ class TestLLMMutationObjectResolver(unittest.TestCase):
             }
 
             import litellm
-            with patch("graphqler.compiler.resolvers.llm.llm_resolver.config") as mock_cfg:
+            with patch("graphqler.utils.llm_utils.config") as mock_cfg:
                 mock_cfg.LLM_MODEL = "gpt-4o-mini"
                 mock_cfg.LLM_API_KEY = ""
                 mock_cfg.LLM_BASE_URL = ""
@@ -383,7 +383,7 @@ class TestLLMQueryObjectResolver(unittest.TestCase):
         mock_response.choices[0].message.content = json.dumps(payload)
         return mock_response
 
-    @patch("graphqler.compiler.resolvers.llm.llm_resolver.config")
+    @patch("graphqler.utils.llm_utils.config")
     def test_happy_path_query_resolved(self, mock_cfg):
         mock_cfg.LLM_MODEL = "gpt-4o-mini"
         mock_cfg.LLM_API_KEY = ""
@@ -414,7 +414,7 @@ class TestLLMQueryObjectResolver(unittest.TestCase):
             bad_response.choices[0].message.content = "not json at all"
 
             import litellm
-            with patch("graphqler.compiler.resolvers.llm.llm_resolver.config") as mock_cfg:
+            with patch("graphqler.utils.llm_utils.config") as mock_cfg:
                 mock_cfg.LLM_MODEL = "gpt-4o-mini"
                 mock_cfg.LLM_API_KEY = ""
                 mock_cfg.LLM_BASE_URL = ""

@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal
+from typing import Literal
 
 from graphqler import config
+from graphqler.utils import llm_utils
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,25 @@ def _heuristic_score(
     return score
 
 
+# ── LLM prompt constants ──────────────────────────────────────────────────────
+
+_ENDPOINT_SYSTEM_PROMPT = """\
+You are a security analyst classifying GraphQL endpoints.
+Respond with JSON only: {"scope": "private"} or {"scope": "public"}.
+"private" means the endpoint returns user-specific data that should only be
+accessible to the authenticated owner (IDOR is meaningful).
+"public" means the endpoint returns catalogue/public data accessible to everyone.\
+"""
+
+_ENDPOINT_USER_PROMPT_TEMPLATE = """\
+Endpoint name: {endpoint_name}
+Return type: {return_type_name}
+Return type fields: {fields_str}
+
+Is this endpoint private (user-scoped) or public (catalogue/open)?\
+"""
+
+
 def _llm_classify(
     endpoint_name: str,
     return_type_name: str,
@@ -142,62 +162,26 @@ def _llm_classify(
 ) -> Literal["private", "public", "unknown"]:
     """Ask the configured LLM whether the endpoint is private or public.
 
-    Uses litellm directly (same infrastructure as LLMResolver).
+    Uses ``graphqler.utils.llm_utils.call_llm()`` so provider configuration
+    is shared with all other LLM callers.
     Returns "private", "public", or "unknown" on any error.
     """
-    try:
-        import litellm  # type: ignore[import]
-    except ImportError:
-        logger.debug("litellm not installed — skipping LLM endpoint classification")
-        return "unknown"
-
     fields_str = ", ".join(return_type_fields[:20]) or "none"
-    system_prompt = (
-        "You are a security analyst classifying GraphQL endpoints. "
-        'Respond with JSON only: {"scope": "private"} or {"scope": "public"}. '
-        '"private" means the endpoint returns user-specific data that should only '
-        "be accessible to the authenticated owner (IDOR is meaningful). "
-        '"public" means the endpoint returns catalogue/public data accessible to everyone.'
+    user_prompt = _ENDPOINT_USER_PROMPT_TEMPLATE.format(
+        endpoint_name=endpoint_name,
+        return_type_name=return_type_name,
+        fields_str=fields_str,
     )
-    user_prompt = (
-        f"Endpoint name: {endpoint_name}\n"
-        f"Return type: {return_type_name}\n"
-        f"Return type fields: {fields_str}\n\n"
-        "Is this endpoint private (user-scoped) or public (catalogue/open)?"
-    )
-
-    kwargs: dict = {"model": config.LLM_MODEL, "messages": [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]}
-    if config.LLM_API_KEY:
-        kwargs["api_key"] = config.LLM_API_KEY
-    if config.LLM_BASE_URL:
-        kwargs["base_url"] = config.LLM_BASE_URL
 
     try:
-        response: Any = litellm.completion(**kwargs)
-
-        content = ""
-        if isinstance(response, dict):
-            choices = response.get("choices") or []
-            if choices:
-                message = choices[0].get("message") or {}
-                content = str(message.get("content") or "")
-        else:
-            choices = getattr(response, "choices", None) or []
-            if choices:
-                message = getattr(choices[0], "message", None)
-                if message is not None:
-                    content = str(getattr(message, "content", "") or "")
-
-        raw = content.strip()
-        import json
-        data = json.loads(raw)
+        data = llm_utils.call_llm(_ENDPOINT_SYSTEM_PROMPT, user_prompt)
         scope = str(data.get("scope", "")).lower()
         if scope in ("private", "public"):
             return scope  # type: ignore[return-value]
         logger.warning("LLM returned unexpected scope value: %r", scope)
+        return "unknown"
+    except ImportError:
+        logger.debug("litellm not installed — skipping LLM endpoint classification")
         return "unknown"
     except Exception as exc:  # noqa: BLE001
         logger.warning("LLM endpoint classification failed: %s", exc)
