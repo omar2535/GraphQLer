@@ -214,6 +214,9 @@ def main(args: dict):
     if args.get('allow_deletion'):
         config.ALLOW_DELETION_OF_OBJECTS = True
         print("(P) Deletion of objects from bucket enabled")
+    if args.get('subscriptions'):
+        config.SKIP_SUBSCRIPTIONS = False
+        print("(P) Subscription fuzzing enabled")
 
     # Initialize the compiler and fuzzer
     compiler = Compiler(args['path'], args['url'])
@@ -271,6 +274,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-dependency-graph", help="ablation: disable dependency-graph chain ordering — all nodes run independently without chaining", action="store_true", default=False)
     parser.add_argument("--max-iterations", help=f"number of times to iterate through all chains (default: {config.MAX_FUZZING_ITERATIONS})", type=int, required=False)
     parser.add_argument("--allow-deletion", help="remove objects from the bucket when a DELETE mutation succeeds (default: off)", action="store_true", default=False)
+    parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
     parser.add_argument("--version", help="display version", action="store_true")
 

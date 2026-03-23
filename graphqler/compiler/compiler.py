@@ -10,8 +10,8 @@ from graphqler.utils import plugins_handler
 from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file, intialize_file_if_not_exists
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
-from .parsers import QueryListParser, ObjectListParser, MutationListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
-from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
+from .parsers import QueryListParser, ObjectListParser, MutationListParser, SubscriptionListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
+from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, SubscriptionObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
 from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy, Chain
 from graphqler.graph import GraphGenerator
 from graphqler import config
@@ -36,6 +36,7 @@ class Compiler:
         self.input_object_list_save_path = Path(save_path) / config.INPUT_OBJECT_LIST_FILE_NAME
         self.mutation_parameter_save_path = Path(save_path) / config.MUTATION_PARAMETER_FILE_NAME
         self.query_parameter_save_path = Path(save_path) / config.QUERY_PARAMETER_FILE_NAME
+        self.subscription_parameter_save_path = Path(save_path) / config.SUBSCRIPTION_PARAMETER_FILE_NAME
         self.enum_list_save_path = Path(save_path) / config.ENUM_LIST_FILE_NAME
         self.union_list_save_path = Path(save_path) / config.UNION_LIST_FILE_NAME
         self.interface_list_save_path = Path(save_path) / config.INTERFACE_LIST_FILE_NAME
@@ -43,12 +44,14 @@ class Compiler:
         self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
         self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
+        self.compiled_subscriptions_save_path = Path(save_path) / config.COMPILED_SUBSCRIPTIONS_FILE_NAME
         self.url = url
 
         # Initialize the parsers we will use
         self.object_list_parser = ObjectListParser()
         self.query_list_parser = QueryListParser()
         self.mutation_list_parser = MutationListParser()
+        self.subscription_list_parser = SubscriptionListParser()
         self.input_object_list_parser = InputObjectListParser()
         self.enum_list_parser = EnumListParser()
         self.union_list_parser = UnionListParser()
@@ -70,12 +73,14 @@ class Compiler:
         initialize_file(self.input_object_list_save_path)
         initialize_file(self.mutation_parameter_save_path)
         initialize_file(self.query_parameter_save_path)
+        initialize_file(self.subscription_parameter_save_path)
         initialize_file(self.enum_list_save_path)
         initialize_file(self.union_list_save_path)
         initialize_file(self.interface_list_save_path)
         intialize_file_if_not_exists(self.compiled_objects_save_path)
         intialize_file_if_not_exists(self.compiled_mutations_save_path)
         intialize_file_if_not_exists(self.compiled_queries_save_path)
+        intialize_file_if_not_exists(self.compiled_subscriptions_save_path)
 
     def run(self):
         """The only function required to be run from the caller, will perform:
@@ -150,6 +155,7 @@ class Compiler:
         self.run_parser_and_save_list(self.object_list_parser, self.object_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.query_list_parser, self.query_parameter_save_path, introspection_result)
         self.run_parser_and_save_list(self.mutation_list_parser, self.mutation_parameter_save_path, introspection_result)
+        self.run_parser_and_save_list(self.subscription_list_parser, self.subscription_parameter_save_path, introspection_result)
         self.run_parser_and_save_list(self.input_object_list_parser, self.input_object_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.enum_list_parser, self.enum_list_save_path, introspection_result)
         self.run_parser_and_save_list(self.union_list_parser, self.union_list_save_path, introspection_result)
@@ -181,6 +187,7 @@ class Compiler:
         objects = self.object_list_parser.parse(introspection_result)
         queries = self.query_list_parser.parse(introspection_result)
         mutations = self.mutation_list_parser.parse(introspection_result)
+        subscriptions = self.subscription_list_parser.parse(introspection_result)
         input_objects = self.input_object_list_parser.parse(introspection_result)
 
         objects = ObjectDependencyResolver().resolve(objects)
@@ -201,9 +208,12 @@ class Compiler:
             mutations = MutationObjectResolver().resolve(objects, mutations, input_objects)
             queries = QueryObjectResolver().resolve(objects, queries, input_objects)
 
+        subscriptions = SubscriptionObjectResolver().resolve(objects, subscriptions, input_objects)
+
         write_dict_to_yaml(objects, self.compiled_objects_save_path)
         write_dict_to_yaml(mutations, self.compiled_mutations_save_path)
         write_dict_to_yaml(queries, self.compiled_queries_save_path)
+        write_dict_to_yaml(subscriptions, self.compiled_subscriptions_save_path)
 
     def run_chain_generation_and_save(self):
         """Builds the dependency graph, runs each configured strategy, and persists the chains.

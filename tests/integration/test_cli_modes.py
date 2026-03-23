@@ -263,3 +263,97 @@ class TestCLIModes(unittest.TestCase):
         self.assertEqual(r2.returncode, 0, f"Second compile failed:\n{r2.stderr}")
         self._assert_compiled_graph()
         self._assert_chains_exist()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Subscription support tests (user-wallet-api)
+# ─────────────────────────────────────────────────────────────────────────────
+
+SUB_PORT = 4030
+SUB_URL = f"http://localhost:{SUB_PORT}/graphql"
+SUB_API_PATH = "sample-graphql-apis/user-wallet-api"
+
+
+def _run_cli_sub(path: str, mode: str, extra_args: list[str] | None = None) -> subprocess.CompletedProcess:
+    return _run_cli(path, mode, SUB_URL, extra_args)
+
+
+class TestSubscriptionSupport(unittest.TestCase):
+    """Verify that GraphQLer correctly compiles and fuzzes GraphQL subscriptions.
+
+    Uses the user-wallet-api which exposes ``onTransactionCreated`` and
+    ``onWalletUpdated`` subscriptions over the graphql-ws WebSocket protocol.
+    """
+
+    process = None
+    process_pid = None
+
+    @classmethod
+    def setUpClass(cls):
+        node_cmd = shutil.which("node")
+        cls.process = run_node_project(SUB_API_PATH, [], str(SUB_PORT))
+        cls.process_pid = cls.process.pid
+        ready = wait_for_server(SUB_URL, timeout=30)
+        if not ready:
+            cls.process.kill()
+            raise RuntimeError(f"user-wallet-api failed to start on port {SUB_PORT}")
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.process and cls.process.pid == cls.process_pid:
+            cls.process.kill()
+            cls.process.wait()
+
+    def setUp(self):
+        self.path = f"ci-test-sub-{self._testMethodName}/"
+        os.makedirs(self.path, exist_ok=True)
+
+    def tearDown(self):
+        if os.path.exists(self.path):
+            shutil.rmtree(self.path)
+
+    # ── compile ──────────────────────────────────────────────────────────────
+
+    def test_compile_creates_compiled_subscriptions_file(self):
+        """Compile mode should produce compiled/compiled_subscriptions.yml."""
+        result = _run_cli_sub(self.path, "compile")
+        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        sub_file = os.path.join(self.path, "compiled", "compiled_subscriptions.yml")
+        self.assertTrue(os.path.exists(sub_file), f"compiled_subscriptions.yml not found at {sub_file}")
+
+    def test_compile_subscriptions_file_contains_expected_subscriptions(self):
+        """compiled_subscriptions.yml must contain both subscription definitions."""
+        result = _run_cli_sub(self.path, "compile")
+        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        sub_file = os.path.join(self.path, "compiled", "compiled_subscriptions.yml")
+        with open(sub_file) as f:
+            content = f.read()
+        self.assertIn("onTransactionCreated", content, "onTransactionCreated not found in compiled subscriptions")
+        self.assertIn("onWalletUpdated", content, "onWalletUpdated not found in compiled subscriptions")
+
+    def test_compile_subscription_parameter_file_is_created(self):
+        """Compile mode should also produce extracted/subscription_parameter_list.yml."""
+        result = _run_cli_sub(self.path, "compile")
+        self.assertEqual(result.returncode, 0, f"compile failed:\n{result.stderr}")
+        param_file = os.path.join(self.path, "extracted", "subscription_parameter_list.yml")
+        self.assertTrue(os.path.exists(param_file), f"subscription_parameter_list.yml not found at {param_file}")
+
+    # ── fuzz with --subscriptions ─────────────────────────────────────────────
+
+    def test_fuzz_with_subscriptions_flag_completes_without_error(self):
+        """Fuzzing with --subscriptions enabled should not raise an uncaught exception."""
+        # First compile
+        compile_result = _run_cli_sub(self.path, "compile")
+        self.assertEqual(compile_result.returncode, 0, f"compile failed:\n{compile_result.stderr}")
+
+        # Then fuzz with subscriptions enabled
+        fuzz_result = _run_cli_sub(self.path, "fuzz", extra_args=["--subscriptions"])
+        self.assertEqual(fuzz_result.returncode, 0, f"fuzz --subscriptions failed:\n{fuzz_result.stderr}")
+
+    def test_fuzz_without_subscriptions_flag_still_works(self):
+        """Without --subscriptions, subscription nodes are skipped and fuzzing should succeed."""
+        compile_result = _run_cli_sub(self.path, "compile")
+        self.assertEqual(compile_result.returncode, 0, f"compile failed:\n{compile_result.stderr}")
+
+        fuzz_result = _run_cli_sub(self.path, "fuzz")
+        self.assertEqual(fuzz_result.returncode, 0, f"fuzz (no subscriptions) failed:\n{fuzz_result.stderr}")

@@ -27,6 +27,7 @@ STATS_PICKLE_FILE_NAME = "stats.pkl"
 
 QUERY_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/query_parameter_list.yml"
 MUTATION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/mutation_parameter_list.yml"
+SUBSCRIPTION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/subscription_parameter_list.yml"
 OBJECT_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/object_list.yml"
 INPUT_OBJECT_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/input_object_list.yml"
 ENUM_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/enum_list.yml"
@@ -36,6 +37,7 @@ INTERFACE_LIST_FILE_NAME = f"{EXTRACTED_DIR_NAME}/interface_list.yml"
 COMPILED_OBJECTS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_objects.yml"
 COMPILED_MUTATIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_mutations.yml"
 COMPILED_QUERIES_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_queries.yml"
+COMPILED_SUBSCRIPTIONS_FILE_NAME = f"{COMPILED_DIR_NAME}/compiled_subscriptions.yml"
 CHAINS_DIR_NAME = f"{COMPILED_DIR_NAME}/chains"
 
 """For clairvoyance"""
@@ -100,6 +102,9 @@ SKIP_MAXIMAL_PAYLOADS = False  # This mode is for when we want to skip the maxim
 SKIP_DOS_ATTACKS = True  # This mode is for when we want to skip the DoS check
 SKIP_INJECTION_ATTACKS = False  # This mode is for when we want to skip the injection check
 SKIP_MISC_ATTACKS = False  # This mode is for when we want to skip the miscellaneous attacks
+SKIP_SUBSCRIPTIONS = True  # Subscriptions require WebSocket transport; disabled by default (opt-in with --subscriptions)
+SUBSCRIPTION_TIMEOUT = 5  # Seconds to wait for events when executing a subscription
+SUBSCRIPTION_PROTOCOL = "graphql-ws"  # WebSocket sub-protocol: "graphql-ws" (modern) or "subscriptions-transport-ws" (legacy Apollo)
 
 """For NoSQL blind extraction"""
 NOSQLI_BLIND_EXTRACTION = False  # When True, attempt char-by-char data extraction after a potential NoSQLi is detected

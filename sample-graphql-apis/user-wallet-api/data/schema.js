@@ -1,11 +1,67 @@
 import fs from 'fs';
 import {v4} from 'uuid';
+import { EventEmitter } from 'events';
 
 import { makeExecutableSchema } from '@graphql-tools/schema';
 
 const uuid = v4;
 
 const schemaString = fs.readFileSync('./data/schema.gql', 'utf-8');
+
+// ---------------------------------------------------------------------------
+// Simple in-memory PubSub backed by Node.js EventEmitter
+// ---------------------------------------------------------------------------
+class PubSub {
+    constructor() {
+        this.emitter = new EventEmitter();
+        this.emitter.setMaxListeners(100);
+    }
+
+    publish(event, payload) {
+        this.emitter.emit(event, payload);
+    }
+
+    asyncIterator(events) {
+        const emitter = this.emitter;
+        const eventList = Array.isArray(events) ? events : [events];
+        return {
+            [Symbol.asyncIterator]() {
+                const queue = [];
+                let resolve = null;
+
+                const listener = (payload) => {
+                    if (resolve) {
+                        const r = resolve;
+                        resolve = null;
+                        r({ value: payload, done: false });
+                    } else {
+                        queue.push(payload);
+                    }
+                };
+
+                eventList.forEach(event => emitter.on(event, listener));
+
+                return {
+                    next() {
+                        if (queue.length > 0) {
+                            return Promise.resolve({ value: queue.shift(), done: false });
+                        }
+                        return new Promise(r => { resolve = r; });
+                    },
+                    return() {
+                        eventList.forEach(event => emitter.off(event, listener));
+                        return Promise.resolve({ value: undefined, done: true });
+                    },
+                };
+            },
+        };
+    }
+}
+
+const pubsub = new PubSub();
+
+const TRANSACTION_CREATED = 'TRANSACTION_CREATED';
+const WALLET_UPDATED = 'WALLET_UPDATED';
 
 var users = []
 var transactions = []
@@ -325,7 +381,9 @@ const resolvers = {
         },
 
         createTransaction: (root, { amount, payerID, walletID, currencyID, description }) => {
-            return createTransaction(amount, payerID, walletID, currencyID, description);
+            const txn = createTransaction(amount, payerID, walletID, currencyID, description);
+            pubsub.publish(TRANSACTION_CREATED, { onTransactionCreated: txn });
+            return txn;
         },
         createLocation: (root, { lat, lng, name }) => {
             return createLocation(lat, lng, name);
@@ -351,7 +409,11 @@ const resolvers = {
             return updateCurrency(currencyID, abbreviation, symbol, country);
         },
         updateWallet: (root, {walletID, name}) => {
-            return updateWallet(walletID, name);
+            const wallet = updateWallet(walletID, name);
+            if (wallet) {
+                pubsub.publish(`${WALLET_UPDATED}:${walletID}`, { onWalletUpdated: wallet });
+            }
+            return wallet;
         },
 
         deleteUser: (root, {userID}) => {
@@ -384,6 +446,14 @@ const resolvers = {
         },
     },
     */
+    Subscription: {
+        onTransactionCreated: {
+            subscribe: () => pubsub.asyncIterator([TRANSACTION_CREATED]),
+        },
+        onWalletUpdated: {
+            subscribe: (root, { walletID }) => pubsub.asyncIterator([`${WALLET_UPDATED}:${walletID}`]),
+        },
+    },
     User: {
         friends: (root) => {
             return root.friends.map((userID) => getUser(userID));

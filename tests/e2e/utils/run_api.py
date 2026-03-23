@@ -90,7 +90,7 @@ def wait_for_server(url, timeout=30):
     while time.time() - start_time < timeout:
         try:
             response = requests.get(url)
-            if response.status_code < 500:
+            if response.status_code:  # any HTTP response means the server is up
                 return True
         except requests.exceptions.ConnectionError:
             pass

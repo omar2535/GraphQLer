@@ -318,6 +318,11 @@ class Fuzzer(object):
         elif node.graphql_type == "Mutation":
             _response, result = self.fengine.run_minimal_payload(node.name, objects_bucket, "Mutation")
             return [], result
+        elif node.graphql_type == "Subscription":
+            if not config.SKIP_SUBSCRIPTIONS:
+                _events, result = self.fengine.run_subscription_payload(node.name, objects_bucket)
+                return [], result
+            return [], Result(ResultEnum.GENERAL_SUCCESS)
         elif node.graphql_type == "Object":
             return [], Result(ResultEnum.GENERAL_SUCCESS)
         else:
@@ -338,6 +343,7 @@ class Fuzzer(object):
             self.fengine.run_maximal_payload(node.name, objects_bucket, node.graphql_type)
             if not config.SKIP_DOS_ATTACKS:
                 self.fengine.run_dos_payloads(node.name, objects_bucket, node.graphql_type)
+        # Subscription nodes are handled in __evaluate (WebSocket, no maximal/DOS variants)
 
     def __detect_vulnerabilities_on_node(self, node: Node, objects_bucket: ObjectsBucket):
         """Detects vulnerabilities on the node
@@ -348,3 +354,4 @@ class Fuzzer(object):
         """
         if node.graphql_type == "Query" or node.graphql_type == "Mutation":
             self.dengine.run_detections_on_graphql_object(node, objects_bucket, node.graphql_type)
+        # Subscription detection is a future enhancement

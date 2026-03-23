@@ -54,6 +54,9 @@ SKIP_MAXIMAL_PAYLOADS = false # This mode is for when we want to skip the maxima
 SKIP_DOS_ATTACKS = true # This mode is for when we want to skip the DoS check
 SKIP_INJECTION_ATTACKS = false # This mode is for when we want to skip the injection check
 SKIP_MISC_ATTACKS = false # This mode is for when we want to skip the miscellaneous attacks
+SKIP_SUBSCRIPTIONS = true         # Disable subscription fuzzing by default (requires WebSocket support); enable with --subscriptions
+SUBSCRIPTION_TIMEOUT = 5          # Seconds to wait for events on each subscription
+SUBSCRIPTION_PROTOCOL = "graphql-ws"  # "graphql-ws" (modern) or "subscriptions-transport-ws" (legacy Apollo)
 
 # For each request
 REQUEST_TIMEOUT = 120  # in seconds

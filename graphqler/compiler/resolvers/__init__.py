@@ -7,6 +7,7 @@ from .object_dependency_resolver import ObjectDependencyResolver
 from .object_method_resolver import ObjectMethodResolver
 from .mutation_object_resolver import MutationObjectResolver
 from .query_object_resolver import QueryObjectResolver
+from .subscription_object_resolver import SubscriptionObjectResolver
 from .resolver import Resolver
 from .llm import LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
 
@@ -15,6 +16,7 @@ __all__ = [
     "ObjectMethodResolver",
     "MutationObjectResolver",
     "QueryObjectResolver",
+    "SubscriptionObjectResolver",
     "Resolver",
     "LLMMutationObjectResolver",
     "LLMQueryObjectResolver",

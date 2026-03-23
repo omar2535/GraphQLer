@@ -1,6 +1,7 @@
 schema {
     query: Query
     mutation: Mutation
+    subscription: Subscription
 }
 
 """
@@ -321,6 +322,26 @@ type Mutation {
         The new name of the wallet.
         """
         name: String
+    ): Wallet
+}
+
+"""
+Root Subscription type.
+"""
+type Subscription {
+    """
+    Fires whenever a new transaction is created.
+    """
+    onTransactionCreated: Transaction
+
+    """
+    Fires whenever a specific wallet is updated.
+    """
+    onWalletUpdated(
+        """
+        The ID of the wallet to watch.
+        """
+        walletID: ID!
     ): Wallet
 }
 
