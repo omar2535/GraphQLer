@@ -253,6 +253,18 @@ if __name__ == "__main__":
         print(version)
         sys.exit(0)
 
+    # Launch TUI when called with no arguments
+    if len(sys.argv) == 1:
+        try:
+            from graphqler.tui.app import GraphQLerApp
+        except ImportError:
+            print("The GraphQLer TUI requires the 'tui' optional extra.")
+            print("Install it with:  uv sync --extra tui")
+            print("                  pip install graphqler[tui]")
+            sys.exit(1)
+        GraphQLerApp().run()
+        sys.exit(0)
+
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="remote host URL (required for all modes except compile-chains)", required=False)
