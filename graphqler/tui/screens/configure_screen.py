@@ -90,12 +90,11 @@ class ConfigureScreen(Screen):
                 yield Label("Generate LLM Vulnerability Report", classes="switch-label")
                 yield Switch(value=config.LLM_ENABLE_REPORTER, id="sw-llm-report")
 
-            # ── Buttons ──────────────────────────────────────────────────────
-            with Horizontal(classes="btn-row"):
-                yield Button("Cancel", id="btn-cancel", variant="default")
-                yield Button("Save", id="btn-save", variant="success")
-
+        # Fixed action bar — always visible outside the scroll area
+        with Horizontal(id="configure-actions"):
             yield Static("", id="save-status")
+            yield Button("Discard", id="btn-cancel", variant="default")
+            yield Button("Save Settings", id="btn-save", variant="primary")
 
         yield Footer()
 

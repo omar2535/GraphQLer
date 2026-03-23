@@ -2,18 +2,10 @@
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, Label, Rule, Static
+from textual.widgets import Button, Footer, Header, Label, Rule
 from textual.containers import Grid, Horizontal, Vertical
 
 from graphqler import config
-
-_BANNER = """\
-  ____                 _      ___  _
- / ___|_ __ __ _ _ __ | |__  / _ \\| |     ___ _ __
-| |  _| '__/ _` | '_ \\| '_ \\| | | | |    / _ \\ '__|
-| |_| | | | (_| | |_) | | | | |_| | |___|  __/ |
- \\____|_|  \\__,_| .__/|_| |_|\\__\\_\\_____|\\___|_|
-                |_|"""
 
 # Ordered list of button IDs in row-major order for arrow-key navigation
 _GRID_BUTTONS = [
@@ -37,26 +29,23 @@ class HomeScreen(Screen):
         yield Header()
         with Horizontal():
             with Vertical(id="home-main"):
-                yield Static(_BANNER, id="banner")
                 with Grid(id="mode-grid"):
-                    yield Button("⚙  Compile", id="btn-compile", classes="mode-btn", variant="primary")
-                    yield Button("🔍 Fuzz", id="btn-fuzz", classes="mode-btn", variant="primary")
-                    yield Button("▶  Run (Compile + Fuzz)", id="btn-run", classes="mode-btn", variant="success")
-                    yield Button("🔒 IDOR", id="btn-idor", classes="mode-btn", variant="warning")
-                    yield Button("🔗 Chain Explorer", id="btn-chains", classes="mode-btn")
-                    yield Button("✏  Query Editor", id="btn-query", classes="mode-btn")
+                    yield Button("Compile", id="btn-compile", classes="mode-btn")
+                    yield Button("Fuzz", id="btn-fuzz", classes="mode-btn")
+                    yield Button("Run", id="btn-run", classes="mode-btn mode-btn--primary")
+                    yield Button("IDOR", id="btn-idor", classes="mode-btn")
+                    yield Button("Chain Explorer", id="btn-chains", classes="mode-btn")
+                    yield Button("Query Editor", id="btn-query", classes="mode-btn")
             with Vertical(id="home-sidebar"):
-                yield Label("Configuration", classes="sidebar-title")
-                yield Rule()
-                yield Label("Endpoint URL", classes="config-key")
-                yield Label(config.TUI_LAST_URL or "(not set — open Configure)", id="cfg-url", classes="config-value")
-                yield Label("Output Path", classes="config-key")
+                yield Label("ENDPOINT", classes="sidebar-section")
+                yield Label(config.TUI_LAST_URL or "not configured", id="cfg-url", classes="config-value")
+                yield Label("OUTPUT", classes="sidebar-section")
                 yield Label(config.OUTPUT_DIRECTORY, id="cfg-path", classes="config-value")
-                yield Label("Primary Auth", classes="config-key")
-                yield Label("(set)" if config.AUTHORIZATION else "(not set)", id="cfg-auth", classes="config-value")
+                yield Label("AUTH", classes="sidebar-section")
+                yield Label("set" if config.AUTHORIZATION else "\u2014", id="cfg-auth", classes="config-value")
                 yield Rule()
-                yield Button("⚙  Configure Settings", id="btn-configure", variant="default")
-                yield Button("📁 Browse Output", id="btn-browse", variant="default")
+                yield Button("Configure", id="btn-configure", variant="default")
+                yield Button("Browse Output", id="btn-browse", variant="default")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -101,9 +90,9 @@ class HomeScreen(Screen):
     def on_resume(self) -> None:
         """Refresh the config summary whenever we return to this screen."""
         try:
-            self.query_one("#cfg-url", Label).update(config.TUI_LAST_URL or "(not set — open Configure)")
+            self.query_one("#cfg-url", Label).update(config.TUI_LAST_URL or "not configured")
             self.query_one("#cfg-path", Label).update(config.OUTPUT_DIRECTORY)
-            self.query_one("#cfg-auth", Label).update("(set)" if config.AUTHORIZATION else "(not set)")
+            self.query_one("#cfg-auth", Label).update("set" if config.AUTHORIZATION else "\u2014")
         except Exception:
             pass
         self.query_one("#btn-compile", Button).focus()
