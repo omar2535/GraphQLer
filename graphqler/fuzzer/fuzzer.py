@@ -206,8 +206,9 @@ class Fuzzer(object):
         self.dengine.run_detections_on_api()
         self.logger.info("Completed running detections on the overall API")
 
-        # LLM report
-        LLMReporter(self.save_path, self.url).generate()
+        # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
+        if config.LLM_ENABLE_REPORTER:
+            LLMReporter(self.save_path, self.url).generate()
 
         # Finish
         self.logger.info("Completed fuzzing")

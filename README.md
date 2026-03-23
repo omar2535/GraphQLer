@@ -58,10 +58,11 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 ❯ python -m graphqler --help
 usage: __main__.py [-h] [--url URL] [--path PATH] [--config CONFIG] --mode
                    {compile,compile-graph,compile-chains,fuzz,idor,run,single} [--auth AUTH] [--idor-auth IDOR_AUTH]
-                   [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--use-llm] [--llm-model LLM_MODEL]
-                   [--llm-api-key LLM_API_KEY] [--llm-base-url LLM_BASE_URL] [--llm-max-retries LLM_MAX_RETRIES]
-                   [--disable-mutations] [--no-objects-bucket] [--no-dependency-graph]
-                   [--max-iterations MAX_ITERATIONS] [--allow-deletion] [--subscriptions] [--version]
+                   [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--use-llm] [--llm-report]
+                   [--llm-model LLM_MODEL] [--llm-api-key LLM_API_KEY] [--llm-base-url LLM_BASE_URL]
+                   [--llm-max-retries LLM_MAX_RETRIES] [--disable-mutations] [--no-objects-bucket]
+                   [--no-dependency-graph] [--max-iterations MAX_ITERATIONS] [--allow-deletion] [--subscriptions]
+                   [--version]
 
 options:
   -h, --help            show this help message and exit
@@ -77,7 +78,9 @@ options:
   --node NODE           node to run (only used in single mode)
   --plugins-path PLUGINS_PATH
                         path to plugins directory
-  --use-llm             enable LLM-based dependency graph inference (requires LLM_MODEL and credentials)
+  --use-llm             enable LLM-powered features: dependency graph inference, endpoint classification, and IDOR
+                        chain classification (requires LLM_MODEL and credentials)
+  --llm-report          generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm
   --llm-model LLM_MODEL
                         litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3',
                         'anthropic/claude-3-5-haiku-20241022'

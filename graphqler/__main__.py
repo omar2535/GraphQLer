@@ -187,6 +187,8 @@ def main(args: dict):
     if args.get('use_llm'):
         config.USE_LLM = True
         print("(P) LLM mode enabled via CLI flag")
+    if args.get('llm_report'):
+        config.LLM_ENABLE_REPORTER = True
     if args.get('llm_model'):
         config.LLM_MODEL = args['llm_model']
     if args.get('llm_api_key'):
@@ -262,7 +264,8 @@ if __name__ == "__main__":
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
-    parser.add_argument("--use-llm", help="enable LLM-based dependency graph inference (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--use-llm", help="enable LLM-powered features: dependency graph inference, endpoint classification, and IDOR chain classification (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--llm-report", help="generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm", action="store_true", default=False)
     parser.add_argument("--llm-model", help="litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3', 'anthropic/claude-3-5-haiku-20241022'", required=False)
     parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
