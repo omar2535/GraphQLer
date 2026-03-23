@@ -59,17 +59,25 @@ def _extract_json_from_text(text: str) -> dict:
         text = text.strip()
 
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
     except json.JSONDecodeError:
         pass
+    else:
+        if isinstance(parsed, dict):
+            return parsed
+        raise ValueError(f"Expected JSON object but got {type(parsed).__name__} from LLM response")
 
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
         try:
-            return json.loads(text[start: end + 1])
+            parsed = json.loads(text[start: end + 1])
         except json.JSONDecodeError:
             pass
+        else:
+            if isinstance(parsed, dict):
+                return parsed
+            raise ValueError(f"Expected JSON object but got {type(parsed).__name__} from LLM response")
 
     raise ValueError(f"Could not extract valid JSON from LLM response: {text[:300]}")
 

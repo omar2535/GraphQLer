@@ -71,6 +71,10 @@ Detections found ({count} total):
 Write the penetration test report.\
 """
 
+# Context-limit guards — keeps prompt size manageable for any model
+_MAX_FINDINGS_IN_REPORT = 50        # cap on number of detections included
+_MAX_SUMMARY_CHARS = 1_500          # per-finding summary truncation threshold
+
 
 # ── LLMReporter ───────────────────────────────────────────────────────────────
 
@@ -94,16 +98,24 @@ class LLMReporter:
 
         Returns:
             Path to the written report, or ``None`` if the report was skipped
-            (LLM disabled, no detections, or any error).
+            (reporter disabled, no detections, or any error).
         """
-        if not config.USE_LLM:
-            logger.debug("LLMReporter: USE_LLM=False — skipping report generation.")
+        if not config.USE_LLM or not config.LLM_ENABLE_REPORTER:
+            logger.debug("LLMReporter: reporter disabled (USE_LLM=%s, LLM_ENABLE_REPORTER=%s) — skipping.",
+                         config.USE_LLM, config.LLM_ENABLE_REPORTER)
             return None
 
         summaries = self._collect_summaries()
         if not summaries:
             logger.info("LLMReporter: no detections found — skipping report generation.")
             return None
+
+        if len(summaries) > _MAX_FINDINGS_IN_REPORT:
+            logger.warning(
+                "LLMReporter: %d detections found; truncating to %d for report prompt.",
+                len(summaries), _MAX_FINDINGS_IN_REPORT,
+            )
+            summaries = summaries[:_MAX_FINDINGS_IN_REPORT]
 
         logger.info("LLMReporter: generating report from %d detection(s) …", len(summaries))
 
@@ -152,14 +164,20 @@ class LLMReporter:
         return results
 
     def _format_findings(self, summaries: list[dict[str, str]]) -> str:
-        """Convert detection summary dicts into a readable block for the LLM prompt."""
+        """Convert detection summary dicts into a readable block for the LLM prompt.
+
+        Each summary is truncated to ``_MAX_SUMMARY_CHARS`` to prevent context overflow.
+        """
         blocks: list[str] = []
         for i, s in enumerate(summaries, start=1):
+            summary_text = s["summary"]
+            if len(summary_text) > _MAX_SUMMARY_CHARS:
+                summary_text = summary_text[:_MAX_SUMMARY_CHARS] + " … [truncated]"
             blocks.append(
                 f"--- Finding {i} ---\n"
                 f"Vulnerability type: {s['vuln_name']}\n"
                 f"Affected endpoint:  {s['node_name']}\n"
-                f"Summary:\n{s['summary']}"
+                f"Summary:\n{summary_text}"
             )
         return "\n\n".join(blocks)
 
