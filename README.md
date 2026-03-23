@@ -56,21 +56,47 @@ For a more in-depth guide, check out the [installation guide](./docs/installatio
 
 ```sh
 ❯ python -m graphqler --help
-usage: __main__.py [-h] [--url URL] [--path PATH] [--config CONFIG] --mode {compile,compile-graph,compile-chains,fuzz,idor,run,single} [--auth AUTH] [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--disable-mutations] [--version]
+usage: __main__.py [-h] [--url URL] [--path PATH] [--config CONFIG] --mode
+                   {compile,compile-graph,compile-chains,fuzz,idor,run,single} [--auth AUTH] [--idor-auth IDOR_AUTH]
+                   [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--use-llm] [--llm-model LLM_MODEL]
+                   [--llm-api-key LLM_API_KEY] [--llm-base-url LLM_BASE_URL] [--llm-max-retries LLM_MAX_RETRIES]
+                   [--disable-mutations] [--no-objects-bucket] [--no-dependency-graph]
+                   [--max-iterations MAX_ITERATIONS] [--allow-deletion] [--subscriptions] [--version]
 
 options:
   -h, --help            show this help message and exit
   --url URL             remote host URL (required for all modes except compile-chains)
   --path PATH           directory location for files to be saved-to/used-from. Defaults to graphqler-output
-  --config CONFIG       configuration file for the program
+  --config CONFIG       TOML configuration file for the program
   --mode {compile,compile-graph,compile-chains,fuzz,idor,run,single}
                         mode to run the program in
-  --auth AUTH           authentication token Example: 'Bearer arandompat-abcdefgh'
+  --auth AUTH           authentication token(s). Can be 'token' or 'profile=token'. Multiple allowed.
+  --idor-auth IDOR_AUTH
+                        secondary (attacker) auth token for chain-based IDOR testing. Example: 'Bearer secondtoken'
   --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
   --node NODE           node to run (only used in single mode)
   --plugins-path PLUGINS_PATH
                         path to plugins directory
+  --use-llm             enable LLM-based dependency graph inference (requires LLM_MODEL and credentials)
+  --llm-model LLM_MODEL
+                        litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3',
+                        'anthropic/claude-3-5-haiku-20241022'
+  --llm-api-key LLM_API_KEY
+                        API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)
+  --llm-base-url LLM_BASE_URL
+                        custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)
+  --llm-max-retries LLM_MAX_RETRIES
+                        number of retries when LLM returns non-JSON (default: 2)
   --disable-mutations   only generate and run Query chains — all Mutation nodes are excluded from fuzzing
+  --no-objects-bucket   ablation: disable the objects bucket — requests carry no state from prior responses
+  --no-dependency-graph
+                        ablation: disable dependency-graph chain ordering — all nodes run independently without
+                        chaining
+  --max-iterations MAX_ITERATIONS
+                        number of times to iterate through all chains (default: 1)
+  --allow-deletion      remove objects from the bucket when a DELETE mutation succeeds (default: off)
+  --subscriptions       enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires
+                        WebSocket support on the target)
   --version             display version
 ```
 
@@ -86,7 +112,7 @@ The compile step can be broken into two finer sub-modes:
 
 A third mode is also included for ease of use, called **run** mode — this runs both compilation and fuzzing in a single command.
 
-The **idor** mode detects insecure direct object reference (IDOR) vulnerabilities by replaying compiled chains using a secondary (attacker) token and checking whether protected resources are accessible. It requires the *compile* and *fuzz* modes to have been run first.
+The **idor** mode detects insecure direct object reference (IDOR) vulnerabilities using multi-profile chain replay. Pass `--idor-auth <SECONDARY_TOKEN>` during **compile** to generate IDOR candidate chains (`compiled/chains/idor.yml`). IDOR detection then runs automatically during **fuzz** mode — any object accessible to the secondary (attacker) profile is flagged. The standalone **idor** mode re-executes those chains without running regular fuzzing, and is useful for targeted re-testing.
 
 ### Compile mode
 
@@ -94,7 +120,15 @@ The **idor** mode detects insecure direct object reference (IDOR) vulnerabilitie
 python -m graphqler --mode compile --url <URL> --path <SAVE_PATH>
 ```
 
-Runs the full compilation pipeline: introspection → parsing → dependency resolution → dependency graph → fuzzing chains. After compiling, you can view the compiled results in `<SAVE_PATH>/compiled`. A dependency graph image (`dependency_graph.png`) is also generated for inspection. Fuzzing chains are saved to `<SAVE_PATH>/compiled/chains.yml` — this file is human-readable and can be edited before fuzzing. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
+Runs the full compilation pipeline: introspection → parsing → dependency resolution → dependency graph → fuzzing chains. After compiling, you can view the compiled results in `<SAVE_PATH>/compiled`. A dependency graph image (`dependency_graph.png`) is also generated for inspection. Fuzzing chains are saved under `<SAVE_PATH>/compiled/chains/` — these files are human-readable and can be edited before fuzzing. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
+
+To enable IDOR detection, pass `--idor-auth` during compile:
+
+```sh
+python -m graphqler --mode compile --url <URL> --path <SAVE_PATH> --idor-auth 'Bearer <SECONDARY_TOKEN>'
+```
+
+This generates IDOR candidate chains in `compiled/chains/idor.yml` alongside the regular chains.
 
 ### Compile-graph mode
 
@@ -110,7 +144,7 @@ Runs only the introspection, parsing, and dependency-resolution steps. Stops bef
 python -m graphqler --mode compile-chains --path <SAVE_PATH>
 ```
 
-(Re-)generates fuzzing chains from an already-compiled dependency graph. **No `--url` is required** — all data is read from disk. Run this after `compile` or `compile-graph` to regenerate `compiled/chains.yml` with different settings (e.g. `--disable-mutations` or a custom `CHAINS_FILE_NAME` in your config).
+(Re-)generates fuzzing chains from an already-compiled dependency graph. **No `--url` is required** — all data is read from disk. Run this after `compile` or `compile-graph` to regenerate chains under `compiled/chains/` with different settings (e.g. `--disable-mutations` or a custom `CHAINS_FILE_NAME` in your config).
 
 ### Fuzz mode
 
@@ -118,15 +152,22 @@ python -m graphqler --mode compile-chains --path <SAVE_PATH>
 python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH>
 ```
 
-While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. A copy of the objects bucket can be found in `objects_bucket.pkl` as well.
+While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. If IDOR chains were generated during compile, the fuzzer automatically tests them and writes detection results to `<SAVE_PATH>/detections/`.
 
 ### IDOR Checking mode
 
 ```sh
+python -m graphqler --mode compile --url <URL> --path <SAVE_PATH> --idor-auth 'Bearer <SECONDARY_TOKEN>'
+python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH>
+# Optional: re-run IDOR chains only (no regular fuzzing)
 python -m graphqler --mode idor --url <URL> --path <SAVE_PATH>
 ```
 
-The [insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) mode can be run after **compile** mode and **fuzz** mode is complete. It requires the `objects_bucket.pkl` file to already exist as it uses the objects bucket from a previous run to see if information found/created from a previous run is also reference-able using a secondary (attacker) access token. Configure the secondary token with `IDOR_SECONDARY_AUTH` in your config file.
+[Insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) detection works via multi-profile chain replay. During **compile**, `--idor-auth` enables generation of IDOR candidate chains: endpoints that create or expose user-scoped objects are identified via heuristics (and optionally an LLM classifier), then split into primary-profile steps (authenticated user) and secondary-profile steps (attacker token). These chains are saved to `compiled/chains/idor.yml`.
+
+During **fuzz**, the `IDORChainDetector` executes each IDOR chain — the primary profile creates or retrieves the object, then the secondary profile attempts to access it. Any data returned to the secondary profile is flagged as a potential IDOR vulnerability and written to `<SAVE_PATH>/detections/IDOR/<endpoint>/`.
+
+The standalone **idor** mode re-executes only the IDOR chains without running regular fuzzing. This is useful for targeted re-testing after fixing an issue, or when you only want to check access-control without the overhead of a full fuzz run.
 
 ### Run mode
 

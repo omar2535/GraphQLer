@@ -32,7 +32,7 @@ class Chain:
 
     steps: list[ChainStep] = field(default_factory=list)
     name: str = ""
-    confidence: float = 0.0  # classifier score (if applicable)
+    confidence: float = 1.0  # classifier score; 1.0 for statically-derived chains, heuristic score for IDOR candidates
     reason: str = ""         # human-readable explanation (if applicable)
 
     @property
