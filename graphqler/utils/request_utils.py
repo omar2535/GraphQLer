@@ -104,6 +104,25 @@ def send_graphql_request_with_auth(url: str, payload: str | dict | list, auth_ov
     Returns:
         tuple[dict, requests.Response]: Parsed GraphQL response dict, raw HTTP response.
     """
+    return send_graphql_request_with_headers(url, payload, {"Authorization": auth_override} if auth_override else {})
+
+
+def send_graphql_request_with_headers(url: str, payload: str | dict | list, headers: dict[str, str]) -> tuple[dict, requests.Response]:
+    """Send a GraphQL request using a one-off session with an explicit headers dict.
+
+    Merges ``config.CUSTOM_HEADERS`` with the provided *headers* dict, so callers
+    can supply any combination of Authorization and additional per-request headers
+    without losing API-specific config headers.  Authorization is only set when
+    explicitly present in *headers*.
+
+    Args:
+        url (str): URL of the GraphQL server.
+        payload (str | dict | list): GraphQL payload.
+        headers (dict[str, str]): Headers to include (merged on top of CUSTOM_HEADERS).
+
+    Returns:
+        tuple[dict, requests.Response]: Parsed GraphQL response dict, raw HTTP response.
+    """
     global last_request_time
 
     if isinstance(payload, str):
@@ -115,7 +134,7 @@ def send_graphql_request_with_auth(url: str, payload: str | dict | list, auth_ov
     if time_since_last_request < config.TIME_BETWEEN_REQUESTS:
         time.sleep(config.TIME_BETWEEN_REQUESTS - time_since_last_request)
 
-    one_off_session = _create_session_with_auth(auth_override)
+    one_off_session = _create_session_with_headers(headers)
     try:
         response = one_off_session.post(url=url, json=body, timeout=config.REQUEST_TIMEOUT)
     finally:
@@ -174,23 +193,26 @@ def create_new_session() -> requests.Session:
     return session
 
 
-def _create_session_with_auth(auth_token: str) -> requests.Session:
-    """Create a one-off session with an explicit Authorization header.
+def _create_session_with_headers(extra_headers: dict[str, str]) -> requests.Session:
+    """Create a one-off session merging config.CUSTOM_HEADERS with *extra_headers*.
 
-    Custom headers from ``config.CUSTOM_HEADERS`` are still applied so that
-    any API-specific headers (e.g. X-Api-Key) remain present.
+    Authorization is only included when it is present in *extra_headers* and
+    non-empty, so callers that do not supply a token do not accidentally send
+    a blank Authorization header which can alter server behaviour.
 
     Args:
-        auth_token (str): The Authorization header value (e.g. "Bearer <token>").
+        extra_headers (dict[str, str]): Per-request headers (e.g. from a RuntimeProfile).
 
     Returns:
         requests.Session: A fresh session that is NOT stored globally.
     """
     one_off = requests.Session()
-    headers = {"Content-Type": "application/json"}
+    headers: dict[str, str] = {"Content-Type": "application/json"}
     if config.CUSTOM_HEADERS:
         headers.update(config.CUSTOM_HEADERS)
-    headers["Authorization"] = auth_token
+    for key, value in extra_headers.items():
+        if value:
+            headers[key] = value
     one_off.headers.update(headers)
 
     if config.PROXY:
@@ -198,3 +220,19 @@ def _create_session_with_auth(auth_token: str) -> requests.Session:
         disable_warnings(InsecureRequestWarning)
         one_off.verify = False
     return one_off
+
+
+def _create_session_with_auth(auth_token: str) -> requests.Session:
+    """Create a one-off session with an explicit Authorization header.
+
+    Delegates to :func:`_create_session_with_headers`.  Authorization is only
+    set when *auth_token* is non-empty.
+
+    Args:
+        auth_token (str): The Authorization header value (e.g. "Bearer <token>").
+
+    Returns:
+        requests.Session: A fresh session that is NOT stored globally.
+    """
+    return _create_session_with_headers({"Authorization": auth_token} if auth_token else {})
+

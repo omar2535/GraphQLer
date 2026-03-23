@@ -2,6 +2,9 @@ name: Integration Tests
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   integration-tests:
     name: Run GraphQLer Integration Tests

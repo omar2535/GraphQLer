@@ -7,9 +7,12 @@ Supports two sub-protocols:
 
 import asyncio
 import json
+import logging
 from typing import Optional
 
 from graphqler import config
+
+logger = logging.getLogger(__name__)
 
 
 async def _send_graphql_ws(websocket, payload: dict, timeout: float) -> list[dict]:
@@ -122,5 +125,7 @@ def send_graphql_subscription(
     """
     try:
         return asyncio.run(_run_subscription(url, payload, timeout, protocol, headers))
-    except Exception:
+    except Exception as exc:
+        logger.warning("Subscription to %s failed (%s: %s); returning empty event list.", url, type(exc).__name__, exc)
+        logger.debug("Subscription exception detail:", exc_info=True)
         return []

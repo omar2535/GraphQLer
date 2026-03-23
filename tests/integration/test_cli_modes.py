@@ -43,6 +43,8 @@ class TestCLIModes(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         node_cmd = shutil.which("node")
+        if node_cmd is None:
+            raise RuntimeError("Node.js not found on PATH; cannot start food-delivery-api")
         cls.process = run_node_project(
             API_PATH,
             [f"{node_cmd} dbinitializer.js"],
