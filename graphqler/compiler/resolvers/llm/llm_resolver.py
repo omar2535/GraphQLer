@@ -4,25 +4,15 @@ Responsibilities:
   1. Build a compact, token-efficient schema context string from the objects dict.
   2. Convert raw parsed mutations/queries into a simplified JSON representation
      that is easier for an LLM to process.
-  3. Call the LLM via litellm (supports OpenAI, Anthropic, Ollama, LiteLLM proxy,
-     and any other provider supported by litellm out of the box).
+  3. Call the LLM via the shared ``graphqler.utils.llm_utils.call_llm()`` helper.
   4. Parse and validate the structured JSON response.
   5. Fall back to the classic ID-based resolver on any failure when
      LLM_RESOLVER_FALLBACK_TO_ID is True.
 """
 
-import json
 import logging
-from graphqler import config
+from graphqler.utils import llm_utils
 
-
-def _get_litellm():
-    """Import and return litellm only when LLM resolution is actually used."""
-    try:
-        import litellm
-    except ImportError as exc:
-        raise ImportError("litellm is required for USE_LLM=True. Install it with: uv add litellm") from exc
-    return litellm
 
 logger = logging.getLogger(__name__)
 
@@ -127,78 +117,18 @@ class LLMResolver:
     # ── LLM call ─────────────────────────────────────────────────────────────
 
     def _supports_json_mode(self) -> bool:
-        """Return True if the configured model supports format object.
-
-        Handles both prefixed (e.g. "openai/gpt-4o-mini") and unprefixed
-        (e.g. "gpt-4o-mini") model strings.  When there is no provider prefix
-        the full string is used as the model name and litellm infers the
-        provider automatically.
-        """
-        llm_model = config.LLM_MODEL
-        if "/" in llm_model:
-            provider, model = llm_model.split("/", 1)
-        else:
-            # No prefix — treat as an OpenAI model and let litellm infer the provider.
-            provider = "openai"
-            model = llm_model
-
-        if not model:
-            # Malformed string like "openai/" — fall back to the full string.
-            model = llm_model
-            provider = "openai"
-
-        litellm = _get_litellm()
-        does_support_json = litellm.supports_response_schema(model=model, custom_llm_provider=provider)
-        return does_support_json
+        """Delegates to ``llm_utils._supports_json_mode()``."""
+        return llm_utils._supports_json_mode()
 
     def _extract_json_from_text(self, text: str) -> dict:
-        """Extract a JSON object from text that may be wrapped in markdown fences or prose.
-
-        Tries in order:
-        1. Strip a leading ``` / ```json fence and trailing ``` then parse.
-        2. Direct json.loads on the stripped text.
-        3. Slice from the first '{' to the last '}' and parse.
-
-        Raises:
-            ValueError: If no valid JSON object can be extracted.
-        """
-        text = text.strip()
-
-        # Strip markdown code fences (```json ... ``` or ``` ... ```)
-        if text.startswith("```"):
-            end_of_first_line = text.find("\n")
-            if end_of_first_line != -1:
-                text = text[end_of_first_line + 1 :]
-            if text.endswith("```"):
-                text = text[:-3].rstrip()
-            text = text.strip()
-
-        # Direct parse
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            pass
-
-        # Find the outermost JSON object by scanning for first '{' … last '}'
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            try:
-                return json.loads(text[start : end + 1])
-            except json.JSONDecodeError:
-                pass
-
-        raise ValueError(f"Could not extract valid JSON from LLM response: {text[:300]}")
+        """Delegates to ``llm_utils._extract_json_from_text()``."""
+        return llm_utils._extract_json_from_text(text)
 
     def call_llm(self, system_prompt: str, user_prompt: str) -> dict:
         """Send a prompt to the configured LLM and return parsed JSON.
 
-        Uses litellm so any provider (OpenAI, Anthropic, Ollama, LiteLLM proxy)
-        works transparently — just change LLM_MODEL / LLM_BASE_URL in config.
-
-        * response_format is only passed for models that support JSON mode.
-        * If the response cannot be parsed as JSON, retries up to LLM_MAX_RETRIES
-          times, appending a correction turn asking for JSON-only output.
+        Delegates to ``graphqler.utils.llm_utils.call_llm()`` which handles
+        provider configuration, JSON mode, and retry logic.
 
         Args:
             system_prompt (str): System-role message.
@@ -212,52 +142,7 @@ class LLMResolver:
             ValueError: If the LLM returns malformed JSON after all retries.
             Exception: Any litellm / network error propagates to the caller.
         """
-
-        litellm = _get_litellm()
-
-        base_kwargs: dict = {
-            "model": config.LLM_MODEL,
-        }
-        if config.LLM_API_KEY:
-            base_kwargs["api_key"] = config.LLM_API_KEY
-        if config.LLM_BASE_URL:
-            base_kwargs["base_url"] = config.LLM_BASE_URL
-        if self._supports_json_mode():
-            base_kwargs["format"] = 'json'
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-
-        last_error: Exception | None = None
-        max_attempts = config.LLM_MAX_RETRIES + 1
-
-        for attempt in range(max_attempts):
-            logger.info(f"Calling LLM ({config.LLM_MODEL}) for dependency resolution (attempt {attempt + 1}/{max_attempts}) …")
-            response = litellm.completion(**{**base_kwargs, "messages": messages})
-            raw = response.choices[0].message.content or ""
-
-            try:
-                return self._extract_json_from_text(raw)
-            except ValueError as exc:
-                last_error = exc
-                logger.warning(f"LLM returned non-JSON on attempt {attempt + 1}: {raw[:200]}")
-                if attempt < max_attempts - 1:
-                    # Append a correction turn so the model sees its own bad output
-                    messages = messages + [
-                        {"role": "assistant", "content": raw},
-                        {
-                            "role": "user",
-                            "content": (
-                                "Your previous response was not valid JSON. "
-                                "Please respond with ONLY a valid JSON object — "
-                                "no markdown, no code fences, no explanation, just the raw JSON."
-                            ),
-                        },
-                    ]
-
-        raise ValueError(f"LLM returned non-JSON after {max_attempts} attempt(s): {last_error}") from last_error
+        return llm_utils.call_llm(system_prompt, user_prompt)
 
     # ── Result merging ────────────────────────────────────────────────────────
 
