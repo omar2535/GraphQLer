@@ -436,6 +436,8 @@ class Stats :
             f.write(f"  Failures      : {self.number_of_failures}\n")
             if self.vulnerabilities:
                 f.write(f"  Vulnerabilities: {list(self.vulnerabilities.keys())}\n")
+
+    def save_endpoint_results(self):
         """Reads the results, for each node in the node name -> results, create a directory for the
            result type, then a file for the response code, and append the payload and the response to the file.
         """
