@@ -127,7 +127,7 @@ def main(args: dict):
         sys.exit(1)
 
     # If not compile mode, check if compiled directory exists
-    if args['mode'] not in ["compile", "compile-graph", "compile-chains", "run", "single", "idor"] and (not is_compiled(args['path']) or not is_compiled(config.OUTPUT_DIRECTORY)):
+    if args['mode'] not in ["compile", "compile-graph", "compile-chains", "run", "single", "idor"] and not is_compiled(args['path']):
         print("(!) Compiled directory does not exist, please run in compile mode first")
         sys.exit(1)
 
