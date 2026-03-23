@@ -17,7 +17,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils import request_utils as _request_utils
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, dos_materializers
+from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, SubscriptionMaterializer, dos_materializers
 from .retrier import Retrier
 from .types import Result, ResultEnum
 from .types.profile import RuntimeProfile
@@ -110,6 +110,36 @@ class FEngine(object):
             materializer = dos_materializer(self.api, fail_on_hard_dependency_not_met=False, max_depth=max_depth)
             results += [self.__run_payload(name, objects_bucket, materializer, graphql_type)]
         return results
+
+    def run_subscription_payload(self, name: str, objects_bucket: ObjectsBucket) -> tuple[list[dict], Result]:
+        """Executes a GraphQL subscription over a WebSocket connection and returns collected events.
+
+        Args:
+            name (str): Subscription name
+            objects_bucket (ObjectsBucket): Shared objects bucket
+
+        Returns:
+            tuple[list[dict], Result]: List of event payloads received and a Result
+        """
+        from graphqler.utils.websocket_utils import send_graphql_subscription
+
+        try:
+            materializer = SubscriptionMaterializer(self.api, fail_on_hard_dependency_not_met=False)
+            payload_str, _used_objects = materializer.get_payload(name, objects_bucket, "Subscription")
+            graphql_payload = {"query": payload_str}
+            request_utils = plugins_handler.get_request_utils()
+            events = send_graphql_subscription(
+                url=self.api.url,
+                payload=graphql_payload,
+                headers=request_utils.get_headers(),
+            )
+            if events:
+                return events, Result(ResultEnum.GENERAL_SUCCESS)
+            else:
+                return [], Result(ResultEnum.GENERAL_FAILURE)
+        except Exception as e:
+            self.logger.warning(f"Subscription {name} failed: {e}")
+            return [], Result(ResultEnum.GENERAL_FAILURE)
 
     def __run_payload(self, name: str, objects_bucket: ObjectsBucket, materializer: Materializer, graphql_type: str) -> tuple[dict, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket

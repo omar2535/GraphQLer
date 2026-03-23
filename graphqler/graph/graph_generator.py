@@ -23,11 +23,13 @@ class GraphGenerator:
         self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_subscriptions_save_path = Path(save_path) / config.COMPILED_SUBSCRIPTIONS_FILE_NAME
         self.dependency_graph_visualization_save_path = Path(save_path) / config.GRAPH_VISUALIZATION_OUTPUT
 
         self.compiled_queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.compiled_objects = read_yaml_to_dict(self.compiled_objects_save_path)
         self.compiled_mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
+        self.compiled_subscriptions = read_yaml_to_dict(self.compiled_subscriptions_save_path)
 
         self.dependency_graph = networkx.DiGraph()
 
@@ -46,11 +48,12 @@ class GraphGenerator:
 
     def run(self):
         """Generates the graph, creating nodes and creating edges between nodes.
-        3 types of nodes (Objects, Queries, Mutations)
+        4 types of nodes (Objects, Queries, Mutations, Subscriptions)
         """
         compiled_queries = self.compiled_queries or {}
         compiled_mutations = self.compiled_mutations or {}
         compiled_objects = self.compiled_objects or {}
+        compiled_subscriptions = self.compiled_subscriptions or {}
 
         """1. Create query nodes"""
         query_nodes = {}
@@ -69,16 +72,27 @@ class GraphGenerator:
         for object_name, object_body in compiled_objects.items():
             object_nodes[object_name] = Node("Object", object_name, object_body)
 
-        """4. Add all nodes to the graph"""
+        """4. Create subscription nodes (only when subscriptions are enabled)"""
+        subscription_nodes = {}
+        if not config.SKIP_SUBSCRIPTIONS:
+            for subscription_name, subscription_body in compiled_subscriptions.items():
+                subscription_nodes[subscription_name] = Node("Subscription", subscription_name, subscription_body)
+
+        """5. Add all nodes to the graph"""
         self.dependency_graph.add_nodes_from(query_nodes.values())
         self.dependency_graph.add_nodes_from(mutation_nodes.values())
         self.dependency_graph.add_nodes_from(object_nodes.values())
+        self.dependency_graph.add_nodes_from(subscription_nodes.values())
 
-        """5. Link objects and mutations together"""
+        """6. Link objects and mutations together"""
         self.create_object_mutation_edges(object_nodes, mutation_nodes)
 
-        """6. Link objects and queries together"""
+        """7. Link objects and queries together"""
         self.create_object_query_edges(object_nodes, query_nodes)
+
+        """8. Link objects and subscriptions together"""
+        if subscription_nodes:
+            self.create_object_subscription_edges(object_nodes, subscription_nodes)
 
     def create_object_mutation_edges(self, object_nodes: dict, mutation_nodes: dict):
         """Updates the dependency graph with edges between objects and mutations. 3 cases:
@@ -165,3 +179,44 @@ class GraphGenerator:
                 if object_name != "UNKNOWN":
                     object_node = object_nodes[object_name]
                     self.dependency_graph.add_edge(object_node, query_node, weight=1)
+
+    def create_object_subscription_edges(self, object_nodes: dict, subscription_nodes: dict):
+        """Updates the dependency graph with edges between objects and subscriptions. 3 cases:
+           Case 1: S -> O | When object(O) is produced by subscription(S), means O has S in its "associatedSubscriptions", weight 100
+           Case 2: O -> S | When subscription(S) depends on object(O) via hardDependsOn, weight 100
+           Case 3: O -> S | When subscription(S) depends on object(O) via softDependsOn, weight 1
+
+        Args:
+            object_nodes (dict): Mapping of object_name -> object node
+            subscription_nodes (dict): Mapping of subscription_name -> subscription node
+        """
+        # Case 1: subscriptions that produce objects (output type matches an object)
+        for subscription_name, subscription_node in subscription_nodes.items():
+            subscription_information = self.compiled_subscriptions[subscription_name]
+            output_type = subscription_information.get("output", {})
+            output_name = output_type.get("name") or (output_type.get("ofType") or {}).get("name")
+            if output_name and output_name in object_nodes:
+                object_node = object_nodes[output_name]
+                self.dependency_graph.add_edge(subscription_node, object_node, weight=100)
+
+        # Case 2: subscriptions with hardDependsOn
+        for subscription_name, subscription_node in subscription_nodes.items():
+            subscription_information = self.compiled_subscriptions[subscription_name]
+            if not subscription_information.get("hardDependsOn"):
+                continue
+
+            for input_name, object_name in subscription_information["hardDependsOn"].items():
+                if object_name != "UNKNOWN" and object_name in object_nodes:
+                    object_node = object_nodes[object_name]
+                    self.dependency_graph.add_edge(object_node, subscription_node, weight=100)
+
+        # Case 3: subscriptions with softDependsOn
+        for subscription_name, subscription_node in subscription_nodes.items():
+            subscription_information = self.compiled_subscriptions[subscription_name]
+            if not subscription_information.get("softDependsOn"):
+                continue
+
+            for input_name, object_name in subscription_information["softDependsOn"].items():
+                if object_name != "UNKNOWN" and object_name in object_nodes:
+                    object_node = object_nodes[object_name]
+                    self.dependency_graph.add_edge(object_node, subscription_node, weight=1)

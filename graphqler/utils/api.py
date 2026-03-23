@@ -13,6 +13,7 @@ class API:
     queries = {}
     objects = {}
     mutations = {}
+    subscriptions = {}
     input_objects = {}
     enums = {}
     unions = {}
@@ -22,6 +23,7 @@ class API:
         self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
         self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
         self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_subscriptions_save_path = Path(save_path) / config.COMPILED_SUBSCRIPTIONS_FILE_NAME
         self.extracted_enums_save_path = Path(save_path) / config.ENUM_LIST_FILE_NAME
         self.extracted_input_objects_save_path = Path(save_path) / config.INPUT_OBJECT_LIST_FILE_NAME
         self.extracted_unions_save_path = Path(save_path) / config.UNION_LIST_FILE_NAME
@@ -31,6 +33,7 @@ class API:
         self.queries = read_yaml_to_dict(self.compiled_queries_save_path)
         self.objects = read_yaml_to_dict(self.compiled_objects_save_path)
         self.mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
+        self.subscriptions = read_yaml_to_dict(self.compiled_subscriptions_save_path)
         self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path)
         self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
         self.unions = read_yaml_to_dict(self.extracted_unions_save_path)
