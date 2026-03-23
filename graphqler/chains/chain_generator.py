@@ -120,7 +120,7 @@ class ChainGenerator:
                 if steps:
                     chains.append(Chain(
                         steps=steps,
-                        confidence=entry.get("idor_confidence", entry.get("confidence", 0.0)),
+                        confidence=entry.get("idor_confidence", entry.get("confidence", 1.0)),
                         reason=entry.get("idor_reason", entry.get("reason", "")),
                     ))
 

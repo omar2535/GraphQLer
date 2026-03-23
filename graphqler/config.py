@@ -53,13 +53,15 @@ Model string uses litellm format:
   Ollama:    "ollama/llama3"  (set LLM_BASE_URL to "http://localhost:11434")
   LiteLLM proxy: "openai/my-model"  (set LLM_BASE_URL to your proxy URL)
 """
-USE_LLM = False                         # Master toggle: use LLM for dependency graph inference
+USE_LLM = False                         # Master toggle: use LLM for dependency graph inference, endpoint classification, and IDOR chain classification
 LLM_MODEL = "gpt-4o-mini"              # litellm model string (encodes provider + model)
 LLM_API_KEY = ""                        # API key; if empty, reads from env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
 LLM_BASE_URL = ""                       # Custom base URL (required for Ollama and LiteLLM proxies)
 LLM_RESOLVER_FALLBACK_TO_ID = True      # Fall back to classic ID-based resolver if LLM call fails
 LLM_RESOLVER_SAVE_COMPARISON = True     # Save a side-by-side comparison JSON of LLM vs classic results
 LLM_MAX_RETRIES = 2                     # How many times to retry when the LLM returns non-JSON
+LLM_ENABLE_REPORTER = False             # Independent toggle: generate an LLM vulnerability report at end of fuzzing (requires USE_LLM=True)
+LLM_REPORT_FILE_NAME = "report.md"     # Output filename for the LLM-generated report
 
 """For the linker"""
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
