@@ -147,3 +147,6 @@ IDOR_USE_LLM_FALLBACK = False           # When True, use LLM classifier for low-
 """For arbitrary runtime profiles (multi-auth, custom headers, etc.)"""
 PROFILES = {}
 
+# TUI-only: last URL entered in the TUI (not persisted to config.toml, not used by CLI)
+TUI_LAST_URL = ""
+

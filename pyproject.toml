@@ -20,6 +20,11 @@ dependencies = [
     "websockets>=14.0",
 ]
 
+[project.optional-dependencies]
+tui = [
+    "textual>=6.0.0,<8.0.0",
+]
+
 [tool.ruff]
 line-length = 180
 

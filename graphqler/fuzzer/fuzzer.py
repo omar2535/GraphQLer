@@ -78,6 +78,11 @@ class Fuzzer(object):
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
 
+        # Optional TUI callbacks — None by default so CLI mode has zero overhead.
+        # Set these before calling run() / run_chain() when using the TUI.
+        self.on_chain_start: typing.Optional[typing.Callable[[Chain], None]] = None
+        self.on_chain_done: typing.Optional[typing.Callable[[Chain, list], None]] = None
+
     def run(self):
         """Main function to run the fuzzer"""
         queue = multiprocessing.Queue()
@@ -95,6 +100,14 @@ class Fuzzer(object):
 
         if not queue.empty():
             _ = queue.get()
+
+    def run_chain(self, chain: Chain) -> None:
+        """Execute a single chain (public API for use by the TUI chain explorer).
+
+        Args:
+            chain (Chain): The chain to execute.
+        """
+        self.__run_chain(chain)
 
     def run_single(self, node_name: str):
         """Runs a single node
@@ -233,6 +246,8 @@ class Fuzzer(object):
         results: list[tuple[ChainStep, Result]] = []
 
         self.logger.info(f"Running chain: {chain}")
+        if self.on_chain_start:
+            self.on_chain_start(chain)
         for i, step in enumerate(chain.steps):
             node = step.node
             if node.name in config.SKIP_NODES:
@@ -281,6 +296,8 @@ class Fuzzer(object):
 
         # Post-execution analysis
         self.idor_detector.detect(chain, results, self.stats)
+        if self.on_chain_done:
+            self.on_chain_done(chain, results)
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
