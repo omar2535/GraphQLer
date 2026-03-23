@@ -2,6 +2,9 @@ name: End-to-end tests
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   setup-and-test:
     runs-on: ubuntu-latest
