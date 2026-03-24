@@ -1,8 +1,10 @@
 """Configure screen — form for all GraphQLer settings.
 
 Settings are read from the current ``config`` module values, shown in a
-scrollable form, and written back to both the live ``config`` module and to
-``<output_path>/config.toml`` on save.
+scrollable form, and written back to the live ``config`` module on save.
+Persisted settings are limited to keys defined in the configuration template
+and are written to ``<output_path>/config.toml``; some values (such as the
+last-used endpoint URL) are TUI-only and are not stored in ``config.toml``.
 """
 
 from textual.app import ComposeResult
@@ -160,13 +162,20 @@ class ConfigureScreen(Screen):
         """Apply form values to config module and persist to config.toml."""
         try:
             new_cfg: dict = {}
+            validation_errors: list[str] = []
 
-            # Text inputs — read, strip, coerce, skip if coerce returns None
+            # Text inputs — read, strip, coerce, report errors for numeric fields
             for widget_id, config_key, coerce in _INPUT_MAP:
                 raw = self.query_one(f"#{widget_id}", Input).value.strip()
                 value = coerce(raw)
-                if value is not None or coerce is _str_or_none:
+                if value is None and coerce in (_try_int, _try_float) and raw:
+                    validation_errors.append(f"{config_key}: '{raw}' is not a valid number")
+                elif value is not None or coerce is _str_or_none:
                     new_cfg[config_key] = value
+
+            if validation_errors:
+                self._set_status("Invalid values: " + "; ".join(validation_errors), error=True)
+                return
 
             # Switches — read bool, optionally invert
             for widget_id, config_key, invert in _SWITCH_MAP:

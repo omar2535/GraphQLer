@@ -27,7 +27,13 @@ def write_config_to_toml(path: str) -> None:
         elif isinstance(value, (int, float)):
             lines.append(f"{key} = {value}\n")
         elif isinstance(value, list):
-            lines.append(f"{key} = {value}\n")
+            # Emit a proper TOML inline array; strings are quoted and escaped
+            def _toml_item(item) -> str:
+                if isinstance(item, str):
+                    return '"' + item.replace("\\", "\\\\").replace('"', '\\"') + '"'
+                return str(item)
+            items = ", ".join(_toml_item(item) for item in value)
+            lines.append(f"{key} = [{items}]\n")
         elif value is None:
             lines.append(f'{key} = ""\n')
         else:

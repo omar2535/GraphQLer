@@ -21,7 +21,7 @@ async def test_app_mounts_home_screen():
 
 @pytest.mark.anyio
 async def test_home_screen_has_mode_buttons():
-    """HomeScreen should render all 6 mode buttons."""
+    """HomeScreen should render the 6 mode grid buttons plus the browse and configure buttons."""
     app = GraphQLerApp(splash=False)
     async with app.run_test():
         button_ids = {btn.id for btn in app.screen.query("Button")}
@@ -32,6 +32,7 @@ async def test_home_screen_has_mode_buttons():
         assert "btn-chains" in button_ids
         assert "btn-query" in button_ids
         assert "btn-configure" in button_ids
+        assert "btn-browse" in button_ids
 
 
 @pytest.mark.anyio
@@ -115,23 +116,28 @@ async def test_configure_screen_has_url_input():
 
 
 @pytest.mark.anyio
-async def test_configure_save_updates_config():
-    """Saving the configure form should update the live config."""
+async def test_configure_save_updates_config(tmp_path):
+    """Saving the configure form should update the live config without writing real output dirs."""
     from graphqler import config
 
-    app = GraphQLerApp(splash=False)
-    async with app.run_test() as pilot:
-        await pilot.click("#btn-configure")
-        await pilot.pause()
-        from textual.widgets import Input
-        from graphqler.tui.screens.configure_screen import ConfigureScreen
+    original_output = config.OUTPUT_DIRECTORY
+    config.OUTPUT_DIRECTORY = str(tmp_path)
+    try:
+        app = GraphQLerApp(splash=False)
+        async with app.run_test() as pilot:
+            await pilot.click("#btn-configure")
+            await pilot.pause()
+            from textual.widgets import Input
+            from graphqler.tui.screens.configure_screen import ConfigureScreen
 
-        configure_screen = app.screen
-        assert isinstance(configure_screen, ConfigureScreen)
-        inp = configure_screen.query_one("#inp-url", Input)
-        inp.value = "https://test.example.com/graphql"
-        configure_screen._save()
-        assert config.TUI_LAST_URL == "https://test.example.com/graphql"
+            configure_screen = app.screen
+            assert isinstance(configure_screen, ConfigureScreen)
+            inp = configure_screen.query_one("#inp-url", Input)
+            inp.value = "https://test.example.com/graphql"
+            configure_screen._save()
+            assert config.TUI_LAST_URL == "https://test.example.com/graphql"
+    finally:
+        config.OUTPUT_DIRECTORY = original_output
 
 
 @pytest.mark.anyio

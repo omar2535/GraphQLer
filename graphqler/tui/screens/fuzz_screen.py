@@ -94,6 +94,7 @@ class FuzzScreen(Screen):
         from graphqler.utils.file_utils import get_or_create_directory
         from graphqler.utils.stats import Stats
 
+        _prev_debug = config.DEBUG
         config.DEBUG = config.TUI_MODE  # force threading so callbacks work
         try:
             get_or_create_directory(path)
@@ -118,6 +119,7 @@ class FuzzScreen(Screen):
         except Exception as exc:
             self.app.call_from_thread(self._on_done, False, str(exc))
         finally:
+            config.DEBUG = _prev_debug
             self._fuzz_running = False
 
     def _tick_stats(self) -> None:

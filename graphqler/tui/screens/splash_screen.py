@@ -98,8 +98,8 @@ class SplashScreen(Screen):
         if self.app.screen is self:
             self.app.pop_screen()
 
-    def on_key(self) -> None:
+    def on_key(self, event) -> None:
         self.app.pop_screen()
 
-    def on_click(self) -> None:
+    def on_click(self, event) -> None:
         self.app.pop_screen()
