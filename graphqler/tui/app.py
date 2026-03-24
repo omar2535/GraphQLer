@@ -1,6 +1,7 @@
 """Main Textual application entry point for the GraphQLer TUI."""
 
 import builtins
+import logging
 
 from textual.app import App
 
@@ -21,19 +22,37 @@ class GraphQLerApp(App):
         super().__init__(*args, **kwargs)
         self._original_print = None
         self._splash = splash
+        self._prev_tui_mode = False
+        self._log_handler = None
 
     def on_mount(self) -> None:
         from graphqler import config as _config
+        from graphqler.tui.logging_handler import TUILogHandler
         from graphqler.tui.screens.home_screen import HomeScreen
         from graphqler.tui.screens.splash_screen import SplashScreen, should_show_splash
 
+        self._prev_tui_mode = _config.TUI_MODE
         _config.TUI_MODE = True  # tell the fuzzer to use threads, not multiprocessing
+
+        # Install logging bridge so library log calls appear in the TUI
+        self._log_handler = TUILogHandler(self)
+        root_logger = logging.getLogger()
+        root_logger.addHandler(self._log_handler)
+
         self._install_print_capture()
         self.push_screen(HomeScreen())
         if self._splash and should_show_splash():
             self.push_screen(SplashScreen())
 
     def on_unmount(self) -> None:
+        from graphqler import config as _config
+
+        _config.TUI_MODE = self._prev_tui_mode
+
+        if self._log_handler is not None:
+            logging.getLogger().removeHandler(self._log_handler)
+            self._log_handler = None
+
         self._restore_print()
 
     def _install_print_capture(self) -> None:
@@ -41,6 +60,8 @@ class GraphQLerApp(App):
 
         Only plain print() calls (to stdout) are captured; explicit file= writes
         (e.g. print(..., file=sys.stderr)) use the original print unchanged.
+        Carriage-return lines (end="\\r") and empty print() calls are forwarded
+        to the original so running-stats overwrite behaviour is preserved.
         """
         import sys
 
@@ -51,12 +72,18 @@ class GraphQLerApp(App):
             if file is not None and file is not sys.stdout:
                 app._original_print(*args, sep=sep, end=end, file=file, flush=flush)
                 return
+            # Carriage-return lines (progress bars, in-place stats) fall through
+            # to the real print so they behave correctly if a real terminal is
+            # also attached; they are not forwarded to the log widget.
+            if end == "\r" or not args:
+                app._original_print(*args, sep=sep, end=end, file=sys.stdout, flush=True)
+                return
             text = sep.join(str(a) for a in args)
             if text:
                 try:
                     app.call_from_thread(app.add_log_line, text, "INFO")
                 except Exception:
-                    app._original_print(text)
+                    app._original_print(text, end=end, flush=flush)
 
         builtins.print = _tui_print
 

@@ -123,7 +123,6 @@ class ChainExplorerScreen(Screen):
         selected_chain = self._chains[idx]
         config.TUI_LAST_URL = url
         config.OUTPUT_DIRECTORY = path
-        config.DEBUG = config.TUI_MODE  # force threading for callbacks
 
         self._set_status(f"Executing chain: {selected_chain.name or f'chain-{idx}'}…")
         try:
@@ -138,6 +137,8 @@ class ChainExplorerScreen(Screen):
         from graphqler.fuzzer import Fuzzer
         from graphqler.utils.file_utils import get_or_create_directory
 
+        _prev_debug = config.DEBUG
+        config.DEBUG = config.TUI_MODE  # force threading for callbacks
         try:
             get_or_create_directory(path)
             fuzzer = Fuzzer(path, url)
@@ -145,6 +146,8 @@ class ChainExplorerScreen(Screen):
             self.app.call_from_thread(self._on_chain_done, True, "Chain executed ✓")
         except Exception as exc:
             self.app.call_from_thread(self._on_chain_done, False, str(exc))
+        finally:
+            config.DEBUG = _prev_debug
 
     def _on_chain_done(self, success: bool, message: str) -> None:
         self._set_status(message, error=not success)

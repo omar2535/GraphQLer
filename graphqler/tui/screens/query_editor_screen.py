@@ -110,7 +110,7 @@ class QueryEditorScreen(Screen):
                 body["variables"] = variables
 
             proxies = get_proxies()
-            response = _requests.post(url, json=body, headers=headers, timeout=config.REQUEST_TIMEOUT, proxies=proxies, verify=False)
+            response = _requests.post(url, json=body, headers=headers, timeout=config.REQUEST_TIMEOUT, proxies=proxies)
 
             try:
                 gql_response = response.json()

@@ -214,13 +214,13 @@ python -m graphqler --url <URL> --path <SAVE_PATH> --config <CUSTOM_CONFIG>> --p
 
 ## Advanced features
 
-There are also varaibles that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
+There are also variables that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
 
 | Variable Name | Variable Description | Variable Type | Default |
 |---------------|---------------------|---------------|---------------|
 | MAX_LEVENSHTEIN_THRESHOLD | The levenshtein distance between objects and object IDs | Integer | 20 |
 | MAX_OBJECT_CYCLES | Max number of times the same object should be materialized in the same query/mutation | Integer | 3 |
-| MAX_OUTUPT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
+| MAX_OUTPUT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
 | USE_OBJECTS_BUCKET | Whether or not to store object IDs for future use | Boolean | True |
 | USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
 | ALLOW_DELETION_OF_OBJECTS | Whether or not to allow deletions from the objects bucket | Boolean | False |
@@ -232,7 +232,7 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_MAXIMAL_PAYLOADS | Whether or not to send a payload with all the possible outputs | Boolean | False |
 | SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks(defaults to true to not DOS the service) | Boolean | True |
 | SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
-| SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
+| SKIP_MISC_ATTACKS | Whether or not to skip miscellaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 | DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
 | IDOR_SECONDARY_AUTH | Secondary (attacker) authentication token for IDOR chain detection (e.g. `"Bearer token2"`). If not set, the IDOR chain phase is skipped. | String | None |
@@ -249,23 +249,6 @@ uv run graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-
 ### Plugins
 
 You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [docs](https://github.com/omar2535/GraphQLer/tree/main/docs).
-
-
-Quick installation can be done either with [pip](https://pypi.org/project/GraphQLer/):
-
-```sh
-pip install GraphQLer
-python -m graphqler --help
-```
-
-or [docker](https://hub.docker.com/repository/docker/omar2535/graphqler/general):
-
-```sh
-docker pull omar2535/graphqler:latest
-docker run --rm omar2535/graphqler --help
-```
-
-For a more in-depth guide, check out the [installation guide](./docs/installation.md).
 
 ## Usage
 
@@ -405,13 +388,13 @@ python -m graphqler --url <URL> --path <SAVE_PATH> --config <CUSTOM_CONFIG>> --p
 
 ## Advanced features
 
-There are also varaibles that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
+There are also variables that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
 
 | Variable Name | Variable Description | Variable Type | Default |
 |---------------|---------------------|---------------|---------------|
 | MAX_LEVENSHTEIN_THRESHOLD | The levenshtein distance between objects and object IDs | Integer | 20 |
 | MAX_OBJECT_CYCLES | Max number of times the same object should be materialized in the same query/mutation | Integer | 3 |
-| MAX_OUTUPT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
+| MAX_OUTPUT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
 | USE_OBJECTS_BUCKET | Whether or not to store object IDs for future use | Boolean | True |
 | USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
 | ALLOW_DELETION_OF_OBJECTS | Whether or not to allow deletions from the objects bucket | Boolean | False |
@@ -423,7 +406,7 @@ There are also varaibles that can be modified with the `--config` flag as a TOML
 | SKIP_MAXIMAL_PAYLOADS | Whether or not to send a payload with all the possible outputs | Boolean | False |
 | SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks(defaults to true to not DOS the service) | Boolean | True |
 | SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
-| SKIP_MISC_ATTACKS | Whether or not to skip miscillaneous attacks | Boolean | False |
+| SKIP_MISC_ATTACKS | Whether or not to skip miscellaneous attacks | Boolean | False |
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 | DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
 | IDOR_SECONDARY_AUTH | Secondary (attacker) authentication token for IDOR chain detection (e.g. `"Bearer token2"`). If not set, the IDOR chain phase is skipped. | String | None |
