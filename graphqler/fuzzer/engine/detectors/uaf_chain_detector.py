@@ -38,7 +38,8 @@ class UAFChainDetector:
             return
 
         for i, (step, result) in enumerate(results):
-            if step.profile_name == "post_delete" and result.success:
+            node_data = result.data.get(step.node.name)
+            if step.profile_name == "post_delete" and result.success and node_data not in (None, {}, []):
                 evidence = f"Resource still accessible after deletion. Chain reason: {chain.reason}"
                 logger.info(
                     f"[uaf] POTENTIAL UAF DETECTED on node '{step.node.name}' "

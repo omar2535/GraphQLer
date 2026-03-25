@@ -25,7 +25,7 @@ Hard-coded tokens
 Usage with GraphQLer
 --------------------
   graphqler --mode run \\
-      --url http://localhost:8000/graphql \\
+      --url http://localhost:8001/graphql \\
       --path ./graphqler-output \\
       --token "Bearer alice_social_token"
 """
