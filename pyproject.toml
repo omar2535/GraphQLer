@@ -39,6 +39,9 @@ dev = [
     "ty>=0.0.25",
 ]
 
+[tool.ty.src]
+exclude = ["sample-graphql-apis/"]
+
 [tool.uv]
 package = true
 
