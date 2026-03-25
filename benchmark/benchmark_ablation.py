@@ -20,6 +20,8 @@ import time
 from os import path
 
 from graphqler.__main__ import run_compile_mode, run_fuzz_mode
+from graphqler.compiler.compiler import Compiler
+from graphqler.fuzzer import Fuzzer
 from graphqler import config
 
 # ------------------------------------------------------------------
@@ -90,8 +92,8 @@ def run_single(api_url: str, base_path: str, cfg: dict) -> dict:
 
     start = time.time()
     try:
-        run_compile_mode(output_path, api_url)
-        run_fuzz_mode(output_path, api_url)
+        run_compile_mode(Compiler(output_path, api_url), output_path, api_url)
+        run_fuzz_mode(Fuzzer(output_path, api_url), output_path, api_url)
         elapsed = time.time() - start
         stats = _read_stats_json(output_path)
         coverage = stats.get("operation_coverage", {})
