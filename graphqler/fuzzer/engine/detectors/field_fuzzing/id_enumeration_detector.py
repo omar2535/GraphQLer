@@ -39,18 +39,10 @@ from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.fuzzer.engine.detectors.detector import Detector
 from graphqler.fuzzer.engine.detectors.field_fuzzing.endpoint_classifier import EndpointPrivacyClassifier
+from graphqler.fuzzer.engine.detectors.field_fuzzing.scalar_utils import _resolve_scalar_type
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-def _resolve_scalar_type(field_info: dict) -> str | None:
-    """Walk NON_NULL / LIST wrappers until a SCALAR is reached; return its type name."""
-    if field_info is None:
-        return None
-    if field_info.get("kind") == "SCALAR":
-        return field_info.get("type")
-    return _resolve_scalar_type(field_info.get("ofType"))
-
 
 def collect_id_inputs(inputs: dict) -> list[str]:
     """Return field names whose resolved scalar type is Int or ID."""

@@ -22,16 +22,16 @@ def find_block_end(payload: str, line_number: int) -> int:
     """
 
     lines = payload.split("\n")
-    if lines[line_number][-1] == "{":
-        target_indentation = len(re.match(r"^\s*", lines[line_number]).group(0))
-        current_line_number = line_number + 1
-        current_indentation = len(re.match(r"^\s*", lines[current_line_number]).group(0))
-        while current_indentation > target_indentation:
-            current_line_number += 1
-            current_indentation = len(re.match(r"^\s*", lines[current_line_number]).group(0))
-        return current_line_number
-    else:
+    if line_number >= len(lines) or not lines[line_number] or lines[line_number][-1] != "{":
         return line_number
+    target_indentation = len(re.match(r"^\s*", lines[line_number]).group(0))
+    current_line_number = line_number + 1
+    while current_line_number < len(lines):
+        current_indentation = len(re.match(r"^\s*", lines[current_line_number]).group(0))
+        if current_indentation <= target_indentation:
+            break
+        current_line_number += 1
+    return current_line_number
 
 
 def remove_lines_within_range(payload: str, start_line: int, end_line: int) -> str:
