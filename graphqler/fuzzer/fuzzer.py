@@ -25,7 +25,7 @@ from .engine.fengine import FEngine
 from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
 from .engine.types.profile import RuntimeProfile
-from .engine.detectors import IDORChainDetector
+from .engine.detectors import IDORChainDetector, UAFChainDetector
 from .reporters import LLMReporter
 
 
@@ -47,11 +47,14 @@ class Fuzzer(object):
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
         self.idor_detector = IDORChainDetector()
+        self.uaf_detector = UAFChainDetector()
 
         # Initialize runtime profiles
         self.profiles: dict[str, RuntimeProfile] = {
             "primary": RuntimeProfile(name="primary", auth_token=config.AUTHORIZATION),
             "secondary": RuntimeProfile(name="secondary", auth_token=config.IDOR_SECONDARY_AUTH),
+            # post_delete uses the primary auth token — UAF tests same-user access after deletion
+            "post_delete": RuntimeProfile(name="post_delete", auth_token=config.AUTHORIZATION),
         }
         # Add any other profiles defined in config.PROFILES
         for name, profile_data in getattr(config, "PROFILES", {}).items():
@@ -261,8 +264,10 @@ class Fuzzer(object):
 
             visit_path = [s.node for s in chain.steps[: i + 1]]
 
-            # IDOR transition check: abort if setup produced nothing before first non-primary node
-            if step.profile_name != "primary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
+            # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
+            # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
+            # because UAF chains intentionally continue after deletion even when the bucket may be empty.
+            if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
                 self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
                 break
 
@@ -302,6 +307,7 @@ class Fuzzer(object):
 
         # Post-execution analysis
         self.idor_detector.detect(chain, results, self.stats)
+        self.uaf_detector.detect(chain, results, self.stats)
         if self.on_chain_done:
             self.on_chain_done(chain, results)
 
