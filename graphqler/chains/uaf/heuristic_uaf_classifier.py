@@ -80,10 +80,11 @@ def _collect_input_type_names(node: Node) -> set[str]:
         if info is None:
             return
         if isinstance(info, dict):
-            if info.get("kind") in ("OBJECT", "INPUT_OBJECT", "SCALAR") and info.get("type"):
-                result.add(info["type"])
-            if info.get("name"):
-                result.add(info["name"])
+            type_info = info.get("type")
+            if isinstance(type_info, str):
+                result.add(type_info)
+            elif isinstance(type_info, dict):
+                _walk(type_info)
             _walk(info.get("ofType"))
 
     for field_info in inputs.values():
