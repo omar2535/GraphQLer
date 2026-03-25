@@ -94,9 +94,12 @@ class Fuzzer(object):
         p.start()
         p.join(config.MAX_TIME)
 
-        if p.is_alive() and isinstance(p, multiprocessing.Process):
-            print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
-            p.terminate()
+        if p.is_alive():
+            if isinstance(p, multiprocessing.Process):
+                print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
+                p.terminate()
+            else:
+                print(f"(+) Fuzzer thread still running after {config.MAX_TIME}s (threads cannot be forcibly terminated)")
 
         if not queue.empty():
             _ = queue.get()
@@ -144,9 +147,12 @@ class Fuzzer(object):
         p.start()
         p.join(config.MAX_TIME)
 
-        if p.is_alive() and isinstance(p, multiprocessing.Process):
-            print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
-            p.terminate()
+        if p.is_alive():
+            if isinstance(p, multiprocessing.Process):
+                print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
+                p.terminate()
+            else:
+                print(f"(+) Fuzzer thread still running after {config.MAX_TIME}s (threads cannot be forcibly terminated)")
 
         if not queue.empty():
             _ = queue.get()

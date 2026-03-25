@@ -5,8 +5,8 @@ from graphqler import config
 from graphqler.fuzzer.engine.detectors.field_fuzzing.field_charset_fuzzing_detector import (
     FieldCharsetFuzzingDetector,
     collect_string_inputs,
-    _resolve_scalar_type,
 )
+from graphqler.fuzzer.engine.detectors.field_fuzzing.scalar_utils import _resolve_scalar_type
 from graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector import (
     IDEnumerationDetector,
     collect_id_inputs,

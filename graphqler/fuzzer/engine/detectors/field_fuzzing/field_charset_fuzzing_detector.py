@@ -29,18 +29,10 @@ from graphqler.utils.stats import Stats
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.fuzzer.engine.detectors.detector import Detector
+from graphqler.fuzzer.engine.detectors.field_fuzzing.scalar_utils import _resolve_scalar_type
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-def _resolve_scalar_type(field_info: dict | None) -> str | None:
-    """Walk NON_NULL / LIST wrappers until a SCALAR is reached; return its type name."""
-    if field_info is None:
-        return None
-    if field_info.get("kind") == "SCALAR":
-        return field_info.get("type")
-    return _resolve_scalar_type(field_info.get("ofType"))
-
 
 def collect_string_inputs(inputs: dict) -> list[str]:
     """Return field names whose resolved scalar type is String."""
@@ -177,8 +169,6 @@ class FieldCharsetFuzzingDetector(Detector):
         avg_len = sum(non_zero) / len(non_zero)
         if avg_len == 0:
             return False
-        # TODO: extract _resolve_scalar_type() into a shared helper module and reuse it
-        # here and in id_enumeration_detector.py to keep scalar unwrapping consistent.
         spread = (max_len - min_len) / avg_len
         if spread <= config.FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD:
             return False

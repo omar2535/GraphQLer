@@ -111,6 +111,8 @@ class GraphGenerator:
                 continue  # skip if this object doesn't have any associated mutations
 
             for associated_mutation_name in object_information["associatedMutatations"]:
+                if associated_mutation_name not in mutation_nodes:
+                    continue
                 mutation_node = mutation_nodes[associated_mutation_name]
                 self.dependency_graph.add_edge(mutation_node, object_node, weight=100)
 
@@ -122,7 +124,7 @@ class GraphGenerator:
 
             if mutation_information["hardDependsOn"]:
                 for input_name, object_name in mutation_information["hardDependsOn"].items():
-                    if object_name != "UNKNOWN":
+                    if object_name != "UNKNOWN" and object_name in object_nodes:
                         object_node = object_nodes[object_name]
                         self.dependency_graph.add_edge(object_node, mutation_node, weight=100)
 
@@ -134,7 +136,7 @@ class GraphGenerator:
 
             if mutation_information["softDependsOn"]:
                 for input_name, object_name in mutation_information["softDependsOn"].items():
-                    if object_name != "UNKNOWN":
+                    if object_name != "UNKNOWN" and object_name in object_nodes:
                         object_node = object_nodes[object_name]
                         self.dependency_graph.add_edge(object_node, mutation_node, weight=1)
 
@@ -155,6 +157,8 @@ class GraphGenerator:
                 continue  # skip if this object doesn't have any associatedQueries
 
             for associated_query_name in object_information["associatedQueries"]:
+                if associated_query_name not in query_nodes:
+                    continue
                 query_node = query_nodes[associated_query_name]
                 self.dependency_graph.add_edge(query_node, object_node, weight=100)
 
@@ -165,7 +169,7 @@ class GraphGenerator:
                 continue  # skip if this querry doesn't have any hardDependsOn
 
             for input_name, object_name in query_information["hardDependsOn"].items():
-                if object_name != "UNKNOWN":
+                if object_name != "UNKNOWN" and object_name in object_nodes:
                     object_node = object_nodes[object_name]
                     self.dependency_graph.add_edge(object_node, query_node, weight=100)
 
@@ -176,7 +180,7 @@ class GraphGenerator:
                 continue  # skip if this querry doesn't have any hardDependsOn
 
             for input_name, object_name in query_information["softDependsOn"].items():
-                if object_name != "UNKNOWN":
+                if object_name != "UNKNOWN" and object_name in object_nodes:
                     object_node = object_nodes[object_name]
                     self.dependency_graph.add_edge(object_node, query_node, weight=1)
 
