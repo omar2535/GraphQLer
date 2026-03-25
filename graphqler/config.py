@@ -144,6 +144,11 @@ SKIP_IDOR_CHAIN_FUZZING: bool = False         # Set True to disable the chain-ba
 IDOR_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
 IDOR_USE_LLM_FALLBACK: bool = False           # When True, use LLM classifier for low-confidence chains
 
+"""For chain-based UAF detection (use-after-delete / use-after-free testing)"""
+SKIP_UAF_CHAIN_FUZZING: bool = False          # Set True to disable the chain-based UAF phase entirely
+UAF_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
+UAF_USE_LLM_FALLBACK: bool = False            # When True, use LLM classifier for low-confidence chains
+
 """For arbitrary runtime profiles (multi-auth, custom headers, etc.)"""
 PROFILES = {}
 

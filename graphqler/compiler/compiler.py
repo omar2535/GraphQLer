@@ -12,7 +12,7 @@ from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
 from .parsers import QueryListParser, ObjectListParser, MutationListParser, SubscriptionListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
 from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, SubscriptionObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
-from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy, Chain
+from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy, UAFChainStrategy, Chain
 from graphqler.graph import GraphGenerator
 from graphqler import config
 from clairvoyance.cli import blind_introspection
@@ -233,6 +233,7 @@ class Compiler:
         strategies = [
             TopologicalChainStrategy(),
             IDORChainStrategy(),
+            UAFChainStrategy(),
         ]
 
         regular_chains: list[Chain] = []
