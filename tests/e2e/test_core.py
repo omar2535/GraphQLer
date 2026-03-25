@@ -6,9 +6,9 @@ import os
 
 
 class TestCore(unittest.TestCase):
-    PORT = 4001
+    PORT = 4007
     URL = f"http://localhost:{PORT}/graphql"
-    PATH = "ci-test-user-wallet-api/"
+    PATH = "ci-test-core/"
     API_PATH = "sample-graphql-apis/user-wallet-api"
     CONFIG_PATH = "sample-graphql-apis/test_configs/user_wallet_api_config.toml"
     process = None

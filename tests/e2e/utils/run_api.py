@@ -26,6 +26,8 @@ def run_node_project(path: str, commands: list[str], port: str) -> subprocess.Po
     node_cmd = shutil.which("node")
     if npm_cmd is None:
         raise RuntimeError("npm command not found. Please ensure Node.js is installed.")
+    if node_cmd is None:
+        raise RuntimeError("node command not found. Please ensure Node.js is installed.")
     
     try:
         subprocess.run([npm_cmd, "install"], cwd=path, check=True, env=env, shell=shell_flag)

@@ -100,18 +100,18 @@ class HomeScreen(Screen):
     # ── Arrow-key navigation ───────────────────────────────────────────────
 
     def action_focus_up(self) -> None:
-        self._move_focus(-1, 0)
+        self._move_grid_focus(-1, 0)
 
     def action_focus_down(self) -> None:
-        self._move_focus(1, 0)
+        self._move_grid_focus(1, 0)
 
     def action_focus_left(self) -> None:
-        self._move_focus(0, -1)
+        self._move_grid_focus(0, -1)
 
     def action_focus_right(self) -> None:
-        self._move_focus(0, 1)
+        self._move_grid_focus(0, 1)
 
-    def _move_focus(self, dr: int, dc: int) -> None:
+    def _move_grid_focus(self, dr: int, dc: int) -> None:
         """Move grid focus by (row-delta, col-delta), wrapping at edges."""
         focused = self.focused
         current_id = focused.id if focused else None

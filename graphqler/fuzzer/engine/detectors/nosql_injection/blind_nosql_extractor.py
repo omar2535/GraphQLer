@@ -32,7 +32,7 @@ def _make_regex_payload(payload: str, prefix: str) -> str:
     return payload
 
 
-def _has_data(graphql_response: dict) -> bool:
+def _has_data(graphql_response: dict | None) -> bool:
     """Return True when the server returned non-empty ``data``."""
     if graphql_response is None:
         return False

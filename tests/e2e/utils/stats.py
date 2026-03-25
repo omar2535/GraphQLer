@@ -61,3 +61,4 @@ def get_percent_query_mutation_success(stats_file_path: str) -> float:
                 numerator = int(fraction_str_split[0])
                 denominator = int(fraction_str_split[1])
                 return round(float(numerator / denominator) * 100, 2)
+    return 0.0

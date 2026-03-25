@@ -136,10 +136,10 @@ class FEngine(object):
             if events:
                 return events, Result(ResultEnum.GENERAL_SUCCESS)
             else:
-                return [], Result(ResultEnum.GENERAL_FAILURE)
+                return [], Result(ResultEnum.EXTERNAL_FAILURE)
         except Exception as e:
             self.logger.warning(f"Subscription {name} failed: {e}")
-            return [], Result(ResultEnum.GENERAL_FAILURE)
+            return [], Result(ResultEnum.EXTERNAL_FAILURE)
 
     def __run_payload(self, name: str, objects_bucket: ObjectsBucket, materializer: Materializer, graphql_type: str) -> tuple[dict, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket

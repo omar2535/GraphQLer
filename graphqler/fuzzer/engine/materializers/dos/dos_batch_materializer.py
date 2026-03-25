@@ -14,7 +14,7 @@ class DOSBatchMaterializer(Materializer):
         self.fail_on_hard_dependency_not_met = fail_on_hard_dependency_not_met
         self.max_depth = max_depth
 
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str = "") -> tuple[list, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str = "") -> tuple[str | list, dict]:
         """Materializes the payload with parameters filled in
            1. Make sure all dependencies are satisfied (hardDependsOn)
            2. Fill in the inputs ()

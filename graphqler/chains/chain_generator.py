@@ -7,6 +7,7 @@ import yaml
 
 from graphqler import config
 from graphqler.chains.chain import Chain, ChainStep
+from graphqler.chains.strategies.base_strategy import BaseChainStrategy
 from graphqler.graph.node import Node
 
 
@@ -27,7 +28,7 @@ class ChainGenerator:
 
     def __init__(self):
         self._chains: list[Chain] = []
-        self._results: list[tuple[object, list[Chain]]] = []
+        self._results: list[tuple[BaseChainStrategy, list[Chain]]] = []
 
     @property
     def chains(self) -> list[Chain]:

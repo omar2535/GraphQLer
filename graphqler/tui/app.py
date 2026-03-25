@@ -2,6 +2,7 @@
 
 import builtins
 import logging
+from typing import Callable
 
 from textual.app import App
 
@@ -20,7 +21,7 @@ class GraphQLerApp(App):
 
     def __init__(self, *args, splash: bool = True, **kwargs):
         super().__init__(*args, **kwargs)
-        self._original_print = None
+        self._original_print: Callable[..., None] | None = None
         self._splash = splash
         self._prev_tui_mode = False
         self._log_handler = None
@@ -68,28 +69,31 @@ class GraphQLerApp(App):
         app = self
         self._original_print = builtins.print
 
+        orig_print = self._original_print
+
         def _tui_print(*args, sep: str = " ", end: str = "\n", file=None, flush: bool = False) -> None:
+            assert orig_print is not None
             if file is not None and file is not sys.stdout:
-                app._original_print(*args, sep=sep, end=end, file=file, flush=flush)
+                orig_print(*args, sep=sep, end=end, file=file, flush=flush)
                 return
             # Carriage-return lines (progress bars, in-place stats) fall through
             # to the real print so they behave correctly if a real terminal is
             # also attached; they are not forwarded to the log widget.
             if end == "\r" or not args:
-                app._original_print(*args, sep=sep, end=end, file=sys.stdout, flush=True)
+                orig_print(*args, sep=sep, end=end, file=sys.stdout, flush=True)
                 return
             text = sep.join(str(a) for a in args)
             if text:
                 try:
                     app.call_from_thread(app.add_log_line, text, "INFO")
                 except Exception:
-                    app._original_print(text, end=end, flush=flush)
+                    orig_print(text, end=end, flush=flush)
 
-        builtins.print = _tui_print
+        setattr(builtins, "print", _tui_print)
 
     def _restore_print(self) -> None:
         if self._original_print is not None:
-            builtins.print = self._original_print
+            setattr(builtins, "print", self._original_print)
             self._original_print = None
 
     def action_go_back(self) -> None:
