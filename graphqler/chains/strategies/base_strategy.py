@@ -21,7 +21,7 @@ class BaseChainStrategy(ABC):
 
     @abstractmethod
     def generate(self,
-                 graph: networkx.DiGraph,
+                 graph: networkx.DiGraph | None,
                  starter_nodes: list[Node],
                  source_chains: list[Chain] | None = None,
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:

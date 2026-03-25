@@ -239,7 +239,7 @@ class TestUAFChainStrategy(unittest.TestCase):
         original = cfg.SKIP_UAF_CHAIN_FUZZING
         try:
             cfg.SKIP_UAF_CHAIN_FUZZING = True
-            result = self.strategy.generate(None, [], source_chains=[])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[])
             self.assertEqual(result, [])
         finally:
             cfg.SKIP_UAF_CHAIN_FUZZING = original
@@ -249,7 +249,7 @@ class TestUAFChainStrategy(unittest.TestCase):
         original = cfg.SKIP_UAF_CHAIN_FUZZING
         try:
             cfg.SKIP_UAF_CHAIN_FUZZING = False
-            result = self.strategy.generate(None, [], source_chains=None)  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=None)
             self.assertEqual(result, [])
         finally:
             cfg.SKIP_UAF_CHAIN_FUZZING = original
@@ -269,7 +269,7 @@ class TestUAFChainStrategy(unittest.TestCase):
             get_node = _make_node("Query", "getUser", body={"inputs": id_input})
             source_chain = _make_chain([create_node, delete_node, get_node], name="create-delete-get")
 
-            result = self.strategy.generate(None, [], source_chains=[source_chain])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[source_chain])
             self.assertEqual(len(result), 1)
         finally:
             cfg.SKIP_UAF_CHAIN_FUZZING = original_skip
@@ -290,7 +290,7 @@ class TestUAFChainStrategy(unittest.TestCase):
             get_node = _make_node("Query", "getUser", body={"inputs": id_input})
             source_chain = _make_chain([create_node, delete_node, get_node], name="create-delete-get")
 
-            result = self.strategy.generate(None, [], source_chains=[source_chain])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[source_chain])
             self.assertEqual(len(result), 1)
 
             chain = result[0]
@@ -313,7 +313,7 @@ class TestUAFChainStrategy(unittest.TestCase):
             get_node = _make_node("Query", "getUser")
             source_chain = _make_chain([create_node, get_node])
 
-            result = self.strategy.generate(None, [], source_chains=[source_chain])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[source_chain])
             self.assertEqual(result, [])
         finally:
             cfg.SKIP_UAF_CHAIN_FUZZING = original_skip
@@ -333,7 +333,7 @@ class TestUAFChainStrategy(unittest.TestCase):
             get_node = _make_node("Query", "getUser", body={"inputs": id_input})
             source_chain = _make_chain([create_node, delete_node, get_node], name="create-delete-get")
 
-            result = self.strategy.generate(None, [], source_chains=[source_chain])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[source_chain])
             self.assertEqual(len(result), 1)
             self.assertTrue(result[0].is_multi_profile)
         finally:
@@ -355,7 +355,7 @@ class TestUAFChainStrategy(unittest.TestCase):
             get_node = _make_node("Query", "getUser", body={"inputs": id_input})
             source_chain = _make_chain([create_node, delete_node, get_node])
 
-            result = self.strategy.generate(None, [], source_chains=[source_chain])  # type: ignore[arg-type]
+            result = self.strategy.generate(None, [], source_chains=[source_chain])
             self.assertTrue(len(result) > 0)
             self.assertTrue(result[0].reason.startswith("heuristic:"))
         finally:
