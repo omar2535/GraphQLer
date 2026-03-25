@@ -25,6 +25,8 @@ class Resolver:
                     found_ids[input_name] = input["kind"] == "NON_NULL"
                 elif self.is_input_object(input):
                     input_object_name = input["ofType"]["name"]
+                    if input_object_name not in input_objects:
+                        continue
                     input_object = input_objects[input_object_name]
                     found_ids.update(self.get_inputs_related_to_ids(input_object["inputFields"], input_objects))
             return found_ids

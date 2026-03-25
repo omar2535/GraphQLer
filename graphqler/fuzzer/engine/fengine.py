@@ -371,8 +371,8 @@ class FEngine(object):
 
             # Step 3
             self.logger.info(f"Response: {graphql_response}")
-            if type(graphql_response["data"][endpoint_name]) is dict:
-                objects_bucket.put_in_bucket(graphql_response["data"])
+            if type(result.data[endpoint_name]) is dict:
+                objects_bucket.put_in_bucket(result.data)
 
             result.result_enum = ResultEnum.GENERAL_SUCCESS
             return (graphql_response, result)
