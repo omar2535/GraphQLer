@@ -59,11 +59,11 @@ class TopologicalChainStrategy(BaseChainStrategy):
 
     file_name = "regular.yml"
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node], source_chains: list[Chain] | None = None, filter_mutation_type: list[str] | None = None) -> list[Chain]:
+    def generate(self, graph: networkx.DiGraph | None, starter_nodes: list[Node], source_chains: list[Chain] | None = None, filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Run the standard 3-pass filtering strategy and return all chains combined.
 
         Args:
-            graph (networkx.DiGraph): The dependency graph.
+            graph (networkx.DiGraph | None): The dependency graph, or ``None`` if unavailable.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
             source_chains (list[Chain] | None): Accepted for interface compatibility; not used.
             filter_mutation_type (list[str] | None): Mutation types to exclude from all passes.
@@ -71,6 +71,8 @@ class TopologicalChainStrategy(BaseChainStrategy):
         Returns:
             list[Chain]: Concatenation of all passes in order.
         """
+        if graph is None:
+            return []
         def merge(p):
             return list(set(p) | set(filter_mutation_type or []))
 
