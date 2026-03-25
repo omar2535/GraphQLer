@@ -38,6 +38,9 @@ def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> d
     compiler = Compiler(path, url)
     compiler.run()
 
+    stats = Stats()
+    stats.set_file_paths(path)
+
     fuzzer = Fuzzer(path, url)
     fuzzer.run()
 

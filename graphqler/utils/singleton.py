@@ -11,4 +11,7 @@ def singleton(myClass):
     #   fresh_bucket = ObjectsBucket.__wrapped__(api)
     setattr(getInstance, "__wrapped__", myClass)
 
+    # Allow clearing the cached instance (useful for test isolation).
+    setattr(getInstance, "reset", lambda: instances.pop(myClass, None))
+
     return getInstance
