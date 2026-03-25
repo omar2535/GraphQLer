@@ -59,11 +59,11 @@ class ObjectDependencyResolver:
                     soft_dependent_objects.append(field["type"])
             if field["kind"] == "NON_NULL":
                 base_oftype = self.get_base_oftype(field["ofType"])
-                if base_oftype["kind"] not in BUILT_IN_TYPES:
+                if base_oftype["name"] not in BUILT_IN_TYPES:
                     hard_dependent_objects.append(base_oftype["name"])
             elif field["kind"] == "LIST":
                 base_oftype = self.get_base_oftype(field["ofType"])
-                if base_oftype["kind"] not in BUILT_IN_TYPES:
+                if base_oftype["name"] not in BUILT_IN_TYPES:
                     # TODO: Figure out if lists can have hard dependencies (a non-zero lengthed list)
                     soft_dependent_objects.append(base_oftype["name"])
 
