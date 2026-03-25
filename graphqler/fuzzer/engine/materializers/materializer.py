@@ -28,7 +28,7 @@ class Materializer:
         self.max_depth = max_depth
         self.getter = getter
 
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str | list, dict]:
         """Materializes the payload with parameters filled in
 
         Args:

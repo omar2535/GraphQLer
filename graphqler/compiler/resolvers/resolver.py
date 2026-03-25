@@ -48,15 +48,15 @@ class Resolver:
             # Get the object's name
             object_name = input_name
             if input_name.lower() == "id":
-                guessed_object_name = find_closest_string(objects.keys(), endpoint_name)
+                guessed_object_name = find_closest_string(list(objects.keys()),endpoint_name)
             elif input_name.lower() == "ids":
-                guessed_object_name = find_closest_string(objects.keys(), endpoint_name)
+                guessed_object_name = find_closest_string(list(objects.keys()),endpoint_name)
             elif input_name[-2:].lower() == "id":
                 object_name = object_name[:-2]
-                guessed_object_name = find_closest_string(objects.keys(), object_name)
+                guessed_object_name = find_closest_string(list(objects.keys()),object_name)
             elif input_name[-3:].lower() == "ids":
                 object_name = object_name[:-3]
-                guessed_object_name = find_closest_string(objects.keys(), object_name)
+                guessed_object_name = find_closest_string(list(objects.keys()),object_name)
             else:
                 guessed_object_name = ""
 

@@ -88,13 +88,15 @@ class Stats :
             self.failed_nodes[key_name] = 1
         self.save()
 
-    def add_http_status_code(self, payload_name: str, status_code: int):
+    def add_http_status_code(self, payload_name: str, status_code: int | None):
         """Adds the http status code to stats
 
         Args:
             payload_name (str): The name of the query or mutation
             status_code (int): The status code
         """
+        if status_code is None:
+            return
         status_code_str = str(status_code)
         if status_code_str in self.http_status_codes.keys():
             if payload_name in self.http_status_codes[status_code_str]:

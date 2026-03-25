@@ -8,7 +8,7 @@ Supports two sub-protocols:
 import asyncio
 import json
 import logging
-from typing import Optional
+from typing import Any, Optional, cast
 
 from graphqler import config
 
@@ -97,7 +97,7 @@ async def _run_subscription(url: str, payload: dict, timeout: float, protocol: s
     ws_url = url.replace("http://", "ws://").replace("https://", "wss://")
     extra_headers = headers or {}
 
-    async with websockets.connect(ws_url, subprotocols=[protocol], additional_headers=extra_headers) as websocket:
+    async with websockets.connect(ws_url, subprotocols=cast(Any, [protocol]), additional_headers=extra_headers) as websocket:
         if protocol == "graphql-ws":
             return await _send_graphql_ws(websocket, payload, timeout)
         else:

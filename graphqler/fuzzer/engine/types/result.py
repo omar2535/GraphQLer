@@ -94,21 +94,21 @@ class Result:
         if self._result_enum == ResultEnum.NO_DATA_SUCCESS:
             # Access config dynamically for NO_DATA_SUCCESS success status
             return config.NO_DATA_COUNT_AS_SUCCESS  # Replace with actual config
-        return self._result_enum.value["success"]
+        return bool(self._result_enum.value["success"])
 
     @property
     def type(self) -> str:
         """Gets the type of the result"""
         if self._result_enum is None:
             return "unknown"
-        return self._result_enum.value["type"]
+        return str(self._result_enum.value["type"])
 
     @property
     def reason(self) -> str:
         """Gets the reason of the result"""
         if self._result_enum is None:
             return "unknown"
-        return self._result_enum.value["reason"]
+        return str(self._result_enum.value["reason"])
 
     @property
     def has_data(self) -> bool:

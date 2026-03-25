@@ -105,6 +105,7 @@ class TestLLMReporterGeneration(unittest.TestCase):
                     result = reporter.generate()
 
             self.assertIsNotNone(result)
+            assert result is not None
             self.assertEqual(result.name, "report.md")
             self.assertTrue(result.exists())
             self.assertIn("Findings here", result.read_text())
@@ -173,7 +174,7 @@ class TestLLMReporterTruncation(unittest.TestCase):
                     mock_get_litellm.return_value = mock_litellm
 
                     reporter = LLMReporter(tmp, "http://localhost/graphql")
-                    reporter._format_findings = fake_format
+                    setattr(reporter, "_format_findings", fake_format)
                     reporter.generate()
 
         self.assertEqual(len(captured), _MAX_FINDINGS_IN_REPORT)
