@@ -174,28 +174,32 @@ class CreatePost(graphene.Mutation):
         title = graphene.String(required=True)
         body = graphene.String(required=True)
 
-    post = graphene.Field(PostType)
+    # Return Post directly so the compiler sees createPost → Post in the dependency graph,
+    # enabling the UAFChainStrategy to synthesize createPost → Post → deletePost → getPost chains.
+    Output = PostType
 
     def mutate(self, info, title, body):
         user = require_auth()
         post_id = str(uuid.uuid4())
         post = {"id": post_id, "title": title, "body": body, "author": user}
         posts_db[post_id] = post
-        return CreatePost(post=PostType(**post))
+        return PostType(**post)
 
 
 class DeletePost(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        # Named 'postId' so the compiler resolves this as Post.id dependency
+        # (if named just 'id', the resolver maps to DeletePost — a circular dependency)
+        postId = graphene.ID(required=True)
 
     ok = graphene.Boolean(required=True)
 
-    def mutate(self, info, id):
+    def mutate(self, info, postId):
         require_auth()
-        if str(id) in posts_db:
+        if str(postId) in posts_db:
             # VULNERABLE: soft-delete only — the data is preserved in deleted_posts_db
             # so that getPost() can still return it (demonstrating UAF)
-            deleted_posts_db[str(id)] = posts_db.pop(str(id))
+            deleted_posts_db[str(postId)] = posts_db.pop(str(postId))
             return DeletePost(ok=True)
         return DeletePost(ok=False)
 
@@ -217,14 +221,15 @@ class CreateComment(graphene.Mutation):
 
 class DeleteComment(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        # Named 'commentId' so the compiler resolves this as Comment.id dependency
+        commentId = graphene.ID(required=True)
 
     ok = graphene.Boolean(required=True)
 
-    def mutate(self, info, id):
+    def mutate(self, info, commentId):
         require_auth()
-        if str(id) in comments_db:
-            del comments_db[str(id)]
+        if str(commentId) in comments_db:
+            del comments_db[str(commentId)]
             return DeleteComment(ok=True)
         return DeleteComment(ok=False)
 
