@@ -28,13 +28,13 @@ class IDORChainStrategy(BaseChainStrategy):
 
     file_name = "idor.yml"
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+    def generate(self, graph: networkx.DiGraph | None, starter_nodes: list[Node],
                  source_chains: list[Chain] | None = None,
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Evaluate *source_chains* and return IDOR candidate chains.
 
         Args:
-            graph (networkx.DiGraph): Accepted for interface compatibility; not used.
+            graph (networkx.DiGraph | None): Accepted for interface compatibility; not used.
             starter_nodes (list[Node]): Accepted for interface compatibility; not used.
             source_chains: Regular chains produced by a graph-based strategy.
             filter_mutation_type (list[str] | None): Accepted for interface compatibility; not used.

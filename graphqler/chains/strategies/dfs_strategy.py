@@ -36,13 +36,13 @@ class DFSChainStrategy(BaseChainStrategy):
 
     file_name = "dfs_regular.yml"
 
-    def generate(self, graph: networkx.DiGraph, starter_nodes: list[Node],
+    def generate(self, graph: networkx.DiGraph | None, starter_nodes: list[Node],
                  source_chains: list[Chain] | None = None,
                  filter_mutation_type: list[str] | None = None) -> list[Chain]:
         """Run DFS from each starter node and collect all prefix chains.
 
         Args:
-            graph (networkx.DiGraph): The dependency graph.
+            graph (networkx.DiGraph | None): The dependency graph, or ``None`` if unavailable.
             starter_nodes (list[Node]): Nodes to begin DFS from.
             source_chains (list[Chain] | None): Accepted for interface compatibility; not used.
             filter_mutation_type (list[str] | None): Mutation types to exclude.
@@ -52,6 +52,8 @@ class DFSChainStrategy(BaseChainStrategy):
         Returns:
             list[Chain]: All prefix chains discovered during DFS.
         """
+        if graph is None:
+            return []
         excluded = set(filter_mutation_type) if filter_mutation_type else set()
         chains: list[Chain] = []
         for start_node in starter_nodes:
