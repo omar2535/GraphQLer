@@ -21,6 +21,12 @@ dependencies = [
     "textual>=6.0.0,<8.0.0",
 ]
 
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
+
+[project.scripts]
+graphqler-mcp = "graphqler.mcp.server:serve"
+
 [tool.ruff]
 line-length = 180
 

@@ -253,6 +253,26 @@ if __name__ == "__main__":
         print(version)
         sys.exit(0)
 
+    # Launch MCP server when --mcp is passed (before full argument parsing so
+    # that --mode is not required in this path).
+    if "--mcp" in sys.argv:
+        transport = "stdio"
+        if "--mcp-transport" in sys.argv:
+            idx = sys.argv.index("--mcp-transport")
+            if idx + 1 < len(sys.argv):
+                transport = sys.argv[idx + 1]
+        try:
+            from graphqler.mcp.server import serve
+        except ImportError:
+            print(
+                "The 'mcp' package is required to run the MCP server.\n"
+                "Install it with:  pip install GraphQLer[mcp]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        serve(transport=transport)
+        sys.exit(0)
+
     # Launch TUI when called with no arguments
     if len(sys.argv) == 1:
         from graphqler.tui.app import GraphQLerApp
