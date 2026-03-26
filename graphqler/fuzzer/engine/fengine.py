@@ -76,6 +76,28 @@ class FEngine(object):
         profile = RuntimeProfile(name="legacy_override", auth_token=auth_override)
         return self.run_minimal_payload_with_profile(name, objects_bucket, graphql_type, profile)
 
+    def run_cursor_fuzz_payload_with_profile(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, profile: RuntimeProfile, fuzz_mode: str = "injection") -> tuple[dict, "Result"]:
+        """Materializes a cursor-fuzz payload and sends it using a specific runtime profile.
+
+        Used by cursor-attack chains: the primary step captures a live cursor into the
+        objects bucket, then this method replays the same query with the cursor decoded,
+        mutated (SQL/NoSQL injection or IDOR integer shift), and re-encoded.
+
+        Args:
+            name (str): The name of the query.
+            objects_bucket (ObjectsBucket): Bucket populated by the primary setup step.
+            graphql_type (str): "Query" (cursor fuzzing is query-only).
+            profile (RuntimeProfile): The runtime profile to use.
+            fuzz_mode (str): ``"injection"`` or ``"idor"``.
+
+        Returns:
+            tuple[dict, Result]: The GraphQL response dict and the result.
+        """
+        from .materializers.cursor_fuzz_materializer import CursorFuzzMaterializer
+        self.logger.info(f"Running cursor fuzz payload (mode={fuzz_mode}) with profile '{profile.name}': {name}")
+        materializer = CursorFuzzMaterializer(self.api, fuzz_mode=fuzz_mode)
+        return self.__run_payload_with_profile(name, objects_bucket, materializer, graphql_type, profile)
+
     def run_maximal_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
         """Runs the maximal payload (either Query or Mutation), and returns a new objects bucket
 

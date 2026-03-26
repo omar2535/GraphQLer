@@ -10,6 +10,7 @@ from .field_fuzzing.field_charset_fuzzing_detector import FieldCharsetFuzzingDet
 from .field_fuzzing.id_enumeration_detector import IDEnumerationDetector
 from .idor_chain_detector import IDORChainDetector as IDORChainDetector
 from .uaf_chain_detector import UAFChainDetector as UAFChainDetector
+from .cursor_chain_detector import CursorChainDetector as CursorChainDetector
 
 from .introspection.introspection_detector import IntrospectionDetector
 from .field_suggestion.field_suggestion_detector import FieldSuggestionsDetector

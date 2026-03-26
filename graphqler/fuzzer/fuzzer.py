@@ -25,7 +25,7 @@ from .engine.fengine import FEngine
 from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
 from .engine.types.profile import RuntimeProfile
-from .engine.detectors import IDORChainDetector, UAFChainDetector
+from .engine.detectors import IDORChainDetector, UAFChainDetector, CursorChainDetector
 from .reporters import LLMReporter
 
 
@@ -48,6 +48,7 @@ class Fuzzer(object):
         self.dengine = DEngine(self.api)
         self.idor_detector = IDORChainDetector()
         self.uaf_detector = UAFChainDetector()
+        self.cursor_detector = CursorChainDetector()
 
         # Initialize runtime profiles
         self.profiles: dict[str, RuntimeProfile] = {
@@ -55,6 +56,10 @@ class Fuzzer(object):
             "secondary": RuntimeProfile(name="secondary", auth_token=config.IDOR_SECONDARY_AUTH),
             # post_delete uses the primary auth token — UAF tests same-user access after deletion
             "post_delete": RuntimeProfile(name="post_delete", auth_token=config.AUTHORIZATION),
+            # cursor_injection replays the query with a mutated cursor under the primary token
+            "cursor_injection": RuntimeProfile(name="cursor_injection", auth_token=config.AUTHORIZATION),
+            # cursor_idor replays the query with a shifted cursor under a secondary token
+            "cursor_idor": RuntimeProfile(name="cursor_idor", auth_token=config.CURSOR_SECONDARY_AUTH),
         }
         # Add any other profiles defined in config.PROFILES
         for name, profile_data in getattr(config, "PROFILES", {}).items():
@@ -276,15 +281,26 @@ class Fuzzer(object):
             if not profile:
                 self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
                 continue
-            if step.profile_name != "primary" and not profile.auth_token:
+            # Profiles that legitimately reuse the primary auth token don't require their own token.
+            # Only abort for profiles that are expected to carry a distinct secondary credential.
+            _primary_reuse_profiles = {"post_delete", "cursor_injection"}
+            if step.profile_name != "primary" and step.profile_name not in _primary_reuse_profiles and not profile.auth_token:
                 self.logger.warning(
                     f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
-                    f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
+                    f"(set IDOR_SECONDARY_AUTH / CURSOR_SECONDARY_AUTH in your config to enable this)"
                 )
                 break
 
-            if step.profile_name != "primary":
-                # Multi-profile test phase
+            if step.profile_name in ("cursor_injection", "cursor_idor"):
+                # Cursor-attack phase: use CursorFuzzMaterializer via fengine
+                fuzz_mode = "idor" if step.profile_name == "cursor_idor" else "injection"
+                self.logger.info(f"[{step.profile_name}][cursor-fuzz] Running cursor {fuzz_mode} on node: {node}")
+                _response, result = self.fengine.run_cursor_fuzz_payload_with_profile(
+                    node.name, fresh_bucket, node.graphql_type, profile, fuzz_mode=fuzz_mode
+                )
+                results.append((step, result))
+            elif step.profile_name != "primary":
+                # Multi-profile test phase (IDOR, UAF post_delete, etc.)
                 self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
                 _response, result = self.fengine.run_minimal_payload_with_profile(
                     node.name, fresh_bucket, node.graphql_type, profile
@@ -308,6 +324,7 @@ class Fuzzer(object):
         # Post-execution analysis
         self.idor_detector.detect(chain, results, self.stats)
         self.uaf_detector.detect(chain, results, self.stats)
+        self.cursor_detector.detect(chain, results, self.stats)
         if self.on_chain_done:
             self.on_chain_done(chain, results)
 

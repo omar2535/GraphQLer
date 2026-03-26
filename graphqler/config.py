@@ -149,6 +149,11 @@ SKIP_UAF_CHAIN_FUZZING: bool = False          # Set True to disable the chain-ba
 UAF_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
 UAF_USE_LLM_FALLBACK: bool = False            # When True, use LLM classifier for low-confidence chains
 
+"""For chain-based cursor / pagination integrity attack testing"""
+SKIP_CURSOR_CHAIN_FUZZING: bool = False              # Set True to disable cursor-attack chain generation entirely
+CURSOR_SECONDARY_AUTH: str | None = None             # Secondary auth token for cursor-based IDOR testing; if None, IDOR cursor chains are skipped
+CURSOR_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Query nodes scoring below this are not selected as pagination candidates
+
 """For arbitrary runtime profiles (multi-auth, custom headers, etc.)"""
 PROFILES = {}
 

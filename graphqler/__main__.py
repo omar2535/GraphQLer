@@ -10,7 +10,7 @@ from graphqler.compiler.compiler import Compiler
 from graphqler.fuzzer import Fuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
-from graphqler.utils.cli_utils import set_auth_token_constant, set_idor_auth_token_constant, is_compiled
+from graphqler.utils.cli_utils import set_auth_token_constant, set_idor_auth_token_constant, set_cursor_auth_token_constant, is_compiled
 from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path
 from graphqler.utils.file_utils import get_or_create_directory
 from graphqler import config
@@ -183,6 +183,11 @@ def main(args: dict):
         config.PROFILES["secondary"] = args['idor_auth']
         print("(P) IDOR secondary auth token set")
 
+    if args.get('cursor_auth'):
+        set_cursor_auth_token_constant(args['cursor_auth'])
+        config.PROFILES["cursor_idor"] = args['cursor_auth']
+        print("(P) Cursor IDOR secondary auth token set")
+
     # Apply LLM CLI overrides — these take precedence over config file values
     if args.get('use_llm'):
         config.USE_LLM = True
@@ -268,6 +273,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", help="mode to run the program in", choices=["compile", "compile-graph", "compile-chains", "fuzz", "idor", "run", "single"], required=True)
     parser.add_argument("--auth", help="authentication token(s). Can be 'token' or 'profile=token'. Multiple allowed.", action="append", required=False)
     parser.add_argument("--idor-auth", help="secondary (attacker) auth token for chain-based IDOR testing. Example: 'Bearer secondtoken'", required=False)
+    parser.add_argument("--cursor-auth", help="secondary auth token for cursor-based IDOR chain testing (enables cross-user cursor probing). Example: 'Bearer secondtoken'", required=False)
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
