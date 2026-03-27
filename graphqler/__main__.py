@@ -262,7 +262,7 @@ if __name__ == "__main__":
             if idx + 1 < len(sys.argv):
                 transport = sys.argv[idx + 1]
         try:
-            from graphqler.mcp.server import serve
+            from graphqler.mcp_utils.server import serve
         except ImportError:
             print(
                 "The 'mcp' package is required to run the MCP server.\n"
@@ -307,6 +307,10 @@ if __name__ == "__main__":
     parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
     parser.add_argument("--version", help="display version", action="store_true")
+
+    # MCP server flags (handled before argument parsing; registered here for --help visibility)
+    parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)
+    parser.add_argument("--mcp-transport", help="MCP transport to use: 'stdio' (default) or 'sse'", default="stdio", metavar="TRANSPORT")
 
     args = parser.parse_args()
     args_as_dict = vars(args)
