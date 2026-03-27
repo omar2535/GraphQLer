@@ -16,13 +16,13 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Annotated
 
-try:
-    from mcp.server.fastmcp import FastMCP
-except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "The 'mcp' package is required to run the GraphQLer MCP server. "
-        "Install it with:  pip install GraphQLer[mcp]"
-    ) from exc
+# try:
+from fastmcp import FastMCP
+# except ImportError as exc:  # pragma: no cover
+#     raise ImportError(
+#         "The 'mcp' package is required to run the GraphQLer MCP server. "
+#         "Install it with:  pip install GraphQLer[mcp]"
+#     ) from exc
 
 from graphqler import config
 from graphqler.utils.cli_utils import is_compiled
@@ -159,8 +159,9 @@ def fuzz(
     if error:
         return f"Fuzzing failed:\n{error}\n\nOutput:\n{stdout}"
 
-    # Build summary from stats
-    stats_obj = Stats()
+    # Build summary from stats — fuzzer.run() uses multiprocessing so stats are written to
+    # disk by the child process; load them back into the parent-process singleton here.
+    stats_obj = Stats().load()
     lines = [
         "Fuzzing complete.",
         f"Successes: {stats_obj.number_of_successes}",
