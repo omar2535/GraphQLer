@@ -259,8 +259,10 @@ if __name__ == "__main__":
         transport = "stdio"
         if "--mcp-transport" in sys.argv:
             idx = sys.argv.index("--mcp-transport")
-            if idx + 1 < len(sys.argv):
-                transport = sys.argv[idx + 1]
+            if idx + 1 >= len(sys.argv) or sys.argv[idx + 1].startswith("-"):
+                print("Error: --mcp-transport requires a value (e.g. stdio, sse, streamable-http, http).", file=sys.stderr)
+                sys.exit(2)
+            transport = sys.argv[idx + 1]
         try:
             from graphqler.utils.mcp_utils.server import serve, TRANSPORTS
         except ImportError:
