@@ -14,7 +14,7 @@ import json
 import traceback
 from contextlib import redirect_stdout
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 # try:
 from fastmcp import FastMCP
@@ -55,8 +55,8 @@ def _reset_singletons() -> None:
     from graphqler.utils.stats import Stats
     from graphqler.utils.objects_bucket import ObjectsBucket
 
-    Stats.reset()
-    ObjectsBucket.reset()
+    getattr(Stats, "reset")()
+    getattr(ObjectsBucket, "reset")()
 
 
 def _apply_auth(auth: str | None) -> None:
@@ -272,7 +272,7 @@ def get_fuzzing_results(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def serve(transport: str = "stdio") -> None:
+def serve(transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio") -> None:
     """Start the GraphQLer MCP server.
 
     Args:
