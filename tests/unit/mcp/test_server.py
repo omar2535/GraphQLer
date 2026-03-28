@@ -161,11 +161,12 @@ class TestGetFuzzingResultsResource:
 
 
 class TestMCPArgHandling:
-    """Test that --mcp flag handling in __main__ imports the right function."""
+    """Test that --mcp flag handling in __main__ invokes the real serve() function."""
 
     def test_mcp_flag_calls_serve(self, monkeypatch):
-        """When --mcp is in sys.argv, __main__ should call serve()."""
+        """When --mcp is in sys.argv, __main__ should call serve() with transport='stdio'."""
         import sys
+        import runpy
 
         monkeypatch.setattr(sys, "argv", ["graphqler", "--mcp"])
 
@@ -175,8 +176,27 @@ class TestMCPArgHandling:
             serve_called_with["transport"] = transport
 
         with patch("graphqler.utils.mcp_utils.server.serve", _fake_serve):
-            # Simulate what __main__ does when --mcp is detected
-            transport = "stdio"
-            _fake_serve(transport=transport)
+            with pytest.raises(SystemExit) as exc_info:
+                runpy.run_module("graphqler.__main__", run_name="__main__", alter_sys=True)
+            assert exc_info.value.code == 0
 
-        assert serve_called_with["transport"] == "stdio"
+        assert serve_called_with.get("transport") == "stdio"
+
+    def test_mcp_flag_with_transport(self, monkeypatch):
+        """When --mcp --mcp-transport sse is in sys.argv, serve() should be called with 'sse'."""
+        import sys
+        import runpy
+
+        monkeypatch.setattr(sys, "argv", ["graphqler", "--mcp", "--mcp-transport", "sse"])
+
+        serve_called_with = {}
+
+        def _fake_serve(transport="stdio"):
+            serve_called_with["transport"] = transport
+
+        with patch("graphqler.utils.mcp_utils.server.serve", _fake_serve):
+            with pytest.raises(SystemExit) as exc_info:
+                runpy.run_module("graphqler.__main__", run_name="__main__", alter_sys=True)
+            assert exc_info.value.code == 0
+
+        assert serve_called_with.get("transport") == "sse"

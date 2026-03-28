@@ -16,13 +16,13 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Annotated, Literal
 
-# try:
-from fastmcp import FastMCP
-# except ImportError as exc:  # pragma: no cover
-#     raise ImportError(
-#         "The 'mcp' package is required to run the GraphQLer MCP server. "
-#         "Install it with:  pip install GraphQLer[mcp]"
-#     ) from exc
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "The 'mcp' package is required to run the GraphQLer MCP server. "
+        "Install it with:  pip install GraphQLer[mcp]"
+    ) from exc
 
 from graphqler import config
 from graphqler.utils.cli_utils import is_compiled
@@ -58,13 +58,36 @@ def _reset_singletons() -> None:
     getattr(Stats, "reset")()
     getattr(ObjectsBucket, "reset")()
 
+    # Best-effort reset of additional singletons used by compile/fuzz pipeline.
+    try:
+        from graphqler.utils.logging_utils import Logger  # type: ignore
+
+        reset_fn = getattr(Logger, "reset", None)
+        if callable(reset_fn):
+            reset_fn()
+    except ImportError:
+        pass
+
+    try:
+        from graphqler.fuzzer.engine.fengine import FEngine  # type: ignore
+
+        reset_fn = getattr(FEngine, "reset", None)
+        if callable(reset_fn):
+            reset_fn()
+    except ImportError:
+        pass
+
 
 def _apply_auth(auth: str | None) -> None:
-    """Apply an auth token to the global config."""
+    """Apply an auth token to the global config, clearing any previous value when absent."""
     if auth:
         from graphqler.utils.cli_utils import set_auth_token_constant
 
         set_auth_token_constant(auth)
+    else:
+        # Ensure no stale authorization token is reused across MCP tool calls.
+        if hasattr(config, "AUTHORIZATION"):
+            config.AUTHORIZATION = None
 
 
 def _capture(fn, *args, **kwargs):
