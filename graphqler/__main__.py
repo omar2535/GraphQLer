@@ -262,7 +262,7 @@ if __name__ == "__main__":
             if idx + 1 < len(sys.argv):
                 transport = sys.argv[idx + 1]
         try:
-            from graphqler.utils.mcp_utils.server import serve
+            from graphqler.utils.mcp_utils.server import serve, TRANSPORTS
         except ImportError:
             print(
                 "The 'mcp' package is required to run the MCP server.\n"
@@ -270,7 +270,11 @@ if __name__ == "__main__":
                 file=sys.stderr,
             )
             sys.exit(1)
-        serve(transport=transport)
+        if transport not in TRANSPORTS:
+            print(f"Invalid transport '{transport}'. Choose from: {', '.join(TRANSPORTS)}", file=sys.stderr)
+            sys.exit(1)
+        from typing import cast, Literal
+        serve(transport=cast(Literal["stdio", "http", "sse", "streamable-http"], transport))
         sys.exit(0)
 
     # Launch TUI when called with no arguments

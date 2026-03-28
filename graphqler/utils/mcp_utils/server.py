@@ -272,6 +272,9 @@ def get_fuzzing_results(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+TRANSPORTS = ("stdio", "http", "sse", "streamable-http")
+
+
 def serve(transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio") -> None:
     """Start the GraphQLer MCP server.
 
