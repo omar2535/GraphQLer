@@ -270,7 +270,7 @@ python -m graphqler --mcp --mcp-transport sse
 python -m graphqler --mcp --mcp-transport streamable-http
 ```
 
-The `graphqler-mcp` entry-point script is also available as a shorthand for `python -m graphqler --mcp`.
+The `graphqler-mcp` entry-point script is a convenience wrapper that starts the MCP server using the default stdio transport (equivalent to `python -m graphqler --mcp` with no extra flags). It does not accept `--mcp-transport` or other MCP CLI options, so use the `python -m graphqler --mcp [...]` form shown above when you need SSE, streamable HTTP, or additional flags.
 
 ### Tools
 

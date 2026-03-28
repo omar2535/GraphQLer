@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import json
+import threading
 import traceback
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -44,6 +45,10 @@ mcp = FastMCP(
     ),
 )
 
+# Global lock to serialise tool execution: compile/fuzz mutate global config state,
+# so concurrent HTTP/SSE requests must not run simultaneously.
+_pipeline_lock = threading.Lock()
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -76,6 +81,13 @@ def _reset_singletons() -> None:
             reset_fn()
     except ImportError:
         pass
+
+
+def _set_output_directory(path: str) -> None:
+    """Set config.OUTPUT_DIRECTORY and keep derived config paths in sync."""
+    config.OUTPUT_DIRECTORY = path
+    if hasattr(config, "PLUGINS_PATH"):
+        config.PLUGINS_PATH = f"{path}/plugins"
 
 
 def _apply_auth(auth: str | None) -> None:
@@ -122,16 +134,17 @@ def compile(
     from graphqler.graph import GraphGenerator
     from graphqler.__main__ import run_compile_mode
 
-    _reset_singletons()
-    config.OUTPUT_DIRECTORY = path
-    _apply_auth(auth)
+    with _pipeline_lock:
+        _reset_singletons()
+        _set_output_directory(path)
+        _apply_auth(auth)
 
-    from graphqler.utils.file_utils import get_or_create_directory
+        from graphqler.utils.file_utils import get_or_create_directory
 
-    get_or_create_directory(path)
+        get_or_create_directory(path)
 
-    compiler = Compiler(path, url)
-    stdout, _, error = _capture(run_compile_mode, compiler, path, url)
+        compiler = Compiler(path, url)
+        stdout, _, error = _capture(run_compile_mode, compiler, path, url)
 
     if error:
         return f"Compilation failed:\n{error}\n\nOutput:\n{stdout}"
@@ -169,15 +182,16 @@ def fuzz(
             "Please run compile() first."
         )
 
-    _reset_singletons()
-    config.OUTPUT_DIRECTORY = path
-    _apply_auth(auth)
+    with _pipeline_lock:
+        _reset_singletons()
+        _set_output_directory(path)
+        _apply_auth(auth)
 
-    stats = Stats()
-    stats.set_file_paths(path)
+        stats = Stats()
+        stats.set_file_paths(path)
 
-    fuzzer = Fuzzer(path, url)
-    stdout, _, error = _capture(run_fuzz_mode, fuzzer, path, url)
+        fuzzer = Fuzzer(path, url)
+        stdout, _, error = _capture(run_fuzz_mode, fuzzer, path, url)
 
     if error:
         return f"Fuzzing failed:\n{error}\n\nOutput:\n{stdout}"
@@ -303,6 +317,6 @@ def serve(transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio
 
     Args:
         transport: MCP transport to use.  Supported values: ``"stdio"`` (default),
-            ``"sse"``, ``"streamable-http"``.
+            ``"http"``, ``"sse"``, ``"streamable-http"``.
     """
     mcp.run(transport=transport)
