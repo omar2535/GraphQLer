@@ -490,6 +490,10 @@ class Stats :
     def __load_pickle(self):
         """Loads the stats from a pickle file"""
         if self.pickle_save_path.exists():
-            with open(self.pickle_save_path, "rb") as file:
-                loaded_stats = pickle.load(file)
-                self.__dict__.update(loaded_stats.__dict__)
+            try:
+                with open(self.pickle_save_path, "rb") as file:
+                    loaded_stats = pickle.load(file)
+                    self.__dict__.update(loaded_stats.__dict__)
+            except (EOFError, Exception):
+                # File may be empty or corrupt (e.g. child process killed mid-write); skip load.
+                pass
