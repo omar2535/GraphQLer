@@ -40,19 +40,19 @@ def _make_compiled_path(tmp_dir: str) -> None:
 class TestMCPServerImport:
     def test_mcp_server_imports(self):
         """The server module must import without errors when mcp is installed."""
-        from graphqler.mcp_utils import server  # noqa: F401
+        from graphqler.utils.mcp_utils import server  # noqa: F401
 
     def test_fastmcp_instance(self):
         """server.mcp must be a FastMCP instance."""
         from fastmcp import FastMCP
 
-        from graphqler.mcp_utils.server import mcp
+        from graphqler.utils.mcp_utils.server import mcp
 
         assert isinstance(mcp, FastMCP)
 
     def test_serve_function_exists(self):
         """serve() must be callable."""
-        from graphqler.mcp_utils.server import serve
+        from graphqler.utils.mcp_utils.server import serve
 
         assert callable(serve)
 
@@ -60,7 +60,7 @@ class TestMCPServerImport:
         """compile, fuzz, and run tools must be registered with the MCP server."""
         import asyncio
 
-        from graphqler.mcp_utils import server
+        from graphqler.utils.mcp_utils import server
 
         tools = asyncio.run(server.mcp.list_tools())
         tool_names = {t.name for t in tools}
@@ -72,7 +72,7 @@ class TestMCPServerImport:
 class TestFuzzToolNotCompiled:
     def test_fuzz_returns_error_when_not_compiled(self, tmp_path):
         """fuzz() must return an actionable error when compile() has not been run."""
-        from graphqler.mcp_utils.server import fuzz
+        from graphqler.utils.mcp_utils.server import fuzz
 
         result = fuzz(url="http://localhost:4000/graphql", path=str(tmp_path))
         assert "not been compiled" in result.lower() or "compile" in result.lower()
@@ -81,7 +81,7 @@ class TestFuzzToolNotCompiled:
 class TestGetSchemaInfoResource:
     def test_schema_info_uncompiled(self, tmp_path):
         """get_schema_info() returns an error JSON for an uncompiled path."""
-        from graphqler.mcp_utils.server import get_schema_info
+        from graphqler.utils.mcp_utils.server import get_schema_info
 
         result = get_schema_info(str(tmp_path))
         data = json.loads(result)
@@ -109,7 +109,7 @@ class TestGetSchemaInfoResource:
             mock_api.get_num_interfaces.return_value = 0
             MockAPI.return_value = mock_api
 
-            from graphqler.mcp_utils.server import get_schema_info
+            from graphqler.utils.mcp_utils.server import get_schema_info
 
             result = get_schema_info(str(tmp_path))
 
@@ -122,7 +122,7 @@ class TestGetSchemaInfoResource:
 class TestGetFuzzingResultsResource:
     def test_results_no_stats(self, tmp_path):
         """get_fuzzing_results() returns an error JSON when no stats files exist."""
-        from graphqler.mcp_utils.server import get_fuzzing_results
+        from graphqler.utils.mcp_utils.server import get_fuzzing_results
 
         result = get_fuzzing_results(str(tmp_path))
         data = json.loads(result)
@@ -131,7 +131,7 @@ class TestGetFuzzingResultsResource:
     def test_results_from_json(self, tmp_path):
         """get_fuzzing_results() returns JSON stats file contents when available."""
         from graphqler import config
-        from graphqler.mcp_utils.server import get_fuzzing_results
+        from graphqler.utils.mcp_utils.server import get_fuzzing_results
 
         json_fname = config.STATS_FILE_NAME.replace(".txt", ".json")
         stats_json = {"number_of_successes": 5, "number_of_failures": 1}
@@ -145,7 +145,7 @@ class TestGetFuzzingResultsResource:
     def test_results_fallback_to_txt(self, tmp_path):
         """get_fuzzing_results() falls back to the text stats file when JSON is absent."""
         from graphqler import config
-        from graphqler.mcp_utils.server import get_fuzzing_results
+        from graphqler.utils.mcp_utils.server import get_fuzzing_results
 
         stats_path = tmp_path / config.STATS_FILE_NAME
         stats_path.write_text("successes: 3\nfailures: 0\n")
@@ -170,7 +170,7 @@ class TestMCPArgHandling:
         def _fake_serve(transport="stdio"):
             serve_called_with["transport"] = transport
 
-        with patch("graphqler.mcp_utils.server.serve", _fake_serve):
+        with patch("graphqler.utils.mcp_utils.server.serve", _fake_serve):
             # Simulate what __main__ does when --mcp is detected
             transport = "stdio"
             _fake_serve(transport=transport)

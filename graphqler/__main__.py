@@ -262,7 +262,7 @@ if __name__ == "__main__":
             if idx + 1 < len(sys.argv):
                 transport = sys.argv[idx + 1]
         try:
-            from graphqler.mcp_utils.server import serve
+            from graphqler.utils.mcp_utils.server import serve
         except ImportError:
             print(
                 "The 'mcp' package is required to run the MCP server.\n"
