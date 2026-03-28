@@ -4,6 +4,10 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+pytest.importorskip("fastmcp", reason="MCP extras not installed (pip install GraphQLer[mcp])")
+
 
 # ---------------------------------------------------------------------------
 # Helpers

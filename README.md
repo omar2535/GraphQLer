@@ -245,180 +245,49 @@ LLM Enabled compilation (using ollama as an example):
 uv run graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-model ollama/qwen3.5:9b --llm-base-url http://localhost:11434
 ```
 
+## MCP Server
 
-### Plugins
+GraphQLer exposes its compile, fuzz, and run operations as [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) tools, so AI assistants like Claude Desktop can drive security testing directly.
 
-You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [docs](https://github.com/omar2535/GraphQLer/tree/main/docs).
+### Installation
 
-## Usage
-
-```sh
-❯ python -m graphqler --help
-usage: __main__.py [-h] [--url URL] [--path PATH] [--config CONFIG] --mode
-                   {compile,compile-graph,compile-chains,fuzz,idor,run,single} [--auth AUTH] [--idor-auth IDOR_AUTH]
-                   [--proxy PROXY] [--node NODE] [--plugins-path PLUGINS_PATH] [--use-llm] [--llm-report]
-                   [--llm-model LLM_MODEL] [--llm-api-key LLM_API_KEY] [--llm-base-url LLM_BASE_URL]
-                   [--llm-max-retries LLM_MAX_RETRIES] [--disable-mutations] [--no-objects-bucket]
-                   [--no-dependency-graph] [--max-iterations MAX_ITERATIONS] [--allow-deletion] [--subscriptions]
-                   [--version]
-
-options:
-  -h, --help            show this help message and exit
-  --url URL             remote host URL (required for all modes except compile-chains)
-  --path PATH           directory location for files to be saved-to/used-from. Defaults to graphqler-output
-  --config CONFIG       TOML configuration file for the program
-  --mode {compile,compile-graph,compile-chains,fuzz,idor,run,single}
-                        mode to run the program in
-  --auth AUTH           authentication token(s). Can be 'token' or 'profile=token'. Multiple allowed.
-  --idor-auth IDOR_AUTH
-                        secondary (attacker) auth token for chain-based IDOR testing. Example: 'Bearer secondtoken'
-  --proxy PROXY         proxy to use for requests (ie. http://127.0.0.1:8080)
-  --node NODE           node to run (only used in single mode)
-  --plugins-path PLUGINS_PATH
-                        path to plugins directory
-  --use-llm             enable LLM-powered features: dependency graph inference, endpoint classification, and IDOR
-                        chain classification (requires LLM_MODEL and credentials)
-  --llm-report          generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm
-  --llm-model LLM_MODEL
-                        litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3',
-                        'anthropic/claude-3-5-haiku-20241022'
-  --llm-api-key LLM_API_KEY
-                        API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)
-  --llm-base-url LLM_BASE_URL
-                        custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)
-  --llm-max-retries LLM_MAX_RETRIES
-                        number of retries when LLM returns non-JSON (default: 2)
-  --disable-mutations   only generate and run Query chains — all Mutation nodes are excluded from fuzzing
-  --no-objects-bucket   ablation: disable the objects bucket — requests carry no state from prior responses
-  --no-dependency-graph
-                        ablation: disable dependency-graph chain ordering — all nodes run independently without
-                        chaining
-  --max-iterations MAX_ITERATIONS
-                        number of times to iterate through all chains (default: 1)
-  --allow-deletion      remove objects from the bucket when a DELETE mutation succeeds (default: off)
-  --subscriptions       enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires
-                        WebSocket support on the target)
-  --version             display version
-```
-
-Below will be the steps on how you can use this program to test your GraphQL API. The usage is split into 2 phases, **compilation** and **fuzzing**.
-
-- **Compilation mode**: Responsible for running an *introspection query* against the given API, resolving dependencies between objects/queries/mutations, generating the dependency graph, and pre-generating fuzzing chains.
-- **Fuzzing mode**: Responsible for executing the pre-generated chains against the API and collecting results.
-
-The compile step can be broken into two finer sub-modes:
-
-- **compile-graph**: Runs only the introspection, parsing, and dependency-resolution steps — stops before chain generation.
-- **compile-chains**: (Re-)generates fuzzing chains from an already-compiled graph without making any network requests. Useful when you want to tweak `DISABLE_MUTATIONS` or the chain strategy without re-running introspection.
-
-A third mode is also included for ease of use, called **run** mode — this runs both compilation and fuzzing in a single command.
-
-The **idor** mode detects insecure direct object reference (IDOR) vulnerabilities using multi-profile chain replay. Pass `--idor-auth <SECONDARY_TOKEN>` during **compile** to generate IDOR candidate chains (`compiled/chains/idor.yml`). IDOR detection then runs automatically during **fuzz** mode — any object accessible to the secondary (attacker) profile is flagged. The standalone **idor** mode re-executes those chains without running regular fuzzing, and is useful for targeted re-testing.
-
-### Compile mode
+The MCP server requires the optional `mcp` extras:
 
 ```sh
-python -m graphqler --mode compile --url <URL> --path <SAVE_PATH>
+pip install GraphQLer[mcp]
 ```
 
-Runs the full compilation pipeline: introspection → parsing → dependency resolution → dependency graph → fuzzing chains. After compiling, you can view the compiled results in `<SAVE_PATH>/compiled`. A dependency graph image (`dependency_graph.png`) is also generated for inspection. Fuzzing chains are saved under `<SAVE_PATH>/compiled/chains/` — these files are human-readable and can be edited before fuzzing. Any `UNKNOWNS` in the compiled `.yaml` files can be manually marked; however, if not marked the fuzzer will still run them but just without using a dependency chain.
-
-To enable IDOR detection, pass `--idor-auth` during compile:
+### Starting the server
 
 ```sh
-python -m graphqler --mode compile --url <URL> --path <SAVE_PATH> --idor-auth 'Bearer <SECONDARY_TOKEN>'
+# stdio transport (default — use this for Claude Desktop and most MCP clients)
+python -m graphqler --mcp
+
+# SSE transport
+python -m graphqler --mcp --mcp-transport sse
+
+# Streamable HTTP transport
+python -m graphqler --mcp --mcp-transport streamable-http
 ```
 
-This generates IDOR candidate chains in `compiled/chains/idor.yml` alongside the regular chains.
+The `graphqler-mcp` entry-point script is also available as a shorthand for `python -m graphqler --mcp`.
 
-### Compile-graph mode
+### Tools
 
-```sh
-python -m graphqler --mode compile-graph --url <URL> --path <SAVE_PATH>
-```
+| Tool | Description |
+|------|-------------|
+| `compile(url, path, auth)` | Introspect the API, build the dependency graph, and generate fuzzing chains |
+| `fuzz(url, path, auth)` | Fuzz a previously compiled API for security vulnerabilities |
+| `run(url, path, auth)` | Compile then fuzz in a single step |
 
-Runs only the introspection, parsing, and dependency-resolution steps. Stops before chain generation. Use this when you only want to refresh the schema and graph, then run `compile-chains` separately (e.g. to experiment with different chain settings without hitting the API again).
+All tools accept an optional `auth` parameter for APIs that require an `Authorization` header (e.g. `"Bearer mytoken"`). Artifacts are written to `path` (defaults to `graphqler-output`).
 
-### Compile-chains mode
+### Resources
 
-```sh
-python -m graphqler --mode compile-chains --path <SAVE_PATH>
-```
-
-(Re-)generates fuzzing chains from an already-compiled dependency graph. **No `--url` is required** — all data is read from disk. Run this after `compile` or `compile-graph` to regenerate chains under `compiled/chains/` with different settings (e.g. `--disable-mutations` or a custom `CHAINS_FILE_NAME` in your config).
-
-### Fuzz mode
-
-```sh
-python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH>
-```
-
-While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. If IDOR chains were generated during compile, the fuzzer automatically tests them and writes detection results to `<SAVE_PATH>/detections/`.
-
-### IDOR Checking mode
-
-```sh
-python -m graphqler --mode compile --url <URL> --path <SAVE_PATH> --idor-auth 'Bearer <SECONDARY_TOKEN>'
-python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH>
-# Optional: re-run IDOR chains only (no regular fuzzing)
-python -m graphqler --mode idor --url <URL> --path <SAVE_PATH>
-```
-
-[Insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) detection works via multi-profile chain replay. During **compile**, `--idor-auth` enables generation of IDOR candidate chains: endpoints that create or expose user-scoped objects are identified via heuristics (and optionally an LLM classifier), then split into primary-profile steps (authenticated user) and secondary-profile steps (attacker token). These chains are saved to `compiled/chains/idor.yml`.
-
-During **fuzz**, the `IDORChainDetector` executes each IDOR chain — the primary profile creates or retrieves the object, then the secondary profile attempts to access it. Any data returned to the secondary profile is flagged as a potential IDOR vulnerability and written to `<SAVE_PATH>/detections/IDOR/<endpoint>/`.
-
-The standalone **idor** mode re-executes only the IDOR chains without running regular fuzzing. This is useful for targeted re-testing after fixing an issue, or when you only want to check access-control without the overhead of a full fuzz run.
-
-### Run mode
-
-Runs both the Compile mode and Fuzz mode
-
-```sh
-python -m graphqler --mode run --url <URL> --path <SAVE_PATH>
-```
-
-### Single mode
-
-Runs a single node (make sure it exists in the list of queries or mutations)
-
-```sh
-python -m graphqler --url <URL> --path <SAVE_PATH> --config <CUSTOM_CONFIG>> --proxy <CUSTOM_PROXY> --mode single --node <NODE_NAME>
-```
-
-## Advanced features
-
-There are also variables that can be modified with the `--config` flag as a TOML file (see `/examples/config.toml` for an example). These correspond to specific features implemented in GraphQLer, and can be tuned to your liking.
-
-| Variable Name | Variable Description | Variable Type | Default |
-|---------------|---------------------|---------------|---------------|
-| MAX_LEVENSHTEIN_THRESHOLD | The levenshtein distance between objects and object IDs | Integer | 20 |
-| MAX_OBJECT_CYCLES | Max number of times the same object should be materialized in the same query/mutation | Integer | 3 |
-| MAX_OUTPUT_SELECTOR_DEPTH | Max depth the query/mutation's output should be expanded (such as the case of infinitely recursive selectors) | Integer | 3 |
-| USE_OBJECTS_BUCKET | Whether or not to store object IDs for future use | Boolean | True |
-| USE_DEPENDENCY_GRAPH | Whether or not to use the dependency-aware feature | Boolean | True |
-| ALLOW_DELETION_OF_OBJECTS | Whether or not to allow deletions from the objects bucket | Boolean | False |
-| MAX_FUZZING_ITERATIONS | Maximum number of fuzzing payloads to run on a node | Integer | 5 |
-| MAX_TIME | The maximum time to run in seconds | Integer | 3600 |
-| TIME_BETWEEN_REQUESTS | Max time to wait between requests in seconds | Integer | 0.001 |
-| DEBUG | Debug mode | Boolean | False |
-| Custom Headers | Custom headers to be sent along with each request | Object | `Accept = "application/json"` |
-| SKIP_MAXIMAL_PAYLOADS | Whether or not to send a payload with all the possible outputs | Boolean | False |
-| SKIP_DOS_ATTACKS | Whether or not to skip DOS attacks(defaults to true to not DOS the service) | Boolean | True |
-| SKIP_INJECTION_ATTACKS | Whether or not to skip injection attacks | Boolean | False |
-| SKIP_MISC_ATTACKS | Whether or not to skip miscellaneous attacks | Boolean | False |
-| SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
-| DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
-| IDOR_SECONDARY_AUTH | Secondary (attacker) authentication token for IDOR chain detection (e.g. `"Bearer token2"`). If not set, the IDOR chain phase is skipped. | String | None |
-
-## AI Features
-
-LLM Enabled compilation (using ollama as an example):
-
-```sh
-uv run graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-model ollama/qwen3.5:9b --llm-base-url http://localhost:11434
-```
-
+| Resource URI | Description |
+|--------------|-------------|
+| `graphqler://schema/{path}` | Compiled schema info (queries, mutations, objects, etc.) as JSON |
+| `graphqler://results/{path}` | Fuzzing results and vulnerability findings as JSON |
 
 ### Plugins
 
