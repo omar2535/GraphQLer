@@ -76,9 +76,13 @@ class ObjectsBucket:
         """Loads the objects bucket from a pickle file. If the file doesn't exist, does nothing.
         """
         if self.pickle_save_path.exists():
-            with open(self.pickle_save_path, "rb") as file:
-                loaded_bucket = pickle.load(file)
-                self.__dict__ = loaded_bucket.__dict__
+            try:
+                with open(self.pickle_save_path, "rb") as file:
+                    loaded_bucket = pickle.load(file)
+                    self.__dict__ = loaded_bucket.__dict__
+            except (EOFError, Exception):
+                # File may be empty or corrupt (e.g. child process killed mid-write); skip load.
+                pass
 
         return self
 
