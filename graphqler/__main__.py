@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
     # MCP server flags (handled before argument parsing; registered here for --help visibility)
     parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)
-    parser.add_argument("--mcp-transport", help="MCP transport to use: 'stdio' (default) or 'sse'", default="stdio", metavar="TRANSPORT")
+    parser.add_argument("--mcp-transport", help="MCP transport to use: 'stdio' (default), 'sse', 'streamable-http', or 'http'", default="stdio", choices=["stdio", "sse", "streamable-http", "http"], metavar="TRANSPORT")
 
     args = parser.parse_args()
     args_as_dict = vars(args)
