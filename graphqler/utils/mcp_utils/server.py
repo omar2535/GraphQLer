@@ -65,7 +65,7 @@ def _reset_singletons() -> None:
 
     # Best-effort reset of additional singletons used by compile/fuzz pipeline.
     try:
-        from graphqler.utils.logging_utils import Logger  # type: ignore
+        from graphqler.utils.logging_utils import Logger
 
         reset_fn = getattr(Logger, "reset", None)
         if callable(reset_fn):
@@ -74,7 +74,7 @@ def _reset_singletons() -> None:
         pass
 
     try:
-        from graphqler.fuzzer.engine.fengine import FEngine  # type: ignore
+        from graphqler.fuzzer.engine.fengine import FEngine
 
         reset_fn = getattr(FEngine, "reset", None)
         if callable(reset_fn):

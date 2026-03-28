@@ -88,7 +88,7 @@ OBJECTS_BUCKET_TEXT_FILE_NAME = "objects_bucket.txt"
 UNIQUE_RESPONSES_FILE_NAME = "unique_responses.txt"
 
 """For plugins"""
-PLUGINS_PATH = f"{OUTPUT_DIRECTORY}/plugins"
+PLUGINS_PATH: str = f"{OUTPUT_DIRECTORY}/plugins"
 
 """For using GraphQLer in different modes"""
 USE_OBJECTS_BUCKET: bool = True  # This mode is for when we want to use the objects bucket
