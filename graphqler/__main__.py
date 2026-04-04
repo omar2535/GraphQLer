@@ -187,6 +187,8 @@ def main(args: dict):
     if args.get('use_llm'):
         config.USE_LLM = True
         print("(P) LLM mode enabled via CLI flag")
+    if args.get('llm_report'):
+        config.LLM_ENABLE_REPORTER = True
     if args.get('llm_model'):
         config.LLM_MODEL = args['llm_model']
     if args.get('llm_api_key'):
@@ -251,6 +253,39 @@ if __name__ == "__main__":
         print(version)
         sys.exit(0)
 
+    # Launch MCP server when --mcp is passed (before full argument parsing so
+    # that --mode is not required in this path).
+    if "--mcp" in sys.argv:
+        transport = "stdio"
+        if "--mcp-transport" in sys.argv:
+            idx = sys.argv.index("--mcp-transport")
+            if idx + 1 >= len(sys.argv) or sys.argv[idx + 1].startswith("-"):
+                print("Error: --mcp-transport requires a value (e.g. stdio, sse, streamable-http, http).", file=sys.stderr)
+                sys.exit(2)
+            transport = sys.argv[idx + 1]
+        try:
+            from graphqler.utils.mcp_utils.server import serve, TRANSPORTS
+        except ImportError:
+            print(
+                "The 'mcp' package is required to run the MCP server.\n"
+                "Install it with:  pip install GraphQLer[mcp]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if transport not in TRANSPORTS:
+            print(f"Invalid transport '{transport}'. Choose from: {', '.join(TRANSPORTS)}", file=sys.stderr)
+            sys.exit(1)
+        from typing import cast, Literal
+        serve(transport=cast(Literal["stdio", "http", "sse", "streamable-http"], transport))
+        sys.exit(0)
+
+    # Launch TUI when called with no arguments
+    if len(sys.argv) == 1:
+        from graphqler.tui.app import GraphQLerApp
+
+        GraphQLerApp().run()
+        sys.exit(0)
+
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="remote host URL (required for all modes except compile-chains)", required=False)
@@ -262,7 +297,8 @@ if __name__ == "__main__":
     parser.add_argument("--proxy", help="proxy to use for requests (ie. http://127.0.0.1:8080)", required=False)
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
-    parser.add_argument("--use-llm", help="enable LLM-based dependency graph inference (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--use-llm", help="enable LLM-powered features: dependency graph inference, endpoint classification, IDOR chain classification, and UAF chain classification (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--llm-report", help="generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm", action="store_true", default=False)
     parser.add_argument("--llm-model", help="litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3', 'anthropic/claude-3-5-haiku-20241022'", required=False)
     parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
@@ -277,6 +313,10 @@ if __name__ == "__main__":
     parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
     parser.add_argument("--version", help="display version", action="store_true")
+
+    # MCP server flags (handled before argument parsing; registered here for --help visibility)
+    parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)
+    parser.add_argument("--mcp-transport", help="MCP transport to use: 'stdio' (default), 'sse', 'streamable-http', or 'http'", default="stdio", choices=["stdio", "sse", "streamable-http", "http"], metavar="TRANSPORT")
 
     args = parser.parse_args()
     args_as_dict = vars(args)

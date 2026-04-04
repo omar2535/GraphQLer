@@ -1,0 +1,259 @@
+/* GraphQLer TUI — stylesheet */
+
+/* ── Global ──────────────────────────────────────────────────────────────── */
+Screen {
+    background: $background;
+}
+
+/* ── Home screen ─────────────────────────────────────────────────────────── */
+#home-main {
+    width: 1fr;
+    padding: 2 3;
+}
+
+#mode-grid {
+    grid-size: 3 2;
+    grid-gutter: 1 2;
+    height: 10;
+    width: 1fr;
+}
+
+.mode-btn {
+    height: 4;
+    width: 100%;
+    border: tall $surface-lighten-1;
+}
+
+.mode-btn--primary {
+    border: tall $accent;
+    color: $accent;
+}
+
+.mode-btn:focus {
+    border: tall $accent;
+}
+
+#home-sidebar {
+    width: 32;
+    border-left: solid $surface-lighten-1;
+    padding: 1 2;
+}
+
+.sidebar-section {
+    text-style: bold;
+    color: $text-muted;
+    width: 100%;
+    height: 1;
+    margin-top: 1;
+}
+
+.config-value {
+    color: $text;
+    overflow: hidden;
+    margin-bottom: 1;
+}
+
+/* ── Log viewer ──────────────────────────────────────────────────────────── */
+LogViewer {
+    border: solid $surface-lighten-1;
+    height: 1fr;
+    min-height: 8;
+}
+
+/* ── Configure screen ────────────────────────────────────────────────────── */
+#configure-scroll {
+    height: 1fr;
+    padding: 0 2;
+}
+
+.section-header {
+    text-style: bold;
+    color: $accent;
+    margin-top: 2;
+    margin-bottom: 0;
+    height: 2;
+    content-align: left middle;
+    border-bottom: solid $surface-lighten-1;
+}
+
+.field-label {
+    color: $text-muted;
+    margin-top: 1;
+    height: 1;
+}
+
+.switch-row {
+    height: 3;
+    layout: horizontal;
+    margin-top: 1;
+}
+
+.switch-label {
+    width: 1fr;
+    content-align: left middle;
+}
+
+.btn-row {
+    height: 4;
+    layout: horizontal;
+    align: right middle;
+    padding: 1 2;
+    border-top: solid $surface-lighten-1;
+    margin-top: 1;
+    width: 100%;
+}
+
+.btn-row Button {
+    min-width: 12;
+    margin-left: 1;
+}
+
+#configure-actions {
+    height: 4;
+    border-top: solid $surface-lighten-1;
+    align: right middle;
+    padding: 0 2;
+}
+
+#configure-actions #save-status {
+    width: 1fr;
+    content-align: left middle;
+    color: $text-muted;
+}
+
+#configure-actions Button {
+    min-width: 14;
+    margin-left: 1;
+}
+
+/* ── Compile / Fuzz screens ──────────────────────────────────────────────── */
+.run-controls {
+    height: auto;
+    padding: 1 2;
+    border-bottom: solid $surface-lighten-1;
+}
+
+.inline-row {
+    height: 3;
+    layout: horizontal;
+    margin-top: 0;
+}
+
+.inline-label {
+    width: 12;
+    content-align: left middle;
+    color: $text-muted;
+}
+
+.inline-input {
+    width: 1fr;
+}
+
+.status-label {
+    height: 1;
+    margin-top: 1;
+    color: $text-muted;
+}
+
+.status-success {
+    color: $success;
+}
+
+.status-error {
+    color: $error;
+}
+
+/* ── Chain Explorer ──────────────────────────────────────────────────────── */
+#chain-browser {
+    height: 1fr;
+    layout: horizontal;
+}
+
+#chain-list-panel {
+    width: 1fr;
+    height: 1fr;
+    border-right: solid $surface-lighten-1;
+}
+
+#chain-detail-panel {
+    width: 40;
+    height: 1fr;
+    padding: 1 2;
+}
+
+#chain-response-panel {
+    height: 10;
+    border-top: solid $surface-lighten-1;
+    padding: 1;
+}
+
+/* ── File Browser ────────────────────────────────────────────────────────── */
+#browser-body {
+    height: 1fr;
+    layout: horizontal;
+}
+
+#browser-tree-panel {
+    width: 40;
+    height: 1fr;
+    border-right: solid $surface-lighten-1;
+    padding: 0 1;
+}
+
+#browser-tree-panel DirectoryTree {
+    height: 1fr;
+}
+
+#browser-content-panel {
+    width: 1fr;
+    height: 1fr;
+    padding: 0 1;
+}
+
+#browser-content-panel RichLog {
+    height: 1fr;
+    border: solid $surface-lighten-1;
+}
+
+/* ── Query Editor ────────────────────────────────────────────────────────── */
+#query-top {
+    height: auto;
+    padding: 1 2;
+    border-bottom: solid $surface-lighten-1;
+}
+
+#query-body {
+    height: 1fr;
+    layout: horizontal;
+}
+
+#query-left {
+    width: 1fr;
+    height: 1fr;
+    border-right: solid $surface-lighten-1;
+    layout: vertical;
+}
+
+#query-right {
+    width: 1fr;
+    height: 1fr;
+    layout: vertical;
+    padding: 1 2;
+}
+
+#query-editor {
+    height: 1fr;
+    border: solid $surface-lighten-1;
+    margin: 1 1 1 1;
+}
+
+#variables-editor {
+    height: 8;
+    border: solid $surface-lighten-1;
+    margin: 0 1 1 1;
+}
+
+#response-display {
+    height: 1fr;
+    border: solid $surface-lighten-1;
+}

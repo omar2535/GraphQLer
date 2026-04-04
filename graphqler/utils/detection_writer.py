@@ -46,7 +46,7 @@ def write_from_detector(
     potentially_vulnerable: bool,
     payload: str,
     graphql_response: object,
-    status_code: int,
+    status_code: int | None,
     evidence: str,
 ) -> None:
     """Write detection files for a standard (non-chain) detector finding.

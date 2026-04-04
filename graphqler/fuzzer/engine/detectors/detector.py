@@ -114,6 +114,7 @@ class Detector(ABC):
             max_depth=3
         )
         payload, used_objects = materializer_instance.get_payload(self.name, self.objects_bucket, self.graphql_type)
+        assert isinstance(payload, str)
         return payload
 
     def _parse_response(self, graphql_response: dict, request_response: requests.Response):

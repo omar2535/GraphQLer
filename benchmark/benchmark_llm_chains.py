@@ -51,6 +51,7 @@ from pathlib import Path
 import yaml
 
 from graphqler import __main__ as graphqler_main
+from graphqler.compiler.compiler import Compiler
 from graphqler import config
 
 
@@ -83,13 +84,13 @@ def _chain_stats(chains: list[list[str]]) -> dict:
 def _run_compile(url: str, path: Path):
     """Run heuristic compile (introspection → graph → chains)."""
     config.OUTPUT_DIRECTORY = str(path)
-    graphqler_main.run_compile_mode(str(path), url)
+    graphqler_main.run_compile_mode(Compiler(str(path), url), str(path), url)
 
 
-def _run_llm_chains(path: Path):
+def _run_llm_chains(url: str, path: Path):
     """Re-run compile-chains only, with USE_LLM=True."""
     config.OUTPUT_DIRECTORY = str(path)
-    graphqler_main.run_compile_chains_mode(str(path))
+    graphqler_main.run_compile_chains_mode(Compiler(str(path), url), str(path), url)
 
 
 def _print_table(results: list[dict]):
@@ -204,7 +205,7 @@ def run_api(url: str, name: str, output_root: Path, args: argparse.Namespace) ->
 
     t0 = time.time()
     try:
-        _run_llm_chains(llm_path)
+        _run_llm_chains(url, llm_path)
         elapsed = round(time.time() - t0, 2)
         chains = _load_chains(llm_path)
         result["llm"] = {**_chain_stats(chains), "elapsed_s": elapsed, "success": True,

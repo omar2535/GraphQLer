@@ -5,7 +5,8 @@ import time
 from os import path
 
 from graphqler.__main__ import run_compile_mode, run_fuzz_mode
-
+from graphqler.compiler.compiler import Compiler
+from graphqler.fuzzer import Fuzzer
 from graphqler import config
 import multiprocessing
 
@@ -59,8 +60,8 @@ def run_api(api_to_test):
             try:
                 print(f"Running the API {api_name} with path {output_path} and max time {max_time}")
                 config.MAX_TIME = max_time
-                run_compile_mode(output_path, api_url)
-                run_fuzz_mode(output_path, api_url)
+                run_compile_mode(Compiler(output_path, api_url), output_path, api_url)
+                run_fuzz_mode(Fuzzer(output_path, api_url), output_path, api_url)
                 is_success = True
             except Exception as e:
                 print(e)

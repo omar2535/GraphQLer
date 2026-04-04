@@ -26,7 +26,7 @@ class IntrospectionDetector(Detector):
     def _is_vulnerable(self, graphql_response: dict, request_response: requests.Response) -> bool:
         if graphql_response is None:
             return False
-        if 'errors' in graphql_response:
+        if 'errors' in graphql_response or 'data' not in graphql_response:
             return False
         return "__schema" in graphql_response['data'] and request_response.status_code == 200
 

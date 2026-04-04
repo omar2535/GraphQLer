@@ -23,7 +23,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Install Python dependencies
-      run: uv sync
+      run: uv sync --extra mcp
 
     - name: Install Python dependencies
       run: |

@@ -28,7 +28,7 @@ class Materializer:
         self.max_depth = max_depth
         self.getter = getter
 
-    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str, dict]:
+    def get_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str) -> tuple[str | list, dict]:
         """Materializes the payload with parameters filled in
 
         Args:
@@ -129,7 +129,8 @@ class Materializer:
                 built_str += materialized_object_fields
                 built_str += "},"
         elif output_field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
-            union_types = self.api.unions[output_field["type"]]["possibleTypes"]
+            union_def = self.api.unions.get(output_field["type"], {})
+            union_types = union_def.get("possibleTypes", [])
             built_str += " {"
             for union_type in union_types:
                 materialized_fragment = self.materialize_output_recursive(operator_info, union_type, used_objects, objects_bucket, False, minimal_materialization, max_depth, current_depth)
@@ -137,7 +138,7 @@ class Materializer:
                     built_str += f"... on {union_type['name']} " + materialized_fragment
             built_str += "},"
         elif output_field["kind"] == "INTERFACE":  # For an INTERFACE type, loop through all the INTERFACE types and materialize them into fragments
-            interface_types = self.api.interfaces[output_field["type"]]["possibleTypes"]
+            interface_types = self.api.interfaces.get(output_field["type"], {}).get("possibleTypes", [])
             built_str += " {"
             for interface_type in interface_types:
                 materialized_fragment = self.materialize_output_recursive(operator_info, interface_type, used_objects, objects_bucket, False, minimal_materialization, max_depth, current_depth)
@@ -195,6 +196,8 @@ class Materializer:
             str: The built output string
         """
         built_str = ""
+        if object_name not in self.api.objects:
+            return built_str
         object_info = self.api.objects[object_name]
         fields_to_materialize = object_info["fields"]
 
@@ -329,12 +332,16 @@ class Materializer:
         elif input_field["kind"] == "LIST":
             built_str += f"[{self.materialize_input_recursive(operator_info, input_field['ofType'], objects_bucket, input_name, True, max_depth, current_depth)}]"
         elif input_field["kind"] == "INPUT_OBJECT":
-            input_object = self.api.input_objects[input_field["type"]]
-            built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
+            input_object = self.api.input_objects.get(input_field["type"])
+            if input_object is not None:
+                built_str += "{" + self.materialize_input_fields(operator_info, input_object["inputFields"], objects_bucket, max_depth, current_depth) + "}"
         elif input_field["kind"] == "SCALAR":
             built_str += self.getter.get_random_scalar(input_name, input_field["type"], objects_bucket)
         elif input_field["kind"] == "ENUM":
-            built_str += self.getter.get_random_enum_value(self.api.enums[input_field["type"]]["enumValues"])
+            enum_def = self.api.enums.get(input_field["type"], {})
+            enum_values = enum_def.get("enumValues", [])
+            if enum_values:
+                built_str += self.getter.get_random_enum_value(enum_values)
         else:
             built_str += ""
 

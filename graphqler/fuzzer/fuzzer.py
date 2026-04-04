@@ -25,7 +25,8 @@ from .engine.fengine import FEngine
 from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
 from .engine.types.profile import RuntimeProfile
-from .engine.detectors import IDORChainDetector
+from .engine.detectors import IDORChainDetector, UAFChainDetector
+from .reporters import LLMReporter
 
 
 class Fuzzer(object):
@@ -46,11 +47,14 @@ class Fuzzer(object):
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
         self.idor_detector = IDORChainDetector()
+        self.uaf_detector = UAFChainDetector()
 
         # Initialize runtime profiles
         self.profiles: dict[str, RuntimeProfile] = {
             "primary": RuntimeProfile(name="primary", auth_token=config.AUTHORIZATION),
             "secondary": RuntimeProfile(name="secondary", auth_token=config.IDOR_SECONDARY_AUTH),
+            # post_delete uses the primary auth token — UAF tests same-user access after deletion
+            "post_delete": RuntimeProfile(name="post_delete", auth_token=config.AUTHORIZATION),
         }
         # Add any other profiles defined in config.PROFILES
         for name, profile_data in getattr(config, "PROFILES", {}).items():
@@ -77,6 +81,11 @@ class Fuzzer(object):
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
 
+        # Optional TUI callbacks — None by default so CLI mode has zero overhead.
+        # Set these before calling run() / run_chain() when using the TUI.
+        self.on_chain_start: typing.Optional[typing.Callable[[Chain], None]] = None
+        self.on_chain_done: typing.Optional[typing.Callable[[Chain, list], None]] = None
+
     def run(self):
         """Main function to run the fuzzer"""
         queue = multiprocessing.Queue()
@@ -88,12 +97,23 @@ class Fuzzer(object):
         p.start()
         p.join(config.MAX_TIME)
 
-        if p.is_alive() and isinstance(p, multiprocessing.Process):
-            print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
-            p.terminate()
+        if p.is_alive():
+            if isinstance(p, multiprocessing.Process):
+                print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
+                p.terminate()
+            else:
+                print(f"(+) Fuzzer thread still running after {config.MAX_TIME}s (threads cannot be forcibly terminated)")
 
         if not queue.empty():
             _ = queue.get()
+
+    def run_chain(self, chain: Chain) -> None:
+        """Execute a single chain (public API for use by the TUI chain explorer).
+
+        Args:
+            chain (Chain): The chain to execute.
+        """
+        self.__run_chain(chain)
 
     def run_single(self, node_name: str):
         """Runs a single node
@@ -130,9 +150,12 @@ class Fuzzer(object):
         p.start()
         p.join(config.MAX_TIME)
 
-        if p.is_alive() and isinstance(p, multiprocessing.Process):
-            print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
-            p.terminate()
+        if p.is_alive():
+            if isinstance(p, multiprocessing.Process):
+                print(f"(+) Terminating the fuzzer process - reached max time {config.MAX_TIME}s")
+                p.terminate()
+            else:
+                print(f"(+) Fuzzer thread still running after {config.MAX_TIME}s (threads cannot be forcibly terminated)")
 
         if not queue.empty():
             _ = queue.get()
@@ -205,6 +228,10 @@ class Fuzzer(object):
         self.dengine.run_detections_on_api()
         self.logger.info("Completed running detections on the overall API")
 
+        # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
+        if config.LLM_ENABLE_REPORTER:
+            LLMReporter(self.save_path, self.url).generate()
+
         # Finish
         self.logger.info("Completed fuzzing")
         self.logger.info(f"Objects bucket: {self.objects_bucket}")
@@ -228,6 +255,8 @@ class Fuzzer(object):
         results: list[tuple[ChainStep, Result]] = []
 
         self.logger.info(f"Running chain: {chain}")
+        if self.on_chain_start:
+            self.on_chain_start(chain)
         for i, step in enumerate(chain.steps):
             node = step.node
             if node.name in config.SKIP_NODES:
@@ -235,8 +264,10 @@ class Fuzzer(object):
 
             visit_path = [s.node for s in chain.steps[: i + 1]]
 
-            # IDOR transition check: abort if setup produced nothing before first non-primary node
-            if step.profile_name != "primary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
+            # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
+            # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
+            # because UAF chains intentionally continue after deletion even when the bucket may be empty.
+            if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
                 self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
                 break
 
@@ -276,6 +307,9 @@ class Fuzzer(object):
 
         # Post-execution analysis
         self.idor_detector.detect(chain, results, self.stats)
+        self.uaf_detector.detect(chain, results, self.stats)
+        if self.on_chain_done:
+            self.on_chain_done(chain, results)
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list

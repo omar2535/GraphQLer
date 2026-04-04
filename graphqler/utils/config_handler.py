@@ -4,6 +4,52 @@ import tomllib
 import os
 
 
+def write_config_to_toml(path: str) -> None:
+    """Write current live-config values to a TOML file.
+
+    Reads ``examples/config.toml`` to discover the canonical set of
+    user-configurable keys — no static list required.  For each key in the
+    template, the current value is read from the live ``config`` module so
+    any in-process changes are captured.  Keys absent from the live module
+    fall back to the template's default value.
+    """
+    template_path = get_graphqler_root() / "examples" / "config.toml"
+    with open(template_path, "rb") as fh:
+        template: dict = tomllib.load(fh)
+
+    lines = ["# GraphQLer configuration\n"]
+    for key, template_value in template.items():
+        if key == "CUSTOM_HEADERS":
+            continue  # written as a TOML section below
+        value = getattr(config, key, template_value)
+        if isinstance(value, bool):
+            lines.append(f"{key} = {'true' if value else 'false'}\n")
+        elif isinstance(value, (int, float)):
+            lines.append(f"{key} = {value}\n")
+        elif isinstance(value, list):
+            # Emit a proper TOML inline array; strings are quoted and escaped
+            def _toml_item(item) -> str:
+                if isinstance(item, str):
+                    return '"' + item.replace("\\", "\\\\").replace('"', '\\"') + '"'
+                return str(item)
+            items = ", ".join(_toml_item(item) for item in value)
+            lines.append(f"{key} = [{items}]\n")
+        elif value is None:
+            lines.append(f'{key} = ""\n')
+        else:
+            escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+            lines.append(f'{key} = "{escaped}"\n')
+
+    lines.append("\n[CUSTOM_HEADERS]\n")
+    headers: dict = getattr(config, "CUSTOM_HEADERS", None) or template.get("CUSTOM_HEADERS", {})
+    for k, v in headers.items():
+        ev = str(v).replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(f'{k} = "{ev}"\n')
+
+    with open(path, "w") as fh:
+        fh.writelines(lines)
+
+
 def parse_config(config_obj: str | dict) -> dict:
     """
     Parse the config, and return the dictionary.

@@ -1,0 +1,9 @@
+[project]
+name = "very-vulnerable-social-media-api"
+version = "1.0.0"
+description = "Deliberately vulnerable social media GraphQL API for testing GraphQLer's UAF detection"
+requires-python = ">=3.12"
+dependencies = [
+    "Flask>=3.0.0",
+    "graphene>=3.4.0",
+]

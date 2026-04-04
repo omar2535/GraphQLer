@@ -5,8 +5,8 @@ Called only when:
   2. The heuristic confidence for a chain is below
      ``config.IDOR_HEURISTIC_CONFIDENCE_THRESHOLD``.
 
-Uses the same litellm infrastructure as the LLM resolver so any provider
-(OpenAI, Anthropic, Ollama, LiteLLM proxy) is supported out of the box.
+Uses ``graphqler.utils.llm_utils.call_llm()`` so any provider configured in
+``config`` (OpenAI, Anthropic, Ollama, LiteLLM proxy) is supported out of the box.
 
 Returns
 -------
@@ -18,24 +18,13 @@ Returns
 
 from __future__ import annotations
 
-import json
 import logging
 
-from graphqler import config
 from graphqler.chains.chain import Chain
+from graphqler.chains.idor.prompt_templates import IDOR_SYSTEM_PROMPT, IDOR_USER_PROMPT_TEMPLATE
+from graphqler.utils import llm_utils
 
 logger = logging.getLogger(__name__)
-
-
-def _get_litellm():
-    try:
-        import litellm  # type: ignore[import]
-        return litellm
-    except ImportError as exc:
-        raise ImportError(
-            "litellm is required for IDOR_USE_LLM_FALLBACK=True. "
-            "Install it with: uv add litellm"
-        ) from exc
 
 
 def _describe_chain(chain: Chain, split_index: int) -> str:
@@ -49,7 +38,10 @@ def _describe_chain(chain: Chain, split_index: int) -> str:
         body = node.body or {}
         output_type = body.get("outputType") or body.get("output_type") or body.get("type") or "unknown"
         inputs = body.get("inputs") or body.get("parameters") or {}
-        input_summary = ", ".join(f"{k}: {v.get('type', '?') if isinstance(v, dict) else v}" for k, v in list(inputs.items())[:5])
+        input_summary = ", ".join(
+            f"{k}: {v.get('type', '?') if isinstance(v, dict) else v}"
+            for k, v in list(inputs.items())[:5]
+        )
         lines.append(
             f"  [{role}] {node_type}{mut_type} '{node.name}' "
             f"→ returns '{output_type}'"
@@ -70,64 +62,18 @@ def classify(chain: Chain, split_index: int) -> tuple[bool, str]:
         ``(is_candidate, reason)`` — ``is_candidate`` is ``True`` only when the
         LLM is confident the chain represents a meaningful cross-user access test.
     """
-    try:
-        litellm = _get_litellm()
-    except ImportError as exc:
-        return False, str(exc)
-
     chain_description = _describe_chain(chain, split_index)
-
-    system_prompt = (
-        "You are a security analyst specialising in GraphQL API vulnerabilities. "
-        "You are given a GraphQL operation chain split into two parts:\n"
-        "  SETUP nodes — run by the resource owner (primary token)\n"
-        "  TEST nodes  — run by an attacker (secondary token) using IDs produced during SETUP\n\n"
-        "Respond with JSON only, no markdown:\n"
-        '{"is_idor_candidate": true/false, "reason": "<one sentence>"}\n\n'
-        '"is_idor_candidate" should be true ONLY when:\n'
-        "  • The SETUP creates a user-specific resource (order, profile, message, etc.), AND\n"
-        "  • The TEST node tries to read or modify that resource by ID, AND\n"
-        "  • A well-designed API should restrict the TEST node to the resource owner.\n"
-        'Set it to false for public catalogue endpoints (products, articles, public posts).'
-    )
-    user_prompt = (
-        f"Chain name: {chain.name}\n\n"
-        f"Operations:\n{chain_description}\n\n"
-        "Is this a meaningful IDOR test candidate?"
+    user_prompt = IDOR_USER_PROMPT_TEMPLATE.format(
+        chain_name=chain.name,
+        chain_description=chain_description,
     )
 
-    kwargs: dict = {
-        "model": config.LLM_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-    }
-    if config.LLM_API_KEY:
-        kwargs["api_key"] = config.LLM_API_KEY
-    if config.LLM_BASE_URL:
-        kwargs["base_url"] = config.LLM_BASE_URL
+    try:
+        data = llm_utils.call_llm(IDOR_SYSTEM_PROMPT, user_prompt)
+        is_candidate = bool(data.get("is_idor_candidate", False))
+        reason = str(data.get("reason", ""))
+        return is_candidate, reason
+    except Exception as exc:
+        logger.warning("LLM IDOR classifier error: %s", exc)
+        return False, f"LLM error: {exc}"
 
-    for attempt in range(max(1, config.LLM_MAX_RETRIES)):
-        try:
-            response = litellm.completion(**kwargs)
-            choices = getattr(response, "choices", None) or response.get("choices", [])
-            content = ""
-            if choices:
-                message = getattr(choices[0], "message", None)
-                if message is not None:
-                    content = str(getattr(message, "content", "") or "")
-                elif isinstance(choices[0], dict):
-                    content = str((choices[0].get("message") or {}).get("content", ""))
-            raw = content.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-            data = json.loads(raw)
-            is_candidate = bool(data.get("is_idor_candidate", False))
-            reason = str(data.get("reason", ""))
-            return is_candidate, reason
-        except json.JSONDecodeError:
-            logger.debug("LLM IDOR classifier attempt %d returned non-JSON: %r", attempt + 1, content)
-        except Exception as exc:
-            logger.warning("LLM IDOR classifier error on attempt %d: %s", attempt + 1, exc)
-            return False, f"LLM error: {exc}"
-
-    return False, "LLM returned non-JSON after all retries"
