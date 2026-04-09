@@ -44,6 +44,11 @@ class Fuzzer(object):
         self.api = API(url, save_path)
 
         self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
+        # Reset the FEngine singleton so it binds to the current API.  When multiple
+        # Fuzzer instances are created sequentially (e.g. in run_all_experiments.py),
+        # the stale singleton would otherwise keep the first API's queries/mutations,
+        # causing KeyErrors for every operation in the subsequent API.
+        FEngine.reset()
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
         self.idor_detector = IDORChainDetector()
@@ -288,10 +293,23 @@ class Fuzzer(object):
                 # Use the pre-delete snapshot so the materializer can still resolve the object ID
                 # that was removed from the live bucket by the preceding DELETE step.
                 bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
+
+                if config.DEBUG:
+                    snapshot_empty = pre_delete_snapshot is None or pre_delete_snapshot.is_empty()
+                    snapshot_objects = {} if pre_delete_snapshot is None else dict(pre_delete_snapshot.objects)
+                    print(f"[UAF-DEBUG] post_delete step: node={node.name}")
+                    print(f"[UAF-DEBUG]   snapshot non-empty: {not snapshot_empty}  objects={snapshot_objects}")
+                    print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
+
                 self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
                 _response, result = self.fengine.run_minimal_payload_with_profile(
                     node.name, bucket_for_step, node.graphql_type, profile
                 )
+
+                if config.DEBUG:
+                    node_data = result.data.get(node.name) if result.data else None
+                    print(f"[UAF-DEBUG]   result.success={result.success}  node_data={node_data!r}")
+
                 results.append((step, result))
             elif step.profile_name != "primary":
                 # Multi-profile test phase (e.g. secondary / IDOR)
@@ -305,6 +323,8 @@ class Fuzzer(object):
                 next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
                 if next_step is not None and next_step.profile_name == "post_delete":
                     pre_delete_snapshot = fresh_bucket.clone()
+                    if config.DEBUG:
+                        print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
 
                 self.stats.print_running_stats()
                 self.logger.info(f"[chain] Running node: {node}")
