@@ -48,7 +48,7 @@ class Fuzzer(object):
         # Fuzzer instances are created sequentially (e.g. in run_all_experiments.py),
         # the stale singleton would otherwise keep the first API's queries/mutations,
         # causing KeyErrors for every operation in the subsequent API.
-        FEngine.reset()
+        FEngine.reset()  # ty: ignore[unresolved-attribute]
         self.fengine = FEngine(self.api)
         self.dengine = DEngine(self.api)
         self.idor_detector = IDORChainDetector()
