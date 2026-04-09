@@ -1,4 +1,4 @@
-from .utils import find_closest_string
+from .utils import find_closest_string, strip_crud_prefix
 from graphqler.utils.parser_utils import get_base_oftype
 
 
@@ -48,9 +48,9 @@ class Resolver:
             # Get the object's name
             object_name = input_name
             if input_name.lower() == "id":
-                guessed_object_name = find_closest_string(list(objects.keys()),endpoint_name)
+                guessed_object_name = find_closest_string(list(objects.keys()), strip_crud_prefix(endpoint_name))
             elif input_name.lower() == "ids":
-                guessed_object_name = find_closest_string(list(objects.keys()),endpoint_name)
+                guessed_object_name = find_closest_string(list(objects.keys()), strip_crud_prefix(endpoint_name))
             elif input_name[-2:].lower() == "id":
                 object_name = object_name[:-2]
                 guessed_object_name = find_closest_string(list(objects.keys()),object_name)

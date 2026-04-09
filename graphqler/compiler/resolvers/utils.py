@@ -1,5 +1,17 @@
+import re
+
 from Levenshtein import distance
 from graphqler.config import MAX_LEVENSHTEIN_THRESHOLD
+
+_CRUD_PREFIX_RE = re.compile(
+    r"^(create|add|get|fetch|find|list|read|update|edit|modify|set|delete|remove|destroy)",
+    re.IGNORECASE,
+)
+
+
+def strip_crud_prefix(name: str) -> str:
+    """Removes a leading CRUD verb from *name* so that e.g. 'deleteNote' → 'Note'."""
+    return _CRUD_PREFIX_RE.sub("", name)
 
 
 def find_closest_string_leveshtein(strings: list[str], target: str, threshold: float) -> str:

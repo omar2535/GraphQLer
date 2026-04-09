@@ -253,6 +253,7 @@ class Fuzzer(object):
         bucket_cls = typing.cast(typing.Any, getattr(ObjectsBucket, "__wrapped__", ObjectsBucket))
         fresh_bucket: ObjectsBucket = bucket_cls(self.api)
         results: list[tuple[ChainStep, Result]] = []
+        pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
 
         self.logger.info(f"Running chain: {chain}")
         if self.on_chain_start:
@@ -283,15 +284,28 @@ class Fuzzer(object):
                 )
                 break
 
-            if step.profile_name != "primary":
-                # Multi-profile test phase
+            if step.profile_name == "post_delete":
+                # Use the pre-delete snapshot so the materializer can still resolve the object ID
+                # that was removed from the live bucket by the preceding DELETE step.
+                bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
+                self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
+                _response, result = self.fengine.run_minimal_payload_with_profile(
+                    node.name, bucket_for_step, node.graphql_type, profile
+                )
+                results.append((step, result))
+            elif step.profile_name != "primary":
+                # Multi-profile test phase (e.g. secondary / IDOR)
                 self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
                 _response, result = self.fengine.run_minimal_payload_with_profile(
                     node.name, fresh_bucket, node.graphql_type, profile
                 )
                 results.append((step, result))
             else:
-                # Regular primary phase
+                # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
+                next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
+                if next_step is not None and next_step.profile_name == "post_delete":
+                    pre_delete_snapshot = fresh_bucket.clone()
+
                 self.stats.print_running_stats()
                 self.logger.info(f"[chain] Running node: {node}")
                 node_start = time.time()

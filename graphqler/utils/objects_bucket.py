@@ -10,6 +10,7 @@ The class should have two functionalities
 3. Be able to return objects from the bucket if given a type and the object name
 """
 
+import copy
 import pathlib
 import pprint
 import random
@@ -247,6 +248,23 @@ class ObjectsBucket:
         if name not in self.scalars:
             self.scalars[name] = {"type": type, "values": {data}}
         self.scalars[name]["values"].add(data)
+
+    # ------------------- CLONE -------------------
+    def clone(self) -> "ObjectsBucket":
+        """Creates an independent copy of this bucket, bypassing the singleton.
+
+        Uses ``type(self)`` which resolves to the inner (unwrapped) class, so the
+        new instance is allocated directly without going through the singleton
+        ``getInstance`` wrapper.
+        """
+        real_cls = type(self)
+        new_bucket = real_cls.__new__(real_cls)
+        new_bucket.api = self.api
+        new_bucket.objects = copy.deepcopy(self.objects)
+        new_bucket.scalars = copy.deepcopy(self.scalars)
+        new_bucket.pickle_save_path = self.pickle_save_path
+        new_bucket.text_save_path = self.text_save_path
+        return new_bucket
 
     # ------------------- DELETERS -------------------
     def delete_object_from_bucket(self, object_name: str, object_value: dict):
