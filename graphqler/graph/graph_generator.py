@@ -141,10 +141,11 @@ class GraphGenerator:
                         self.dependency_graph.add_edge(object_node, mutation_node, weight=1)
 
     def create_object_query_edges(self, object_nodes: dict, query_nodes: dict):
-        """Updates the dependency graph with edges in between objects and queries. 3 cases:
-           Case 1: M -> O | When object(O) is produced by query(Q), means O has Q in its "associatedQueries", weight 100
+        """Updates the dependency graph with edges in between objects and queries. 4 cases:
+           Case 1: Q -> O | When object(O) is produced by query(Q), means O has Q in its "associatedQueries", weight 100
            Case 2: O -> Q | When query(Q) depends on object(O), means Q has O in its "hardDependsOn", weight 100
            Case 3: O -> Q | When query(Q) depends on object(O), means Q has O in its "softDependsOn", weight 1
+           Case 4: Q -> O | When list/connection query(Q) produces inner objects of type O via "produces", weight 100
 
         Args:
             object_nodes (dict): Mapping of object_name -> object node
@@ -183,6 +184,15 @@ class GraphGenerator:
                 if object_name != "UNKNOWN" and object_name in object_nodes:
                     object_node = object_nodes[object_name]
                     self.dependency_graph.add_edge(object_node, query_node, weight=1)
+
+        # Case 4: list/connection queries that produce an inner object type
+        for query_name, query_node in query_nodes.items():
+            query_information = self.compiled_queries[query_name]
+            produces = query_information.get("produces", "")
+            if produces and produces in object_nodes:
+                inner_object_node = object_nodes[produces]
+                self.dependency_graph.add_edge(query_node, inner_object_node, weight=100)
+
 
     def create_object_subscription_edges(self, object_nodes: dict, subscription_nodes: dict):
         """Updates the dependency graph with edges between objects and subscriptions. 3 cases:
