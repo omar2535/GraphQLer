@@ -3,9 +3,10 @@ This will resolve the inputs of a query to object. A few fields will be introduc
 hardDependsOn: A dictionary of inputname-object name that is required
                in the input (NON-NULL), depends on, ie: {'userId': 'User'}
 softDependsOn: A dictionary of inputname-object name, depends on, ie: {'userId': 'User'}
-produces:      The inner object type that a list/connection query produces, ie: 'Country'
-               (populated when the direct output type is a connection/wrapper wrapping a list
-               of objects — used to drive ordering in the dependency graph)
+produces:      A string containing the inner object type that a list/connection query produces
+               (e.g. 'Country').  Populated when the output type is a connection/wrapper
+               whose items/nodes/edges field holds OBJECT elements — used to drive scheduling
+               in the dependency graph so list queries run before singular ID-argument queries.
 """
 
 from graphqler.utils.parser_utils import get_base_oftype
