@@ -54,8 +54,11 @@ class QueryObjectResolver(Resolver):
 
         A query "produces" an inner type when its direct output type is a connection/wrapper
         object (e.g. CountryConnection) that contains a list field named ``items``, ``nodes``,
-        or ``edges`` whose base element type is a known OBJECT.  This inner type is recorded
-        so the graph generator can wire list-query -> inner-object edges.
+        or ``edges`` whose base element type is a known OBJECT.  For Relay-style ``edges``
+        fields the resolution descends one extra level through the edge type's ``node`` field
+        to return the actual domain object type (e.g. ``Country``, not ``CountryEdge``).
+        The resolved type is recorded so the graph generator can wire
+        list-query -> inner-object edges.
 
         Args:
             query (dict): The compiled query dict (must have an ``output`` key)
@@ -87,9 +90,45 @@ class QueryObjectResolver(Resolver):
             if not oftype:
                 continue
             inner_base = get_base_oftype(oftype)
-            if inner_base.get("kind") == "OBJECT":
-                inner_type = inner_base.get("type") or inner_base.get("name") or ""
-                if inner_type and inner_type in objects:
-                    return inner_type
+            if inner_base.get("kind") != "OBJECT":
+                continue
+            inner_type = inner_base.get("type") or inner_base.get("name") or ""
+            if not inner_type or inner_type not in objects:
+                continue
+            # For Relay-style edges, look one level deeper through the edge's `node` field
+            if field["name"] == "edges":
+                node_type = self._resolve_node_type(inner_type, objects)
+                if node_type:
+                    return node_type
+            return inner_type
 
+        return ""
+
+    def _resolve_node_type(self, edge_type_name: str, objects: dict) -> str:
+        """Returns the OBJECT type of the ``node`` field of a Relay edge type, or empty string.
+
+        Args:
+            edge_type_name (str): The edge type (e.g. "CountryEdge")
+            objects (dict): All compiled objects from the schema
+
+        Returns:
+            str: The node's OBJECT type name (e.g. "Country"), or "" if not found
+        """
+        if edge_type_name not in objects:
+            return ""
+        for field in objects[edge_type_name].get("fields", []):
+            if field["name"] != "node":
+                continue
+            # Handle both direct OBJECT fields and wrapped (NON_NULL) OBJECT fields
+            oftype = field.get("ofType")
+            if oftype:
+                base = get_base_oftype(oftype)
+                if base.get("kind") == "OBJECT":
+                    node_type = base.get("type") or base.get("name") or ""
+                    if node_type and node_type in objects:
+                        return node_type
+            if field.get("kind") == "OBJECT":
+                node_type = field.get("type") or field.get("name") or ""
+                if node_type and node_type in objects:
+                    return node_type
         return ""

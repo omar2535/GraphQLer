@@ -142,10 +142,14 @@ class GraphGenerator:
 
     def create_object_query_edges(self, object_nodes: dict, query_nodes: dict):
         """Updates the dependency graph with edges in between objects and queries. 4 cases:
-           Case 1: Q -> O | When object(O) is produced by query(Q), means O has Q in its "associatedQueries", weight 100
+           Case 1: Q -> O | When object(O) is the *direct* output of query(Q) (in "associatedQueries"), weight 100
+                            (e.g. country -> Country, or countries -> CountryConnection)
            Case 2: O -> Q | When query(Q) depends on object(O), means Q has O in its "hardDependsOn", weight 100
            Case 3: O -> Q | When query(Q) depends on object(O), means Q has O in its "softDependsOn", weight 1
-           Case 4: Q -> O | When list/connection query(Q) produces inner objects of type O via "produces", weight 100
+           Case 4: Q -> O | When a list/connection query(Q) produces inner objects of type O via "produces"
+                            (e.g. countries -> Country, unwrapped from CountryConnection), weight 100.
+                            Ensures list queries are scheduled before singular ID-argument queries that
+                            depend on the inner type.
 
         Args:
             object_nodes (dict): Mapping of object_name -> object node
