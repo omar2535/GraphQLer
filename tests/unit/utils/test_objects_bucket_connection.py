@@ -1,6 +1,5 @@
 """Unit tests for ObjectsBucket connection-wrapper unpacking."""
 
-import pytest
 from unittest.mock import MagicMock
 
 from graphqler.utils.objects_bucket import ObjectsBucket

@@ -30,12 +30,12 @@ class QueryObjectResolver(Resolver):
         singular ID-argument queries.
 
         Args:
-            objects (dict): Objects to link the mutations to
+            objects (dict): Objects to link the queries to
             queries (dict): Queries to parse through
             input_objects (dict): Input objects to recursively search through different input object inputs
 
         Returns:
-            dict: The mutations enriched with aforementioned fields
+            dict: The queries enriched with aforementioned fields
         """
         for query_name, query in queries.items():
             inputs_related_to_ids = self.get_inputs_related_to_ids(query["inputs"], input_objects)
