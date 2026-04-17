@@ -72,17 +72,38 @@ class TestQueryObjectResolverProduces:
         assert self.resolver._resolve_produces(query, objects) == "User"
 
     def test_produces_edges_field(self):
-        """A Relay-style connection type with an ``edges`` list field should produce the edge's inner type."""
+        """A Relay-style connection type with ``edges`` should produce the node's domain type (Post, not PostEdge)."""
+        post_edge_node_field = {
+            "name": "node",
+            "kind": "OBJECT",
+            "type": "Post",
+            "inputs": {},
+            "ofType": None,
+        }
         objects = {
             "PostConnection": _make_object([_list_field("edges", "OBJECT", "PostEdge")]),
-            "PostEdge": _make_object([]),
+            "PostEdge": _make_object([post_edge_node_field]),
+            "Post": _make_object([]),
         }
         query = {
             "name": "posts",
             "inputs": {},
             "output": {"kind": "OBJECT", "name": "PostConnection", "type": "PostConnection", "ofType": None},
         }
-        # PostEdge is in objects, so produces should be "PostEdge"
+        # For Relay edges, _resolve_produces must descend through PostEdge.node -> Post
+        assert self.resolver._resolve_produces(query, objects) == "Post"
+
+    def test_produces_edges_without_node_falls_back_to_edge_type(self):
+        """When an edge type has no ``node`` field, the edge type itself is used as a fallback."""
+        objects = {
+            "PostConnection": _make_object([_list_field("edges", "OBJECT", "PostEdge")]),
+            "PostEdge": _make_object([]),  # no node field
+        }
+        query = {
+            "name": "posts",
+            "inputs": {},
+            "output": {"kind": "OBJECT", "name": "PostConnection", "type": "PostConnection", "ofType": None},
+        }
         assert self.resolver._resolve_produces(query, objects) == "PostEdge"
 
     def test_produces_empty_for_scalar_output(self):
