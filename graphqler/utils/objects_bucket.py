@@ -224,8 +224,8 @@ class ObjectsBucket:
         """Returns the base OBJECT type name for a list field of a known object type.
 
         Looks up ``type_name`` in the API objects registry, finds the field named
-        ``field_name``, and resolves its inner (non-NULL / non-LIST wrapper stripped)
-        OBJECT type.
+        ``field_name``, and resolves its inner (NON_NULL / LIST wrapper stripped)
+        OBJECT type.  Also handles direct OBJECT-kinded fields (no wrapper).
 
         Args:
             type_name (str): The outer object type (e.g. "CountryConnection")
@@ -244,6 +244,9 @@ class ObjectsBucket:
                 base = get_base_oftype(oftype)
                 if base.get("kind") == "OBJECT":
                     return base.get("type") or base.get("name")
+            # Direct (non-wrapped) OBJECT field
+            if field.get("kind") == "OBJECT":
+                return field.get("type") or field.get("name")
         return None
 
     def _unpack_connection_wrapper(self, outer_type: str, data: dict):
@@ -252,7 +255,9 @@ class ObjectsBucket:
         Recognises the three common GraphQL pagination conventions:
         - ``items``: a flat list of inner objects (EHRI-style)
         - ``nodes``: a flat list of inner objects (GitHub-style)
-        - ``edges``: a list of ``{node: ...}`` dicts (Relay-style)
+        - ``edges``: a list of ``{node: ...}`` dicts (Relay-style).  For Relay edges the
+          ``node`` value is stored under the type of ``EdgeType.node``, not the edge type
+          itself, so that the bucket holds the actual domain objects.
 
         Each inner item is stored under its resolved OBJECT type name.
 
@@ -269,11 +274,15 @@ class ObjectsBucket:
             if not inner_type:
                 continue
             if key == "edges":
+                # For Relay edges, dig one level deeper: store edge.node under
+                # the type of the `node` field of the edge type (e.g. Country,
+                # not CountryEdge).
+                node_type = self._get_inner_list_item_type(inner_type, "node") or inner_type
                 for edge in value:
                     if isinstance(edge, dict):
                         node = edge.get("node")
                         if isinstance(node, dict):
-                            self.put_object_in_bucket(inner_type, node)
+                            self.put_object_in_bucket(node_type, node)
             else:
                 for item in value:
                     if isinstance(item, dict):
