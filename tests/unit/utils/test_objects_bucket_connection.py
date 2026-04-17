@@ -99,7 +99,7 @@ class TestUnpackConnectionWrapper:
         assert {"id": "3", "name": "Spain"} in bucket.objects.get("Country", [])
 
     def test_edges_node_unpacked(self):
-        """Inner objects from a Relay-style `edges.node` are stored under the correct type."""
+        """Inner objects from Relay-style `edges.node` are stored under the node's type (Country), not the edge type."""
         edges_field = [
             {
                 "name": "edges",
@@ -119,13 +119,26 @@ class TestUnpackConnectionWrapper:
                 },
             }
         ]
+        # CountryEdge has a `node: Country` field
+        country_edge_node_field = {
+            "name": "node",
+            "kind": "OBJECT",
+            "type": "Country",
+            "inputs": {},
+            "ofType": None,
+        }
         bucket = _build_bucket(connection_fields=edges_field)
         bucket.api.objects["CountryConnection"]["fields"] = edges_field
-        bucket.api.objects["CountryEdge"] = {"kind": "OBJECT", "name": "CountryEdge", "fields": []}
+        bucket.api.objects["CountryEdge"] = {
+            "kind": "OBJECT",
+            "name": "CountryEdge",
+            "fields": [country_edge_node_field],
+        }
         data = {"edges": [{"node": {"id": "4", "name": "Italy"}}, {"node": {"id": "5", "name": "Greece"}}]}
         bucket._unpack_connection_wrapper("CountryConnection", data)
-        assert {"id": "4", "name": "Italy"} in bucket.objects.get("CountryEdge", [])
-        assert {"id": "5", "name": "Greece"} in bucket.objects.get("CountryEdge", [])
+        # Nodes must be stored under 'Country', the inner node type
+        assert {"id": "4", "name": "Italy"} in bucket.objects.get("Country", [])
+        assert {"id": "5", "name": "Greece"} in bucket.objects.get("Country", [])
 
     def test_non_list_value_skipped(self):
         """A connection field value that is not a list is silently ignored."""
