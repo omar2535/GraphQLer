@@ -1,7 +1,5 @@
 """Unit tests for QueryObjectResolver._resolve_produces"""
 
-import pytest
-
 from graphqler.compiler.resolvers.query_object_resolver import QueryObjectResolver
 
 
