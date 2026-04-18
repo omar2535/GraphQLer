@@ -11,7 +11,7 @@ from graphqler.fuzzer import Fuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, set_idor_auth_token_constant, is_compiled
-from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path
+from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path, write_config_to_toml
 from graphqler.utils.file_utils import get_or_create_directory
 from graphqler import config
 
@@ -219,6 +219,9 @@ def main(args: dict):
     if args.get('subscriptions'):
         config.SKIP_SUBSCRIPTIONS = False
         print("(P) Subscription fuzzing enabled")
+
+    # Persist the final resolved config (file defaults + CLI overrides) back to disk
+    write_config_to_toml(f"{args['path']}/{config.CONFIG_FILE_NAME}")
 
     # Initialize the compiler and fuzzer
     compiler = Compiler(args['path'], args['url'])
