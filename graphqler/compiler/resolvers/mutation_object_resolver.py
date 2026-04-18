@@ -4,6 +4,9 @@ mutationType: One of [CREATE,UPDATE,DELETE,UNKNOWN] - this is determined semanti
 hardDependsOn: A dictionary of inputname-object name that is required
                in the input (NON-NULL), depends on, ie: {'userId': 'User'}
 softDependsOn: A dictionary of inputname-object name, depends on, ie: {'userId': 'User'}
+produces:      A string containing the inner object type that a list/connection mutation produces
+               (e.g. 'Country').  Populated when the output type is a connection/wrapper
+               whose items/nodes/edges field holds OBJECT elements.
 """
 
 import re
@@ -37,10 +40,10 @@ class MutationObjectResolver(Resolver):
             inputs_related_to_ids = self.get_inputs_related_to_ids(mutation["inputs"], input_objects)
             resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(mutation_name, inputs_related_to_ids, objects)
 
-            # Assign the enrichments
             mutations[mutation_name]["hardDependsOn"] = resolved_objects_to_inputs["hardDependsOn"]
             mutations[mutation_name]["softDependsOn"] = resolved_objects_to_inputs["softDependsOn"]
             mutations[mutation_name]["mutationType"] = mutation_type
+            mutations[mutation_name]["produces"] = self._resolve_produces(mutation, objects)
 
         return mutations
 
