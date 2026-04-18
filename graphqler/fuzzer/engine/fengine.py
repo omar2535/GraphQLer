@@ -17,7 +17,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils import request_utils as _request_utils
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, SubscriptionMaterializer, GeneralPayloadMaterializer, dos_materializers
+from .materializers import Materializer, MaximalPayloadMaterializer, SubscriptionMaterializer, GeneralPayloadMaterializer, dos_materializers
 from .retrier import Retrier
 from .types import Result, ResultEnum
 from .types.profile import RuntimeProfile
