@@ -255,7 +255,7 @@ def _sanitize_payload(payload: str, name: str, graphql_type: str, operator_info:
     Raises ``ValueError`` if the pruning leaves an empty selection set.
     """
     from graphql import parse, print_ast
-    from graphql.language.ast import FieldNode
+    from graphql.language.ast import FieldNode, OperationDefinitionNode
 
     root_type = _get_root_type_name(operator_info.get("output", {}))
     if not root_type or root_type not in output_schema:
@@ -263,6 +263,8 @@ def _sanitize_payload(payload: str, name: str, graphql_type: str, operator_info:
 
     doc = parse(payload)
     op = doc.definitions[0]
+    if not isinstance(op, OperationDefinitionNode):
+        return payload
 
     # The operation's top-level selection contains the operation field (e.g. topLevelDocumentaryUnits).
     # Validate its *inner* selection set against root_type.

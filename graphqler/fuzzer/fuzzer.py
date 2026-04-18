@@ -9,6 +9,7 @@
 
 import logging
 import multiprocessing
+import sys
 import threading
 import time
 
@@ -258,7 +259,8 @@ class Fuzzer(object):
         finally:
             stop_progress.set()
             progress_thread.join()
-            print()  # move cursor past the progress line
+            if sys.stdout.isatty():
+                print()  # move cursor past the progress line
 
         # Finish
         self.logger.info("Completed fuzzing")
