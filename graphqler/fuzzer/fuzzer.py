@@ -260,6 +260,13 @@ class Fuzzer(object):
         results: list[tuple[ChainStep, Result]] = []
         pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
 
+        # Only the last primary-profile node is the novel fuzzing target.
+        # Earlier primary nodes were already fuzzed when they ran as standalone island nodes.
+        last_primary_index = max(
+            (j for j, s in enumerate(chain.steps) if s.profile_name == "primary"),
+            default=-1,
+        )
+
         self.logger.info(f"Running chain: {chain}")
         if self.on_chain_start:
             self.on_chain_start(chain)
@@ -332,8 +339,9 @@ class Fuzzer(object):
                 _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
                 self.stats.record_node_timing(node, time.time() - node_start)
                 self.stats.update_stats_from_result(node, result)
-                self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
-                self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+                if i == last_primary_index:
+                    self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
+                    self.__detect_vulnerabilities_on_node(node, fresh_bucket)
                 results.append((step, result))
                 if not result.success:
                     self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
