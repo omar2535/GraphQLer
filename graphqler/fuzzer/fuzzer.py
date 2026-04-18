@@ -237,6 +237,21 @@ class Fuzzer(object):
 
                 chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
                 uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
+
+                # Nodes that only ever appear as inner (non-last) primary chain steps are never
+                # fuzzed during chain execution (the last-primary-node-only design) and are not
+                # islands (they ARE in chains).  Add them to uncovered_nodes so the island phase
+                # fuzz-tests them at least once.
+                last_primary_nodes: set[Node] = set()
+                for chain in self.chains:
+                    for step in reversed(chain.steps):
+                        if step.profile_name == "primary":
+                            last_primary_nodes.add(step.node)
+                            break
+                all_chain_primary_nodes: set[Node] = {step.node for chain in self.chains for step in chain.steps if step.profile_name == "primary"}
+                inner_only_nodes = all_chain_primary_nodes - last_primary_nodes
+                already_queued = set(uncovered_nodes)
+                uncovered_nodes.extend(node for node in inner_only_nodes if node not in already_queued)
             else:
                 self.logger.warning("No chains found — falling back to running all nodes directly")
                 uncovered_nodes = list(self.dependency_graph.nodes)
@@ -288,6 +303,13 @@ class Fuzzer(object):
         fresh_bucket: ObjectsBucket = bucket_cls(self.api)
         results: list[tuple[ChainStep, Result]] = []
         pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
+
+        # Index of the last primary step — fuzz/detect runs only on this step so that
+        # inner primary nodes (setup steps) don't multiply API calls.  Inner-only nodes
+        # that never appear as the last primary step in any chain are added to uncovered_nodes
+        # in __run_fuzz so they still get fuzz-tested in the island phase.
+        primary_indices = [i for i, s in enumerate(chain.steps) if s.profile_name == "primary"]
+        last_primary_index = primary_indices[-1] if primary_indices else -1
 
         # --- per-chain log setup ---
         chain_log_dir = Path(config.OUTPUT_DIRECTORY) / config.CHAIN_LOGS_DIR_NAME / str(len(chain.steps)) / chain.id
@@ -388,8 +410,9 @@ class Fuzzer(object):
                     _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
                     self.stats.record_node_timing(node, time.time() - node_start)
                     self.stats.update_stats_from_result(node, result)
-                    self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
-                    self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+                    if i == last_primary_index:
+                        self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
+                        self.__detect_vulnerabilities_on_node(node, fresh_bucket)
                     results.append((step, result))
                     if not result.success:
                         self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
