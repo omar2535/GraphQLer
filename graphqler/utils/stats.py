@@ -1,6 +1,8 @@
 import json
 import cloudpickle as pickle
 import pprint
+import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Self
@@ -182,6 +184,11 @@ class Stats :
         else:
             progress = f"{counts} | {elapsed_str} elapsed"
 
+        if not sys.stdout.isatty():
+            return
+        # Truncate to terminal width - 1 to prevent wrapping (wrapping breaks \r overwrite)
+        term_cols = shutil.get_terminal_size((80, 24)).columns
+        progress = progress[: term_cols - 1]
         # \r returns to line start; \x1b[K erases to end-of-line — no leftover ghosting
         print(f"\r\x1b[K{progress}", end="", flush=True)
 
