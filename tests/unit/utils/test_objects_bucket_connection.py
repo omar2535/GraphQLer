@@ -53,7 +53,7 @@ def _build_bucket(connection_fields=None):
 
     # Access the underlying class to bypass the singleton decorator for isolated testing.
     # ObjectsBucket.__wrapped__ is the original undecorated class set by the @singleton decorator.
-    real_cls = ObjectsBucket.__wrapped__
+    real_cls = ObjectsBucket.__wrapped__  # type: ignore
     bucket = real_cls.__new__(real_cls)
     bucket.api = api
     bucket.objects = {}
