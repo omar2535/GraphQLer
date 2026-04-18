@@ -124,10 +124,11 @@ class Materializer:
         # Main materialiation logic
         if output_field["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_output_object_fields(operator_info, output_field["type"], used_objects, objects_bucket, minimal_materialization, max_depth, current_depth)
-            if materialized_object_fields != "":
-                built_str += " {"
-                built_str += materialized_object_fields
-                built_str += "},"
+            if materialized_object_fields == "":
+                return ""  # Object type with no materializable fields (e.g. depth limit) — skip to avoid bare field without selection set
+            built_str += " {"
+            built_str += materialized_object_fields
+            built_str += "},"
         elif output_field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
             union_def = self.api.unions.get(output_field["type"], {})
             union_types = union_def.get("possibleTypes", [])
