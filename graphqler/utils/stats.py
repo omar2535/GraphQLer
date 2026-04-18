@@ -41,6 +41,11 @@ class Stats :
     current_iteration: int = 1
     total_iterations: int = 1
 
+    # Phase tracking ("chains" | "islands" | "detections")
+    phase: str = "chains"
+    islands_total: int = 0
+    islands_completed: int = 0
+
     # Detection stats
     is_introspection_available: bool = False
 
@@ -63,6 +68,9 @@ class Stats :
         self.chains_completed = 0
         self.current_iteration = 1
         self.total_iterations = 1
+        self.phase = "chains"
+        self.islands_total = 0
+        self.islands_completed = 0
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:
@@ -147,8 +155,16 @@ class Stats :
         """Print a single-line progress update that overwrites itself each second."""
         elapsed = time.time() - self.start_time
         elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+        counts = f"✓ {self.number_of_successes} | ✗ {self.number_of_failures}"
 
-        if self.chains_total > 0:
+        if self.phase == "detections":
+            progress = f"[Detections] {counts} | {elapsed_str} elapsed"
+        elif self.phase == "islands":
+            progress = (
+                f"[Islands {self.islands_completed}/{self.islands_total}] "
+                f"{counts} | {elapsed_str} elapsed"
+            )
+        elif self.chains_total > 0:
             overall_done = (self.current_iteration - 1) * self.chains_total + self.chains_completed
             overall_total = self.total_iterations * self.chains_total
             # Only show ETA once we have enough samples to make a reasonable estimate
@@ -160,14 +176,11 @@ class Stats :
             progress = (
                 f"[Iter {self.current_iteration}/{self.total_iterations} | "
                 f"Chain {self.chains_completed}/{self.chains_total}] "
-                f"✓ {self.number_of_successes} | ✗ {self.number_of_failures} | "
+                f"{counts} | "
                 f"{elapsed_str} elapsed | ETA {eta_str}"
             )
         else:
-            progress = (
-                f"✓ {self.number_of_successes} | ✗ {self.number_of_failures} | "
-                f"{elapsed_str} elapsed"
-            )
+            progress = f"{counts} | {elapsed_str} elapsed"
 
         # \r returns to line start; \x1b[K erases to end-of-line — no leftover ghosting
         print(f"\r\x1b[K{progress}", end="", flush=True)

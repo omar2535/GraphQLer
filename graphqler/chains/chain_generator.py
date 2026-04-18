@@ -1,5 +1,6 @@
 """ChainGenerator: generates, saves, and loads dependency chains."""
 
+import uuid
 from pathlib import Path
 
 import networkx
@@ -70,6 +71,7 @@ class ChainGenerator:
             data = []
             for chain in chains:
                 entry: dict = {
+                    "id": chain.id,
                     "steps": [{"node": step.node.name, "profile": step.profile_name} for step in chain.steps],
                     "confidence": round(chain.confidence, 4),
                     "reason": chain.reason,
@@ -120,6 +122,7 @@ class ChainGenerator:
 
                 if steps:
                     chains.append(Chain(
+                        id=entry.get("id", str(uuid.uuid4())),
                         steps=steps,
                         confidence=entry.get("idor_confidence", entry.get("confidence", 1.0)),
                         reason=entry.get("idor_reason", entry.get("reason", "")),

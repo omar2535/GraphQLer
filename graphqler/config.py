@@ -81,6 +81,7 @@ FUZZER_LOG_FILE_PATH = "logs/fuzzer.log"
 COMPILER_LOG_FILE_PATH = "logs/compiler.log"
 DETECTOR_LOG_FILE_PATH = "logs/detector.log"
 IDOR_LOG_FILE_PATH = "logs/idor.log"
+CHAIN_LOGS_DIR_NAME = "logs/chain_logs"
 
 """For stats"""
 STATS_FILE_NAME = "stats.txt"
