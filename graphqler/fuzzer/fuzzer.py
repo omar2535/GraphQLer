@@ -201,41 +201,58 @@ class Fuzzer(object):
         """
         self.stats.start_time = time.time()
 
-        if not config.USE_DEPENDENCY_GRAPH:
-            # Ablation baseline: no graph guidance — execute every node independently
-            self.logger.info("USE_DEPENDENCY_GRAPH=False: running all nodes directly (ablation mode — no chain ordering)")
-            print("(F) Ablation mode: dependency graph disabled — running all nodes without chain ordering")
-            uncovered_nodes = list(self.dependency_graph.nodes)
-        elif self.chains:
-            max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
-            self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
-            for iteration in range(max_iter):
-                if time.time() - self.stats.start_time >= config.MAX_TIME:
-                    self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
-                    break
-                self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
-                for chain in self.chains:
-                    self.__run_chain(chain)
-            self.logger.info("Completed all chain iterations")
+        # Single background thread that refreshes the progress line for the entire run
+        stop_progress = threading.Event()
+        def _refresh_progress():
+            while not stop_progress.is_set():
+                self.stats.print_running_stats()
+                stop_progress.wait(1.0)
 
-            chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
-            uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
-        else:
-            # Fallback: no chains available (compiler not run or old compilation), execute all nodes
-            self.logger.warning("No chains found — falling back to running all nodes directly")
-            uncovered_nodes = list(self.dependency_graph.nodes)
+        progress_thread = threading.Thread(target=_refresh_progress, daemon=True)
+        progress_thread.start()
 
-        if uncovered_nodes:
-            self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
-            self.__run_nodes(uncovered_nodes)
+        try:
+            if not config.USE_DEPENDENCY_GRAPH:
+                self.logger.info("USE_DEPENDENCY_GRAPH=False: running all nodes directly (ablation mode — no chain ordering)")
+                uncovered_nodes = list(self.dependency_graph.nodes)
+            elif self.chains:
+                max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
+                self.stats.chains_total = len(self.chains)
+                self.stats.total_iterations = max_iter
+                self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
+                for iteration in range(max_iter):
+                    if time.time() - self.stats.start_time >= config.MAX_TIME:
+                        self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
+                        break
+                    self.stats.current_iteration = iteration + 1
+                    self.stats.chains_completed = 0
+                    self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
+                    for chain in self.chains:
+                        self.__run_chain(chain)
+                        self.stats.chains_completed += 1
+                self.logger.info("Completed all chain iterations")
 
-        # Detections
-        self.dengine.run_detections_on_api()
-        self.logger.info("Completed running detections on the overall API")
+                chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
+                uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
+            else:
+                self.logger.warning("No chains found — falling back to running all nodes directly")
+                uncovered_nodes = list(self.dependency_graph.nodes)
 
-        # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
-        if config.LLM_ENABLE_REPORTER:
-            LLMReporter(self.save_path, self.url).generate()
+            if uncovered_nodes:
+                self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
+                self.__run_nodes(uncovered_nodes)
+
+            # Detections
+            self.dengine.run_detections_on_api()
+            self.logger.info("Completed running detections on the overall API")
+
+            # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
+            if config.LLM_ENABLE_REPORTER:
+                LLMReporter(self.save_path, self.url).generate()
+        finally:
+            stop_progress.set()
+            progress_thread.join()
+            print()  # move cursor past the progress line
 
         # Finish
         self.logger.info("Completed fuzzing")
@@ -333,7 +350,6 @@ class Fuzzer(object):
                     if config.DEBUG:
                         print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
 
-                self.stats.print_running_stats()
                 self.logger.info(f"[chain] Running node: {node}")
                 node_start = time.time()
                 _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
@@ -365,7 +381,6 @@ class Fuzzer(object):
         for node in nodes:
             if node.name in config.SKIP_NODES:
                 continue
-            self.stats.print_running_stats()
             self.logger.info(f"[island] Running node: {node}")
             node_start = time.time()
             _next_paths, result = self.__evaluate(node, [node])

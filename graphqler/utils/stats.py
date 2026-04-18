@@ -35,6 +35,12 @@ class Stats :
     vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potential or confirmed vulnerability
     node_timings: dict[str, list[float]] = {}  # Mapping of node name to list of elapsed times in seconds
 
+    # Chain progress tracking
+    chains_total: int = 0
+    chains_completed: int = 0
+    current_iteration: int = 1
+    total_iterations: int = 1
+
     # Detection stats
     is_introspection_available: bool = False
 
@@ -53,6 +59,10 @@ class Stats :
         self.vulnerabilities = {}
         self.node_timings = {}
         self.is_introspection_available = False
+        self.chains_total = 0
+        self.chains_completed = 0
+        self.current_iteration = 1
+        self.total_iterations = 1
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:
@@ -134,11 +144,33 @@ class Stats :
         initialize_file(self.unique_responses_file_path)
 
     def print_running_stats(self):
-        """Function to print stats during runtime (not saved to file)"""
-        print(f"Number of success: {self.number_of_successes}", end="")
-        print("|", end="")
-        print(f"Number of failures: {self.number_of_failures}", end="")
-        print("\r", end="", flush=True)
+        """Print a single-line progress update that overwrites itself each second."""
+        elapsed = time.time() - self.start_time
+        elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+
+        if self.chains_total > 0:
+            overall_done = (self.current_iteration - 1) * self.chains_total + self.chains_completed
+            overall_total = self.total_iterations * self.chains_total
+            # Only show ETA once we have enough samples to make a reasonable estimate
+            if overall_done >= 3 and elapsed > 0:
+                eta_secs = (elapsed / overall_done) * (overall_total - overall_done)
+                eta_str = time.strftime("%H:%M:%S", time.gmtime(eta_secs))
+            else:
+                eta_str = "--:--:--"
+            progress = (
+                f"[Iter {self.current_iteration}/{self.total_iterations} | "
+                f"Chain {self.chains_completed}/{self.chains_total}] "
+                f"✓ {self.number_of_successes} | ✗ {self.number_of_failures} | "
+                f"{elapsed_str} elapsed | ETA {eta_str}"
+            )
+        else:
+            progress = (
+                f"✓ {self.number_of_successes} | ✗ {self.number_of_failures} | "
+                f"{elapsed_str} elapsed"
+            )
+
+        # \r returns to line start; \x1b[K erases to end-of-line — no leftover ghosting
+        print(f"\r\x1b[K{progress}", end="", flush=True)
 
     def add_vulnerability(
         self,
