@@ -272,7 +272,9 @@ class Materializer:
 
         # Go through each input field and materialize it
         for input_name, input_field in inputs.items():
-            built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
+            value = self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1)
+            if value:
+                built_str += f"{input_name}: {value},"
         return built_str
 
     def materialize_input_recursive(self,

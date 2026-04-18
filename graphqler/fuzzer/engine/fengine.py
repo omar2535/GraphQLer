@@ -17,7 +17,7 @@ from graphqler.utils.stats import Stats
 from graphqler.utils import request_utils as _request_utils
 
 from .exceptions import HardDependencyNotMetException
-from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, SubscriptionMaterializer, dos_materializers
+from .materializers import Materializer, RegularPayloadMaterializer, MaximalPayloadMaterializer, SubscriptionMaterializer, GeneralPayloadMaterializer, dos_materializers
 from .retrier import Retrier
 from .types import Result, ResultEnum
 from .types.profile import RuntimeProfile
@@ -48,7 +48,7 @@ class FEngine(object):
             tuple[Response, Result]: The response dict, and the result of the query
         """
         self.logger.info(f"Running minimal payload: {name}")
-        materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
+        materializer = GeneralPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=check_hard_depends_on)
         return self.__run_payload(name, objects_bucket, materializer, graphql_type)
 
     def run_minimal_payload_with_profile(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, profile: RuntimeProfile) -> tuple[dict, "Result"]:
@@ -68,7 +68,7 @@ class FEngine(object):
             tuple[dict, Result]: The GraphQL response dict and the result.
         """
         self.logger.info(f"Running minimal payload with profile '{profile.name}': {name}")
-        materializer = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False)
+        materializer = GeneralPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False)
         return self.__run_payload_with_profile(name, objects_bucket, materializer, graphql_type, profile)
 
     def run_minimal_payload_with_auth(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, auth_override: str) -> tuple[dict, "Result"]:
