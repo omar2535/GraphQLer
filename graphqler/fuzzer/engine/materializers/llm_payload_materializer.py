@@ -179,11 +179,120 @@ def _prune_unresolvable_fields(schema: dict[str, dict[str, str]]) -> dict[str, d
     return pruned
 
 
-def _format_operation_schema(name: str, graphql_type: str, operator_info: dict, api_objects: dict) -> str:
+def _get_root_type_name(output_field: dict) -> str | None:
+    """Unwrap NON_NULL/LIST wrappers and return the root OBJECT type name."""
+    kind = output_field.get("kind", "")
+    if kind in ("NON_NULL", "LIST"):
+        oftype = output_field.get("ofType")
+        return _get_root_type_name(oftype) if oftype else None
+    if kind == "OBJECT":
+        return output_field.get("type") or output_field.get("name")
+    return None
+
+
+def _prune_selection_set(selections, type_name: str, output_schema: dict, indent: int = 2) -> str:
+    """Recursively validate and rebuild a selection set as a string.
+
+    Mirrors the regular materializer's Layer 2 guarantee:
+    - Fields not present in ``output_schema`` are dropped.
+    - ``OBJECT:*`` / ``LIST:TypeName`` fields without a subselection block are dropped.
+    - ``OBJECT:*`` / ``LIST:TypeName`` fields whose subselection becomes empty after pruning
+      are dropped (same as the ``is_valid_object_materialization`` check).
+    - Non-field selections (inline fragments) are passed through unchanged.
+    """
+    from graphql import print_ast
+    from graphql.language.ast import FieldNode
+
+    type_fields = output_schema.get(type_name, {})
+    pad = "  " * indent
+    parts: list[str] = []
+
+    for sel in selections:
+        if not isinstance(sel, FieldNode):
+            # Inline fragments / fragment spreads — pass through
+            parts.append(pad + print_ast(sel))
+            continue
+
+        field_name = sel.name.value
+        annotation = type_fields.get(field_name) if type_fields else None
+
+        if annotation is None:
+            if not type_fields:
+                # Unknown type — can't validate, pass through
+                parts.append(pad + print_ast(sel))
+            # else: known type but field not listed — prune
+            continue
+
+        args_str = ""
+        if sel.arguments:
+            args_str = "(" + ", ".join(print_ast(a) for a in sel.arguments) + ")"
+
+        if ":" in annotation:
+            _, target = annotation.split(":", 1)
+            if target == "SCALAR":
+                parts.append(f"{pad}{field_name}{args_str}")
+            else:
+                # OBJECT or LIST of objects — must have a subselection
+                if not sel.selection_set:
+                    continue  # no subselection provided — prune
+                inner = _prune_selection_set(sel.selection_set.selections, target, output_schema, indent + 1)
+                if not inner.strip():
+                    continue  # all children pruned — prune this field too
+                parts.append(f"{pad}{field_name}{args_str} {{\n{inner}\n{pad}}}")
+        else:
+            # SCALAR or ENUM — leaf, no subselection
+            parts.append(f"{pad}{field_name}{args_str}")
+
+    return "\n".join(parts)
+
+
+def _sanitize_payload(payload: str, name: str, graphql_type: str, operator_info: dict, output_schema: dict) -> str:
+    """Post-generation validation: parse the LLM payload and prune any field that
+    violates ``output_schema`` constraints (unknown field, missing subselection, etc.).
+
+    This is the LLM-system equivalent of the regular materializer's Layer 2 check
+    (``is_valid_object_materialization``).  Returns the pruned, prettified payload.
+    Raises ``ValueError`` if the pruning leaves an empty selection set.
+    """
+    from graphql import parse, print_ast
+    from graphql.language.ast import FieldNode
+
+    root_type = _get_root_type_name(operator_info.get("output", {}))
+    if not root_type or root_type not in output_schema:
+        return payload  # no schema info available — return as-is
+
+    doc = parse(payload)
+    op = doc.definitions[0]
+
+    # The operation's top-level selection contains the operation field (e.g. topLevelDocumentaryUnits).
+    # Validate its *inner* selection set against root_type.
+    for sel in op.selection_set.selections:
+        if not isinstance(sel, FieldNode) or sel.name.value != name:
+            continue
+        if not sel.selection_set:
+            return payload
+
+        pruned_body = _prune_selection_set(sel.selection_set.selections, root_type, output_schema, indent=2)
+        if not pruned_body.strip():
+            raise ValueError(f"All output fields pruned from '{name}' after post-generation schema validation.")
+
+        args_str = ""
+        if sel.arguments:
+            args_str = "(" + ", ".join(print_ast(a) for a in sel.arguments) + ")"
+
+        op_keyword = graphql_type.lower()
+        rebuilt = f"{op_keyword} {{\n  {name}{args_str} {{\n{pruned_body}\n  }}\n}}"
+        return prettify_graphql_payload(rebuilt)
+
+    return payload  # operation field not found — return as-is
+
+
+def _format_operation_schema(name: str, graphql_type: str, operator_info: dict, output_schema: dict) -> str:
     """Serialise the relevant parts of the operator info for the LLM prompt.
 
-    Includes a fully-resolved ``output_schema`` map so the LLM knows exactly
-    which fields are available on each output type.
+    ``output_schema`` is the pre-computed, pruned field map — pass the result of
+    ``_prune_unresolvable_fields(_resolve_output_types(...))`` directly so it is
+    not recomputed here.
     """
     return json.dumps(
         {
@@ -191,7 +300,7 @@ def _format_operation_schema(name: str, graphql_type: str, operator_info: dict, 
             "type": graphql_type,
             "inputs": operator_info.get("inputs", {}),
             "output": operator_info.get("output", {}),
-            "output_schema": _prune_unresolvable_fields(_resolve_output_types(operator_info.get("output", {}), api_objects)),
+            "output_schema": output_schema,
             "hardDependsOn": operator_info.get("hardDependsOn", {}),
             "softDependsOn": operator_info.get("softDependsOn", {}),
         },
@@ -226,9 +335,11 @@ class LLMPayloadMaterializer(Materializer):
         else:
             raise ValueError(f"Unsupported graphql_type for LLM materializer: {graphql_type!r}")
 
+        output_schema = _prune_unresolvable_fields(_resolve_output_types(operator_info.get("output", {}), self.api.objects))
+
         user_prompt = (
             f"Generate a {graphql_type} payload for the following GraphQL operation.\n\n"
-            f"Operation schema:\n{_format_operation_schema(name, graphql_type, operator_info, self.api.objects or {})}\n\n"
+            f"Operation schema:\n{_format_operation_schema(name, graphql_type, operator_info, output_schema)}\n\n"
             f"Objects bucket (values already collected during this fuzzing run):\n{_summarise_bucket(objects_bucket)}"
         )
 
@@ -238,6 +349,7 @@ class LLMPayloadMaterializer(Materializer):
             raise ValueError("LLM returned an empty payload field.")
 
         pretty_payload = prettify_graphql_payload(raw_payload)
-        self.logger.info("[%s] LLM-generated payload:\n%s", name, pretty_payload)
-        return pretty_payload, {}
+        sanitized_payload = _sanitize_payload(pretty_payload, name, graphql_type, operator_info, output_schema)
+        self.logger.info("[%s] LLM-generated payload:\n%s", name, sanitized_payload)
+        return sanitized_payload, {}
 
