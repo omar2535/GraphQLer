@@ -16,7 +16,14 @@ def draw_graph(graph: networkx.DiGraph, save_path: Path):
         graph (networkx.DiGraph): The networkx graph
         save_path (Path): The path to save the visualization
     """
-    pos = networkx.spring_layout(graph, k=2, iterations=20)
+    try:
+        pos = networkx.spring_layout(graph, k=2, iterations=20)
+    except Exception:
+        # spring_layout requires scipy for large graphs; fall back to a simpler layout
+        try:
+            pos = networkx.kamada_kawai_layout(graph)
+        except Exception:
+            pos = networkx.shell_layout(graph)
 
     # Define a professional, colorblind-friendly palette
     color_map = {}
