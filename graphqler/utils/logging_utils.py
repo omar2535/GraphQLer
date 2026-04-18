@@ -123,12 +123,18 @@ class Logger:
         Returns:
             logging.Logger: The logger returned
         """
-        # create directories if they don't exist
+        logger = logging.getLogger(name)
+
+        # Avoid adding duplicate handlers when the same named logger is requested again
+        resolved_path = str(Path(file_path).resolve())
+        for h in logger.handlers:
+            if isinstance(h, logging.FileHandler) and str(Path(h.baseFilename).resolve()) == resolved_path:
+                return logger
+
         formatter = logging.Formatter("[%(levelname)s][%(asctime)s][%(name)s]:%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
         handler = logging.FileHandler(file_path)
         handler.setFormatter(formatter)
 
-        logger = logging.getLogger(name)
         if config.DEBUG:
             logger.setLevel(logging.DEBUG)
         else:

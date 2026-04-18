@@ -289,13 +289,6 @@ class Fuzzer(object):
         results: list[tuple[ChainStep, Result]] = []
         pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
 
-        # Only the last primary-profile node is the novel fuzzing target.
-        # Earlier primary nodes were already fuzzed when they ran as standalone island nodes.
-        last_primary_index = max(
-            (j for j, s in enumerate(chain.steps) if s.profile_name == "primary"),
-            default=-1,
-        )
-
         # --- per-chain log setup ---
         chain_log_dir = Path(config.OUTPUT_DIRECTORY) / config.CHAIN_LOGS_DIR_NAME / str(len(chain.steps)) / chain.id
         chain_log_dir.mkdir(parents=True, exist_ok=True)
@@ -324,94 +317,95 @@ class Fuzzer(object):
         # Log the chain header as the first entry in the chain's fuzzer.log
         self.logger.info(f"=== Chain start: {chain_path_str} ===")
         self.logger.info(f"Running chain: {chain}")
-        if self.on_chain_start:
-            self.on_chain_start(chain)
-        for i, step in enumerate(chain.steps):
-            node = step.node
-            if node.name in config.SKIP_NODES:
-                continue
+        try:
+            if self.on_chain_start:
+                self.on_chain_start(chain)
+            for i, step in enumerate(chain.steps):
+                node = step.node
+                if node.name in config.SKIP_NODES:
+                    continue
 
-            visit_path = [s.node for s in chain.steps[: i + 1]]
+                visit_path = [s.node for s in chain.steps[: i + 1]]
 
-            # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
-            # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
-            # because UAF chains intentionally continue after deletion even when the bucket may be empty.
-            if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
-                self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
-                break
-
-            # Select profile
-            profile = self.profiles.get(step.profile_name)
-            if not profile:
-                self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
-                continue
-            if step.profile_name != "primary" and not profile.auth_token:
-                self.logger.warning(
-                    f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
-                    f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
-                )
-                break
-
-            if step.profile_name == "post_delete":
-                # Use the pre-delete snapshot so the materializer can still resolve the object ID
-                # that was removed from the live bucket by the preceding DELETE step.
-                bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
-
-                if config.DEBUG:
-                    snapshot_empty = pre_delete_snapshot is None or pre_delete_snapshot.is_empty()
-                    snapshot_objects = {} if pre_delete_snapshot is None else dict(pre_delete_snapshot.objects)
-                    print(f"[UAF-DEBUG] post_delete step: node={node.name}")
-                    print(f"[UAF-DEBUG]   snapshot non-empty: {not snapshot_empty}  objects={snapshot_objects}")
-                    print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
-
-                self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
-                _response, result = self.fengine.run_minimal_payload_with_profile(
-                    node.name, bucket_for_step, node.graphql_type, profile
-                )
-
-                if config.DEBUG:
-                    node_data = result.data.get(node.name) if result.data else None
-                    print(f"[UAF-DEBUG]   result.success={result.success}  node_data={node_data!r}")
-
-                results.append((step, result))
-            elif step.profile_name != "primary":
-                # Multi-profile test phase (e.g. secondary / IDOR)
-                self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
-                _response, result = self.fengine.run_minimal_payload_with_profile(
-                    node.name, fresh_bucket, node.graphql_type, profile
-                )
-                results.append((step, result))
-            else:
-                # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
-                next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
-                if next_step is not None and next_step.profile_name == "post_delete":
-                    pre_delete_snapshot = fresh_bucket.clone()
-                    if config.DEBUG:
-                        print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
-
-                self.logger.info(f"[chain] Running node: {node}")
-                node_start = time.time()
-                _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
-                self.stats.record_node_timing(node, time.time() - node_start)
-                self.stats.update_stats_from_result(node, result)
-                if i == last_primary_index:
-                    self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
-                    self.__detect_vulnerabilities_on_node(node, fresh_bucket)
-                results.append((step, result))
-                if not result.success:
-                    self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
+                # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
+                # because UAF chains intentionally continue after deletion even when the bucket may be empty.
+                if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
+                    self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
                     break
 
-        # Post-execution analysis
-        self.idor_detector.detect(chain, results, self.stats)
-        self.uaf_detector.detect(chain, results, self.stats)
-        if self.on_chain_done:
-            self.on_chain_done(chain, results)
+                # Select profile
+                profile = self.profiles.get(step.profile_name)
+                if not profile:
+                    self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
+                    continue
+                if step.profile_name != "primary" and not profile.auth_token:
+                    self.logger.warning(
+                        f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
+                        f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
+                    )
+                    break
 
-        # Remove the per-chain handler now that the chain's execution is complete
-        self.logger.info(f"=== Chain end: {chain_path_str} ===")
-        fuzzer_logger.removeHandler(chain_file_handler)
-        chain_file_handler.close()
+                if step.profile_name == "post_delete":
+                    # Use the pre-delete snapshot so the materializer can still resolve the object ID
+                    # that was removed from the live bucket by the preceding DELETE step.
+                    bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
+
+                    if config.DEBUG:
+                        snapshot_empty = pre_delete_snapshot is None or pre_delete_snapshot.is_empty()
+                        snapshot_objects = {} if pre_delete_snapshot is None else dict(pre_delete_snapshot.objects)
+                        print(f"[UAF-DEBUG] post_delete step: node={node.name}")
+                        print(f"[UAF-DEBUG]   snapshot non-empty: {not snapshot_empty}  objects={snapshot_objects}")
+                        print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
+
+                    self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
+                    _response, result = self.fengine.run_minimal_payload_with_profile(
+                        node.name, bucket_for_step, node.graphql_type, profile
+                    )
+
+                    if config.DEBUG:
+                        node_data = result.data.get(node.name) if result.data else None
+                        print(f"[UAF-DEBUG]   result.success={result.success}  node_data={node_data!r}")
+
+                    results.append((step, result))
+                elif step.profile_name != "primary":
+                    # Multi-profile test phase (e.g. secondary / IDOR)
+                    self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
+                    _response, result = self.fengine.run_minimal_payload_with_profile(
+                        node.name, fresh_bucket, node.graphql_type, profile
+                    )
+                    results.append((step, result))
+                else:
+                    # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
+                    next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
+                    if next_step is not None and next_step.profile_name == "post_delete":
+                        pre_delete_snapshot = fresh_bucket.clone()
+                        if config.DEBUG:
+                            print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
+
+                    self.logger.info(f"[chain] Running node: {node}")
+                    node_start = time.time()
+                    _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
+                    self.stats.record_node_timing(node, time.time() - node_start)
+                    self.stats.update_stats_from_result(node, result)
+                    self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
+                    self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+                    results.append((step, result))
+                    if not result.success:
+                        self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                        break
+
+            # Post-execution analysis
+            self.idor_detector.detect(chain, results, self.stats)
+            self.uaf_detector.detect(chain, results, self.stats)
+            if self.on_chain_done:
+                self.on_chain_done(chain, results)
+        finally:
+            # Always remove the per-chain handler so the FD is released and logs
+            # don't bleed into subsequent chains even if an exception occurred.
+            self.logger.info(f"=== Chain end: {chain_path_str} ===")
+            fuzzer_logger.removeHandler(chain_file_handler)
+            chain_file_handler.close()
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list

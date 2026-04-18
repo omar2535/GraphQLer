@@ -325,8 +325,9 @@ class LLMPayloadMaterializer(Materializer):
         """Call the LLM to generate a payload and return ``(payload_string, used_objects)``.
 
         Raises on any failure (network error, bad JSON, invalid GraphQL, …).
-        ``used_objects`` is always empty because the LLM constructs values
-        inline rather than pulling tracked instances from the bucket.
+        ``used_objects`` is populated with the first available object of each
+        bucket type so that DELETE mutations can properly remove stale entries
+        from the bucket (matching the behaviour of the standard materializer).
         """
         from graphqler.utils.llm_utils import call_llm
 
@@ -353,5 +354,15 @@ class LLMPayloadMaterializer(Materializer):
         pretty_payload = prettify_graphql_payload(raw_payload)
         sanitized_payload = _sanitize_payload(pretty_payload, name, graphql_type, operator_info, output_schema)
         self.logger.info("[%s] LLM-generated payload:\n%s", name, sanitized_payload)
-        return sanitized_payload, {}
+
+        # Populate used_objects so DELETE mutations can clean up the bucket.
+        # The LLM is shown the bucket summary and picks IDs from it, so the
+        # first available object of each bucket type is a reasonable proxy for
+        # which object was "used".
+        used_objects: dict = {}
+        for type_name, obj_list in objects_bucket.objects.items():
+            if obj_list:
+                used_objects[type_name] = obj_list[0]
+
+        return sanitized_payload, used_objects
 
