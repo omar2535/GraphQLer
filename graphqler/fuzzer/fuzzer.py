@@ -7,11 +7,13 @@
 5. Clean up
 """
 
+import logging
 import multiprocessing
 import threading
 import time
 
 import typing
+from pathlib import Path
 
 from graphqler import config
 from graphqler.chains import Chain, ChainGenerator, ChainStep
@@ -240,9 +242,13 @@ class Fuzzer(object):
 
             if uncovered_nodes:
                 self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
+                self.stats.phase = "islands"
+                self.stats.islands_total = len(uncovered_nodes)
+                self.stats.islands_completed = 0
                 self.__run_nodes(uncovered_nodes)
 
             # Detections
+            self.stats.phase = "detections"
             self.dengine.run_detections_on_api()
             self.logger.info("Completed running detections on the overall API")
 
@@ -269,6 +275,10 @@ class Fuzzer(object):
         Each step specifies its runtime profile name, which maps to a RuntimeProfile object
         containing auth tokens and other variables.
 
+        A per-chain log folder is created at ``logs/chain_logs/<chain.id>/`` containing:
+        - ``chain.txt``:  pretty-printed chain path (nodes → nodes)
+        - ``fuzzer.log``: all fuzzer-level log records produced during this chain's execution
+
         Args:
             chain (Chain): The chain to execute.
         """
@@ -284,6 +294,33 @@ class Fuzzer(object):
             default=-1,
         )
 
+        # --- per-chain log setup ---
+        chain_log_dir = Path(config.OUTPUT_DIRECTORY) / config.CHAIN_LOGS_DIR_NAME / str(len(chain.steps)) / chain.id
+        chain_log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write chain.txt with a human-readable description of the chain path
+        chain_path_str = " -> ".join(repr(step) for step in chain.steps)
+        chain_txt_lines = [
+            f"Chain ID : {chain.id}",
+            f"Path     : {chain_path_str}",
+        ]
+        if chain.confidence < 1.0:
+            chain_txt_lines.append(f"Confidence: {chain.confidence:.4f}")
+        if chain.reason:
+            chain_txt_lines.append(f"Reason   : {chain.reason}")
+        (chain_log_dir / "chain.txt").write_text("\n".join(chain_txt_lines) + "\n")
+
+        # Temporarily add a FileHandler to the 'fuzzer' logger so that all log records
+        # produced during this chain (including from FEngine) land in the chain's fuzzer.log.
+        chain_log_path = chain_log_dir / "fuzzer.log"
+        chain_file_handler = logging.FileHandler(chain_log_path)
+        formatter = logging.Formatter("[%(levelname)s][%(asctime)s][%(name)s]:%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        chain_file_handler.setFormatter(formatter)
+        fuzzer_logger = logging.getLogger("fuzzer")
+        fuzzer_logger.addHandler(chain_file_handler)
+
+        # Log the chain header as the first entry in the chain's fuzzer.log
+        self.logger.info(f"=== Chain start: {chain_path_str} ===")
         self.logger.info(f"Running chain: {chain}")
         if self.on_chain_start:
             self.on_chain_start(chain)
@@ -369,6 +406,11 @@ class Fuzzer(object):
         if self.on_chain_done:
             self.on_chain_done(chain, results)
 
+        # Remove the per-chain handler now that the chain's execution is complete
+        self.logger.info(f"=== Chain end: {chain_path_str} ===")
+        fuzzer_logger.removeHandler(chain_file_handler)
+        chain_file_handler.close()
+
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
 
@@ -388,6 +430,7 @@ class Fuzzer(object):
             self.stats.update_stats_from_result(node, result)
             self.__fuzz(node, [node])
             self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
+            self.stats.islands_completed += 1
 
     def __evaluate(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
         """Evaluates the node
