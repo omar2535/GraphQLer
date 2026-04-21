@@ -187,6 +187,12 @@ def main(args: dict):
     if args.get('use_llm'):
         config.USE_LLM = True
         print("(P) LLM mode enabled via CLI flag")
+    if args.get('no_llm_compilation'):
+        config.LLM_USE_FOR_COMPILATION = False
+        print("(P) LLM disabled for compilation phase")
+    if args.get('no_llm_fuzzing'):
+        config.LLM_USE_FOR_FUZZING = False
+        print("(P) LLM disabled for fuzzing phase")
     if args.get('llm_report'):
         config.LLM_ENABLE_REPORTER = True
     if args.get('llm_model'):
@@ -305,6 +311,8 @@ if __name__ == "__main__":
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
     parser.add_argument("--use-llm", help="enable LLM-powered features: dependency graph inference, endpoint classification, IDOR chain classification, and UAF chain classification (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--no-llm-compilation", help="disable LLM during the compilation phase (dependency resolver, IDOR/UAF chain classifiers) — overrides --use-llm for that phase", action="store_true", default=False)
+    parser.add_argument("--no-llm-fuzzing", help="disable LLM during the fuzzing phase (payload generation, error retry, endpoint classification, report) — overrides --use-llm for that phase", action="store_true", default=False)
     parser.add_argument("--llm-report", help="generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm", action="store_true", default=False)
     parser.add_argument("--llm-model", help="litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3', 'anthropic/claude-3-5-haiku-20241022'", required=False)
     parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)

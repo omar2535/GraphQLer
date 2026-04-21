@@ -39,7 +39,7 @@ class GeneralPayloadMaterializer(Materializer):
         falling back to ``RegularPayloadMaterializer`` on any error.
         Uses ``RegularPayloadMaterializer`` directly when LLM is disabled.
         """
-        if not config.USE_LLM:
+        if not config.USE_LLM or not config.LLM_USE_FOR_FUZZING:
             return self._regular.get_payload(name, objects_bucket, graphql_type)
 
         try:

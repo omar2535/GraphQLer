@@ -193,7 +193,7 @@ class Compiler:
         objects = ObjectDependencyResolver().resolve(objects)
         objects = ObjectMethodResolver().resolve(objects, queries, mutations)
 
-        if config.USE_LLM:
+        if config.USE_LLM and config.LLM_USE_FOR_COMPILATION:
             print(f"(C) Using LLM resolver ({config.LLM_MODEL}) for dependency graph inference …")
             mut_resolver = LLMMutationObjectResolver()
             qry_resolver = LLMQueryObjectResolver()

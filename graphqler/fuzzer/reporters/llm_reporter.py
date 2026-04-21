@@ -100,9 +100,9 @@ class LLMReporter:
             Path to the written report, or ``None`` if the report was skipped
             (reporter disabled, no detections, or any error).
         """
-        if not config.USE_LLM or not config.LLM_ENABLE_REPORTER:
-            logger.debug("LLMReporter: reporter disabled (USE_LLM=%s, LLM_ENABLE_REPORTER=%s) — skipping.",
-                         config.USE_LLM, config.LLM_ENABLE_REPORTER)
+        if not config.USE_LLM or not config.LLM_USE_FOR_FUZZING or not config.LLM_ENABLE_REPORTER:
+            logger.debug("LLMReporter: reporter disabled (USE_LLM=%s, LLM_USE_FOR_FUZZING=%s, LLM_ENABLE_REPORTER=%s) — skipping.",
+                         config.USE_LLM, config.LLM_USE_FOR_FUZZING, config.LLM_ENABLE_REPORTER)
             return None
 
         summaries = self._collect_summaries()

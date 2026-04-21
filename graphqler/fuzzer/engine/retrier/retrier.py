@@ -81,7 +81,7 @@ class Retrier:
             else:
                 return (gql_response, True)
         else:
-            if config.USE_LLM and retry_count < self.max_retries:
+            if config.USE_LLM and config.LLM_USE_FOR_FUZZING and retry_count < self.max_retries:
                 return self._retry_with_llm(url, payload, gql_response, retry_count)
             return (gql_response, False)
 

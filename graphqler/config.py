@@ -54,6 +54,8 @@ Model string uses litellm format:
   LiteLLM proxy: "openai/my-model"  (set LLM_BASE_URL to your proxy URL)
 """
 USE_LLM: bool = False                         # Master toggle: use LLM for dependency graph inference, endpoint classification, and IDOR chain classification
+LLM_USE_FOR_COMPILATION: bool = True          # When USE_LLM=True, use LLM during the compilation phase (dependency resolver, IDOR/UAF chain classifiers)
+LLM_USE_FOR_FUZZING: bool = True              # When USE_LLM=True, use LLM during the fuzzing phase (payload generation, error retry, endpoint classification, reporting)
 LLM_MODEL: str = "gpt-4o-mini"              # litellm model string (encodes provider + model)
 LLM_API_KEY: str = ""                        # API key; if empty, reads from env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
 LLM_BASE_URL: str = ""                       # Custom base URL (required for Ollama and LiteLLM proxies)
