@@ -220,6 +220,10 @@ def main(args: dict):
         config.SKIP_SUBSCRIPTIONS = False
         print("(P) Subscription fuzzing enabled")
 
+    if args.get('no_endpoint_results'):
+        config.SAVE_ENDPOINT_RESULTS = False
+        print("(P) Endpoint results writing disabled")
+
     # Persist the final resolved config (file defaults + CLI overrides) back to disk
     write_config_to_toml(f"{args['path']}/{config.CONFIG_FILE_NAME}")
 
@@ -315,7 +319,7 @@ if __name__ == "__main__":
     parser.add_argument("--allow-deletion", help="remove objects from the bucket when a DELETE mutation succeeds (default: off)", action="store_true", default=False)
     parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
-    parser.add_argument("--version", help="display version", action="store_true")
+    parser.add_argument("--no-endpoint-results", help="skip writing per-endpoint result files to disk (useful when results are very large)", action="store_true", default=False)
 
     # MCP server flags (handled before argument parsing; registered here for --help visibility)
     parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)

@@ -147,7 +147,8 @@ class Stats :
 
         # Do the endpoint results directory
         self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
-        recreate_path(self.endpoint_results_dir)
+        if config.SAVE_ENDPOINT_RESULTS:
+            recreate_path(self.endpoint_results_dir)
 
         # Do the unique responses file
         self.unique_responses_file_path = Path(working_dir) / config.UNIQUE_RESPONSES_FILE_NAME
@@ -382,7 +383,8 @@ class Stats :
             if len(self.vulnerabilities) > 0:
                 f.write("\n===================Detected Vulnerabilities===================\n")
                 f.write(json.dumps(self.vulnerabilities, indent=4))
-        self.save_endpoint_results()
+        if config.SAVE_ENDPOINT_RESULTS:
+            self.save_endpoint_results()
         self.save_unique_response()
         self.save_json()
 

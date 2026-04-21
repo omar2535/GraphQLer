@@ -58,6 +58,9 @@ SKIP_SUBSCRIPTIONS = true         # Disable subscription fuzzing by default (req
 SUBSCRIPTION_TIMEOUT = 5          # Seconds to wait for events on each subscription
 SUBSCRIPTION_PROTOCOL = "graphql-ws"  # "graphql-ws" (modern) or "subscriptions-transport-ws" (legacy Apollo)
 
+# For stats output
+SAVE_ENDPOINT_RESULTS = true  # Set false to skip writing per-endpoint result files (can be large)
+
 # For each request
 REQUEST_TIMEOUT = 120  # in seconds
 TIME_BETWEEN_REQUESTS = 0.001  # in seconds

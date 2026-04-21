@@ -84,6 +84,7 @@ IDOR_LOG_FILE_PATH = "logs/idor.log"
 CHAIN_LOGS_DIR_NAME = "logs/chain_logs"
 
 """For stats"""
+SAVE_ENDPOINT_RESULTS: bool = True  # Set False to skip writing per-endpoint result files (can be huge)
 STATS_FILE_NAME = "stats.txt"
 OBJECTS_BUCKET_TEXT_FILE_NAME = "objects_bucket.txt"
 UNIQUE_RESPONSES_FILE_NAME = "unique_responses.txt"
