@@ -230,6 +230,10 @@ def main(args: dict):
         config.SAVE_ENDPOINT_RESULTS = False
         print("(P) Endpoint results writing disabled")
 
+    if args.get('classic_coverage'):
+        config.NO_DATA_COUNT_AS_SUCCESS = True
+        print("(P) Classic coverage mode enabled — all non-error responses count as successes")
+
     # Persist the final resolved config (file defaults + CLI overrides) back to disk
     write_config_to_toml(f"{args['path']}/{config.CONFIG_FILE_NAME}")
 
@@ -328,6 +332,7 @@ if __name__ == "__main__":
     parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
     parser.add_argument("--no-endpoint-results", help="skip writing per-endpoint result files to disk (useful when results are very large)", action="store_true", default=False)
+    parser.add_argument("--classic-coverage", help="count responses with no data as successes (sets NO_DATA_COUNT_AS_SUCCESS=true)", action="store_true", default=False)
 
     # MCP server flags (handled before argument parsing; registered here for --help visibility)
     parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)
