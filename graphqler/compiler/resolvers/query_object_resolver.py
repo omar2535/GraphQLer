@@ -37,7 +37,7 @@ class QueryObjectResolver(Resolver):
         """
         for query_name, query in queries.items():
             inputs_related_to_ids = self.get_inputs_related_to_ids(query["inputs"], input_objects)
-            resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(query_name, inputs_related_to_ids, objects)
+            resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(query_name, inputs_related_to_ids, objects, operation=query)
 
             queries[query_name]["hardDependsOn"] = resolved_objects_to_inputs["hardDependsOn"]
             queries[query_name]["softDependsOn"] = resolved_objects_to_inputs["softDependsOn"]

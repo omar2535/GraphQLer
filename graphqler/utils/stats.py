@@ -43,10 +43,12 @@ class Stats :
     current_iteration: int = 1
     total_iterations: int = 1
 
-    # Phase tracking ("chains" | "islands" | "detections")
+    # Phase tracking ("chains" | "islands" | "dep_retry" | "detections")
     phase: str = "chains"
     islands_total: int = 0
     islands_completed: int = 0
+    dep_retry_total: int = 0
+    dep_retry_completed: int = 0
 
     # Detection stats
     is_introspection_available: bool = False
@@ -73,6 +75,8 @@ class Stats :
         self.phase = "chains"
         self.islands_total = 0
         self.islands_completed = 0
+        self.dep_retry_total = 0
+        self.dep_retry_completed = 0
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:
@@ -162,6 +166,11 @@ class Stats :
 
         if self.phase == "detections":
             progress = f"[Detections] {counts} | {elapsed_str} elapsed"
+        elif self.phase == "dep_retry":
+            progress = (
+                f"[Dep-Retry {self.dep_retry_completed}/{self.dep_retry_total}] "
+                f"{counts} | {elapsed_str} elapsed"
+            )
         elif self.phase == "islands":
             progress = (
                 f"[Islands {self.islands_completed}/{self.islands_total}] "

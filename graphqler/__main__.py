@@ -232,6 +232,8 @@ def main(args: dict):
 
     if args.get('classic_coverage'):
         config.NO_DATA_COUNT_AS_SUCCESS = True
+    if args.get('debug'):
+        config.DEBUG = True
         print("(P) Classic coverage mode enabled — all non-error responses count as successes")
 
     # Persist the final resolved config (file defaults + CLI overrides) back to disk
@@ -333,6 +335,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--no-endpoint-results", help="skip writing per-endpoint result files to disk (useful when results are very large)", action="store_true", default=False)
     parser.add_argument("--classic-coverage", help="count responses with no data as successes (sets NO_DATA_COUNT_AS_SUCCESS=true)", action="store_true", default=False)
+    parser.add_argument("--debug", help="enable debug mode: runs the fuzzer in a thread instead of a subprocess so pdb/breakpoint() work", action="store_true", default=False)
 
     # MCP server flags (handled before argument parsing; registered here for --help visibility)
     parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)

@@ -140,7 +140,60 @@ class TestUnpackConnectionWrapper:
         assert {"id": "4", "name": "Italy"} in bucket.objects.get("Country", [])
         assert {"id": "5", "name": "Greece"} in bucket.objects.get("Country", [])
 
-    def test_non_list_value_skipped(self):
+    def test_results_list_unpacked(self):
+        """Inner objects from a ``results`` list field (Rick-and-Morty style) are stored under the correct type."""
+        results_field = [
+            {
+                "name": "results",
+                "kind": "LIST",
+                "type": None,
+                "inputs": {},
+                "ofType": {
+                    "kind": "LIST",
+                    "name": None,
+                    "type": None,
+                    "ofType": {
+                        "kind": "OBJECT",
+                        "name": "Country",
+                        "type": "Country",
+                        "ofType": None,
+                    },
+                },
+            }
+        ]
+        bucket = _build_bucket(connection_fields=results_field)
+        data = {"results": [{"id": "10", "name": "Canada"}, {"id": "11", "name": "Mexico"}]}
+        bucket._unpack_connection_wrapper("CountryConnection", data)
+        assert {"id": "10", "name": "Canada"} in bucket.objects.get("Country", [])
+        assert {"id": "11", "name": "Mexico"} in bucket.objects.get("Country", [])
+
+    def test_auto_discovered_non_standard_list_field(self):
+        """A non-standard list field name (e.g. ``data``) is auto-discovered and unpacked."""
+        data_field = [
+            {
+                "name": "data",
+                "kind": "LIST",
+                "type": None,
+                "inputs": {},
+                "ofType": {
+                    "kind": "LIST",
+                    "name": None,
+                    "type": None,
+                    "ofType": {
+                        "kind": "OBJECT",
+                        "name": "Country",
+                        "type": "Country",
+                        "ofType": None,
+                    },
+                },
+            }
+        ]
+        bucket = _build_bucket(connection_fields=data_field)
+        data = {"data": [{"id": "20", "name": "Brazil"}]}
+        bucket._unpack_connection_wrapper("CountryConnection", data)
+        assert {"id": "20", "name": "Brazil"} in bucket.objects.get("Country", [])
+
+
         """A connection field value that is not a list is silently ignored."""
         bucket = _build_bucket()
         data = {"items": "not-a-list"}

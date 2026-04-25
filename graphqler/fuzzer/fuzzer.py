@@ -94,6 +94,10 @@ class Fuzzer(object):
         self.on_chain_start: typing.Optional[typing.Callable[[Chain], None]] = None
         self.on_chain_done: typing.Optional[typing.Callable[[Chain, list], None]] = None
 
+        # Nodes that failed due to unmet hard dependencies during chain execution;
+        # re-run as standalone in the dep_retry phase after islands.
+        self._dep_blocked_nodes: set[Node] = set()
+
     def run(self):
         """Main function to run the fuzzer"""
         queue = multiprocessing.Queue()
@@ -263,6 +267,29 @@ class Fuzzer(object):
                 self.stats.islands_completed = 0
                 self.__run_nodes(uncovered_nodes)
 
+            # Dep-retry phase: re-run nodes that failed every chain attempt due to unmet hard
+            # dependencies, now using the globally shared objects_bucket (populated by islands
+            # and any successful chain steps) and bypassing hard-dep checks so they get a
+            # genuine attempt with whatever objects are available (or random fallbacks).
+            dep_retry_nodes = [
+                node for node in self._dep_blocked_nodes
+                if f"{node.graphql_type}|{node.name}" not in self.stats.successful_nodes
+            ]
+            if dep_retry_nodes:
+                self.logger.info(f"Dep-retry phase: retrying {len(dep_retry_nodes)} node(s) that always had unmet hard dependencies")
+                self.stats.phase = "dep_retry"
+                self.stats.dep_retry_total = len(dep_retry_nodes)
+                self.stats.dep_retry_completed = 0
+                for node in dep_retry_nodes:
+                    self.logger.info(f"[dep_retry] Running node: {node}")
+                    node_start = time.time()
+                    _response, result = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+                    self.stats.record_node_timing(node, time.time() - node_start)
+                    self.stats.update_stats_from_result(node, result)
+                    self.fengine.run_maximal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+                    self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
+                    self.stats.dep_retry_completed += 1
+
             # Detections
             self.stats.phase = "detections"
             self.dengine.run_detections_on_api()
@@ -410,12 +437,19 @@ class Fuzzer(object):
                     _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
                     self.stats.record_node_timing(node, time.time() - node_start)
                     self.stats.update_stats_from_result(node, result)
+                    if result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
+                        self._dep_blocked_nodes.add(node)
                     if i == last_primary_index:
                         self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
                         self.__detect_vulnerabilities_on_node(node, fresh_bucket)
                     results.append((step, result))
                     if not result.success:
                         self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                        # All subsequent primary non-Object steps were skipped because this node
+                        # failed; mark them as dep-blocked so the dep_retry phase can attempt them.
+                        for future_step in chain.steps[i + 1:]:
+                            if future_step.profile_name == "primary" and future_step.node.graphql_type != "Object":
+                                self._dep_blocked_nodes.add(future_step.node)
                         break
 
             # Post-execution analysis

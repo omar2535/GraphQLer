@@ -38,7 +38,7 @@ class MutationObjectResolver(Resolver):
         for mutation_name, mutation in mutations.items():
             mutation_type = self.get_mutation_action(mutation_name, mutation["description"])
             inputs_related_to_ids = self.get_inputs_related_to_ids(mutation["inputs"], input_objects)
-            resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(mutation_name, inputs_related_to_ids, objects)
+            resolved_objects_to_inputs = self.resolve_inputs_related_to_ids_to_objects(mutation_name, inputs_related_to_ids, objects, operation=mutation)
 
             mutations[mutation_name]["hardDependsOn"] = resolved_objects_to_inputs["hardDependsOn"]
             mutations[mutation_name]["softDependsOn"] = resolved_objects_to_inputs["softDependsOn"]

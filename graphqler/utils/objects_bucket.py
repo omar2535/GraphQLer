@@ -252,12 +252,14 @@ class ObjectsBucket:
     def _unpack_connection_wrapper(self, outer_type: str, data: dict):
         """Unpacks connection/pagination wrapper objects and stores inner items under their real type.
 
-        Recognises the three common GraphQL pagination conventions:
-        - ``items``: a flat list of inner objects (EHRI-style)
-        - ``nodes``: a flat list of inner objects (GitHub-style)
-        - ``edges``: a list of ``{node: ...}`` dicts (Relay-style).  For Relay edges the
-          ``node`` value is stored under the type of ``EdgeType.node``, not the edge type
-          itself, so that the bucket holds the actual domain objects.
+        Recognises well-known GraphQL pagination conventions by field name
+        (``items``, ``nodes``, ``edges``, ``results``) and falls back to auto-detecting
+        any LIST field whose elements are OBJECT types in case an API uses a
+        non-standard field name (e.g. ``data``).
+
+        For Relay-style ``edges`` fields the ``node`` value is stored under the type
+        of ``EdgeType.node``, not the edge type itself, so that the bucket holds the
+        actual domain objects.
 
         Each inner item is stored under its resolved OBJECT type name.
 
@@ -265,18 +267,33 @@ class ObjectsBucket:
             outer_type (str): The outer connection/wrapper type name (e.g. "CountryConnection")
             data (dict): The response data dict for the outer wrapper
         """
-        connection_keys = ("items", "nodes", "edges")
-        for key in connection_keys:
-            value = data.get(key)
+        preferred_keys = ("items", "nodes", "edges", "results")
+
+        # Build a list of candidate (field_name, inner_type) pairs.
+        candidates: list[tuple[str, str]] = []
+        fallback: tuple[str, str] | None = None
+
+        if outer_type not in self.api.objects:
+            return
+        for field in self.api.objects[outer_type].get("fields", []):
+            field_name = field["name"]
+            if field_name in preferred_keys:
+                inner_type = self._get_inner_list_item_type(outer_type, field_name)
+                if inner_type:
+                    candidates.append((field_name, inner_type))
+            elif field.get("kind") == "LIST" and fallback is None:
+                inner_type = self._get_inner_list_item_type(outer_type, field_name)
+                if inner_type:
+                    fallback = (field_name, inner_type)
+
+        if not candidates and fallback:
+            candidates = [fallback]
+
+        for field_name, inner_type in candidates:
+            value = data.get(field_name)
             if not isinstance(value, list):
                 continue
-            inner_type = self._get_inner_list_item_type(outer_type, key)
-            if not inner_type:
-                continue
-            if key == "edges":
-                # For Relay edges, dig one level deeper: store edge.node under
-                # the type of the `node` field of the edge type (e.g. Country,
-                # not CountryEdge).
+            if field_name == "edges":
                 node_type = self._get_inner_list_item_type(inner_type, "node") or inner_type
                 for edge in value:
                     if isinstance(edge, dict):

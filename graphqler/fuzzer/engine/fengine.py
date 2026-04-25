@@ -203,7 +203,7 @@ class FEngine(object):
             return (graphql_response, result)
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{profile.name}/{name}] Hard dependency not met: {e}")
-            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            result.result_enum = ResultEnum.HARD_DEPENDENCY_NOT_MET
             return ({}, result)
         except Exception as e:
             self.logger.info(f"[{profile.name}/{name}] Exception: {e}")
@@ -300,7 +300,7 @@ class FEngine(object):
             return (graphql_response, result)
         except HardDependencyNotMetException as e:
             self.logger.info(f"[{endpoint_name}] Hard dependency not met: {e}")
-            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            result.result_enum = ResultEnum.HARD_DEPENDENCY_NOT_MET
             return ({}, result)
         except bdb.BdbQuit as exc:
             raise exc
@@ -375,9 +375,14 @@ class FEngine(object):
 
             result.result_enum = ResultEnum.GENERAL_SUCCESS
             return (graphql_response, result)
+        except HardDependencyNotMetException as e:
+            self.logger.info(f"[{endpoint_name}] Hard dependency not met: {e}")
+            result.result_enum = ResultEnum.HARD_DEPENDENCY_NOT_MET
+            return ({}, result)
         except bdb.BdbQuit as exc:
             raise exc
         except Exception as e:
-            self.logger.info(f"[{endpoint_name}]Exception when running: {endpoint_name}: {e}, {traceback.format_exc()}")
+            self.logger.info(f"[{endpoint_name}] Exception when running: {endpoint_name}: {e}")
+            self.logger.debug(traceback.format_exc())
             result.result_enum = ResultEnum.INTERNAL_FAILURE
             return ({}, result)
