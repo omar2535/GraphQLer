@@ -10,6 +10,7 @@ from typing import Self
 from graphqler import config
 from graphqler.fuzzer.engine.types import Result
 from graphqler.graph import Node
+from graphqler.fuzzer.engine.types import ResultEnum
 
 from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path, get_or_create_file
 from .singleton import singleton
@@ -302,6 +303,10 @@ class Stats :
         Args:
             result (Result): the result
         """
+        # Hard dependency not met means the node was never executed — skip all tracking
+        if result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
+            return
+
         result_status = result.success
 
         # Update success / fail stats first
