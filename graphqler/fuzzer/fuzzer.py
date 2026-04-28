@@ -292,8 +292,9 @@ class Fuzzer(object):
 
             # Detections
             self.stats.phase = "detections"
-            self.dengine.run_detections_on_api()
-            self.logger.info("Completed running detections on the overall API")
+            if not (config.SKIP_INJECTION_ATTACKS and config.SKIP_MISC_ATTACKS and config.SKIP_DOS_ATTACKS and config.SKIP_ENUMERATION_ATTACKS):
+                self.dengine.run_detections_on_api()
+                self.logger.info("Completed running detections on the overall API")
 
             # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
             if config.LLM_ENABLE_REPORTER:

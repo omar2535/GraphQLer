@@ -209,6 +209,14 @@ def main(args: dict):
         config.DISABLE_MUTATIONS = True
         print("(P) Mutation fuzzing disabled — only Query chains will be generated")
 
+    # Apply detections CLI override
+    if args.get('no_detections'):
+        config.SKIP_INJECTION_ATTACKS = True
+        config.SKIP_MISC_ATTACKS = True
+        config.SKIP_DOS_ATTACKS = True
+        config.SKIP_ENUMERATION_ATTACKS = True
+        print("(P) All detections disabled")
+
     # Apply ablation CLI overrides
     if args.get('no_objects_bucket'):
         config.USE_OBJECTS_BUCKET = False
@@ -325,6 +333,7 @@ if __name__ == "__main__":
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
     parser.add_argument("--llm-max-retries", help="number of retries when LLM returns non-JSON (default: 2)", type=int, required=False)
     parser.add_argument("--disable-mutations", help="only generate and run Query chains — all Mutation nodes are excluded from fuzzing", action="store_true", default=False)
+    parser.add_argument("--no-detections", help="disable all vulnerability detections (injection, misc, DoS, enumeration, API-level checks)", action="store_true", default=False)
 
     # Ablation / research flags
     parser.add_argument("--no-objects-bucket", help="ablation: disable the objects bucket — requests carry no state from prior responses", action="store_true", default=False)
