@@ -7,11 +7,14 @@
 5. Clean up
 """
 
+import logging
 import multiprocessing
+import sys
 import threading
 import time
 
 import typing
+from pathlib import Path
 
 from graphqler import config
 from graphqler.chains import Chain, ChainGenerator, ChainStep
@@ -90,6 +93,10 @@ class Fuzzer(object):
         # Set these before calling run() / run_chain() when using the TUI.
         self.on_chain_start: typing.Optional[typing.Callable[[Chain], None]] = None
         self.on_chain_done: typing.Optional[typing.Callable[[Chain, list], None]] = None
+
+        # Nodes that failed due to unmet hard dependencies during chain execution;
+        # re-run as standalone in the dep_retry phase after islands.
+        self._dep_blocked_nodes: set[Node] = set()
 
     def run(self):
         """Main function to run the fuzzer"""
@@ -201,41 +208,102 @@ class Fuzzer(object):
         """
         self.stats.start_time = time.time()
 
-        if not config.USE_DEPENDENCY_GRAPH:
-            # Ablation baseline: no graph guidance — execute every node independently
-            self.logger.info("USE_DEPENDENCY_GRAPH=False: running all nodes directly (ablation mode — no chain ordering)")
-            print("(F) Ablation mode: dependency graph disabled — running all nodes without chain ordering")
-            uncovered_nodes = list(self.dependency_graph.nodes)
-        elif self.chains:
-            max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
-            self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
-            for iteration in range(max_iter):
-                if time.time() - self.stats.start_time >= config.MAX_TIME:
-                    self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
-                    break
-                self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
+        # Single background thread that refreshes the progress line for the entire run
+        stop_progress = threading.Event()
+        def _refresh_progress():
+            while not stop_progress.is_set():
+                self.stats.print_running_stats()
+                stop_progress.wait(1.0)
+
+        progress_thread = threading.Thread(target=_refresh_progress, daemon=True)
+        progress_thread.start()
+
+        try:
+            if not config.USE_DEPENDENCY_GRAPH:
+                self.logger.info("USE_DEPENDENCY_GRAPH=False: running all nodes directly (ablation mode — no chain ordering)")
+                uncovered_nodes = list(self.dependency_graph.nodes)
+            elif self.chains:
+                max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
+                self.stats.chains_total = len(self.chains)
+                self.stats.total_iterations = max_iter
+                self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
+                for iteration in range(max_iter):
+                    if time.time() - self.stats.start_time >= config.MAX_TIME:
+                        self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
+                        break
+                    self.stats.current_iteration = iteration + 1
+                    self.stats.chains_completed = 0
+                    self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
+                    for chain in self.chains:
+                        self.__run_chain(chain)
+                        self.stats.chains_completed += 1
+                self.logger.info("Completed all chain iterations")
+
+                chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
+                uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
+
+                # Nodes that only ever appear as inner (non-last) primary chain steps are never
+                # fuzzed during chain execution (the last-primary-node-only design) and are not
+                # islands (they ARE in chains).  Add them to uncovered_nodes so the island phase
+                # fuzz-tests them at least once.
+                last_primary_nodes: set[Node] = set()
                 for chain in self.chains:
-                    self.__run_chain(chain)
-            self.logger.info("Completed all chain iterations")
+                    for step in reversed(chain.steps):
+                        if step.profile_name == "primary":
+                            last_primary_nodes.add(step.node)
+                            break
+                all_chain_primary_nodes: set[Node] = {step.node for chain in self.chains for step in chain.steps if step.profile_name == "primary"}
+                inner_only_nodes = all_chain_primary_nodes - last_primary_nodes
+                already_queued = set(uncovered_nodes)
+                uncovered_nodes.extend(node for node in inner_only_nodes if node not in already_queued)
+            else:
+                self.logger.warning("No chains found — falling back to running all nodes directly")
+                uncovered_nodes = list(self.dependency_graph.nodes)
 
-            chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
-            uncovered_nodes = [node for node in self.dependency_graph.nodes if node not in chained_nodes]
-        else:
-            # Fallback: no chains available (compiler not run or old compilation), execute all nodes
-            self.logger.warning("No chains found — falling back to running all nodes directly")
-            uncovered_nodes = list(self.dependency_graph.nodes)
+            if uncovered_nodes:
+                self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
+                self.stats.phase = "islands"
+                self.stats.islands_total = len(uncovered_nodes)
+                self.stats.islands_completed = 0
+                self.__run_nodes(uncovered_nodes)
 
-        if uncovered_nodes:
-            self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
-            self.__run_nodes(uncovered_nodes)
+            # Dep-retry phase: re-run nodes that failed every chain attempt due to unmet hard
+            # dependencies, now using the globally shared objects_bucket (populated by islands
+            # and any successful chain steps) and bypassing hard-dep checks so they get a
+            # genuine attempt with whatever objects are available (or random fallbacks).
+            dep_retry_nodes = [
+                node for node in self._dep_blocked_nodes
+                if f"{node.graphql_type}|{node.name}" not in self.stats.successful_nodes
+            ]
+            if dep_retry_nodes:
+                self.logger.info(f"Dep-retry phase: retrying {len(dep_retry_nodes)} node(s) that always had unmet hard dependencies")
+                self.stats.phase = "dep_retry"
+                self.stats.dep_retry_total = len(dep_retry_nodes)
+                self.stats.dep_retry_completed = 0
+                for node in dep_retry_nodes:
+                    self.logger.info(f"[dep_retry] Running node: {node}")
+                    node_start = time.time()
+                    _response, result = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+                    self.stats.record_node_timing(node, time.time() - node_start)
+                    self.stats.update_stats_from_result(node, result)
+                    self.fengine.run_maximal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
+                    self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
+                    self.stats.dep_retry_completed += 1
 
-        # Detections
-        self.dengine.run_detections_on_api()
-        self.logger.info("Completed running detections on the overall API")
+            # Detections
+            self.stats.phase = "detections"
+            if not (config.SKIP_INJECTION_ATTACKS and config.SKIP_MISC_ATTACKS and config.SKIP_DOS_ATTACKS and config.SKIP_ENUMERATION_ATTACKS):
+                self.dengine.run_detections_on_api()
+                self.logger.info("Completed running detections on the overall API")
 
-        # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
-        if config.LLM_ENABLE_REPORTER:
-            LLMReporter(self.save_path, self.url).generate()
+            # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
+            if config.LLM_ENABLE_REPORTER:
+                LLMReporter(self.save_path, self.url).generate()
+        finally:
+            stop_progress.set()
+            progress_thread.join()
+            if sys.stdout.isatty():
+                print()  # move cursor past the progress line
 
         # Finish
         self.logger.info("Completed fuzzing")
@@ -252,6 +320,10 @@ class Fuzzer(object):
         Each step specifies its runtime profile name, which maps to a RuntimeProfile object
         containing auth tokens and other variables.
 
+        A per-chain log folder is created at ``logs/chain_logs/<chain.id>/`` containing:
+        - ``chain.txt``:  pretty-printed chain path (nodes → nodes)
+        - ``fuzzer.log``: all fuzzer-level log records produced during this chain's execution
+
         Args:
             chain (Chain): The chain to execute.
         """
@@ -260,90 +332,138 @@ class Fuzzer(object):
         results: list[tuple[ChainStep, Result]] = []
         pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
 
+        # Index of the last primary step — fuzz/detect runs only on this step so that
+        # inner primary nodes (setup steps) don't multiply API calls.  Inner-only nodes
+        # that never appear as the last primary step in any chain are added to uncovered_nodes
+        # in __run_fuzz so they still get fuzz-tested in the island phase.
+        primary_indices = [i for i, s in enumerate(chain.steps) if s.profile_name == "primary"]
+        last_primary_index = primary_indices[-1] if primary_indices else -1
+
+        # --- per-chain log setup ---
+        chain_log_dir = Path(config.OUTPUT_DIRECTORY) / config.CHAIN_LOGS_DIR_NAME / str(len(chain.steps)) / chain.id
+        chain_log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write chain.txt with a human-readable description of the chain path
+        chain_path_str = " -> ".join(repr(step) for step in chain.steps)
+        chain_txt_lines = [
+            f"Chain ID : {chain.id}",
+            f"Path     : {chain_path_str}",
+        ]
+        if chain.confidence < 1.0:
+            chain_txt_lines.append(f"Confidence: {chain.confidence:.4f}")
+        if chain.reason:
+            chain_txt_lines.append(f"Reason   : {chain.reason}")
+        (chain_log_dir / "chain.txt").write_text("\n".join(chain_txt_lines) + "\n")
+
+        # Temporarily add a FileHandler to the 'fuzzer' logger so that all log records
+        # produced during this chain (including from FEngine) land in the chain's fuzzer.log.
+        chain_log_path = chain_log_dir / "fuzzer.log"
+        chain_file_handler = logging.FileHandler(chain_log_path)
+        formatter = logging.Formatter("[%(levelname)s][%(asctime)s][%(name)s]:%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        chain_file_handler.setFormatter(formatter)
+        fuzzer_logger = logging.getLogger("fuzzer")
+        fuzzer_logger.addHandler(chain_file_handler)
+
+        # Log the chain header as the first entry in the chain's fuzzer.log
+        self.logger.info(f"=== Chain start: {chain_path_str} ===")
         self.logger.info(f"Running chain: {chain}")
-        if self.on_chain_start:
-            self.on_chain_start(chain)
-        for i, step in enumerate(chain.steps):
-            node = step.node
-            if node.name in config.SKIP_NODES:
-                continue
+        try:
+            if self.on_chain_start:
+                self.on_chain_start(chain)
+            for i, step in enumerate(chain.steps):
+                node = step.node
+                if node.name in config.SKIP_NODES:
+                    continue
 
-            visit_path = [s.node for s in chain.steps[: i + 1]]
+                visit_path = [s.node for s in chain.steps[: i + 1]]
 
-            # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
-            # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
-            # because UAF chains intentionally continue after deletion even when the bucket may be empty.
-            if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
-                self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
-                break
-
-            # Select profile
-            profile = self.profiles.get(step.profile_name)
-            if not profile:
-                self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
-                continue
-            if step.profile_name != "primary" and not profile.auth_token:
-                self.logger.warning(
-                    f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
-                    f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
-                )
-                break
-
-            if step.profile_name == "post_delete":
-                # Use the pre-delete snapshot so the materializer can still resolve the object ID
-                # that was removed from the live bucket by the preceding DELETE step.
-                bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
-
-                if config.DEBUG:
-                    snapshot_empty = pre_delete_snapshot is None or pre_delete_snapshot.is_empty()
-                    snapshot_objects = {} if pre_delete_snapshot is None else dict(pre_delete_snapshot.objects)
-                    print(f"[UAF-DEBUG] post_delete step: node={node.name}")
-                    print(f"[UAF-DEBUG]   snapshot non-empty: {not snapshot_empty}  objects={snapshot_objects}")
-                    print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
-
-                self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
-                _response, result = self.fengine.run_minimal_payload_with_profile(
-                    node.name, bucket_for_step, node.graphql_type, profile
-                )
-
-                if config.DEBUG:
-                    node_data = result.data.get(node.name) if result.data else None
-                    print(f"[UAF-DEBUG]   result.success={result.success}  node_data={node_data!r}")
-
-                results.append((step, result))
-            elif step.profile_name != "primary":
-                # Multi-profile test phase (e.g. secondary / IDOR)
-                self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
-                _response, result = self.fengine.run_minimal_payload_with_profile(
-                    node.name, fresh_bucket, node.graphql_type, profile
-                )
-                results.append((step, result))
-            else:
-                # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
-                next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
-                if next_step is not None and next_step.profile_name == "post_delete":
-                    pre_delete_snapshot = fresh_bucket.clone()
-                    if config.DEBUG:
-                        print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
-
-                self.stats.print_running_stats()
-                self.logger.info(f"[chain] Running node: {node}")
-                node_start = time.time()
-                _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
-                self.stats.record_node_timing(node, time.time() - node_start)
-                self.stats.update_stats_from_result(node, result)
-                self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
-                self.__detect_vulnerabilities_on_node(node, fresh_bucket)
-                results.append((step, result))
-                if not result.success:
-                    self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                # IDOR transition check: abort if setup produced nothing before first secondary (attacker) node.
+                # Only applies to "secondary" profile (cross-user IDOR testing), not "post_delete" (UAF testing),
+                # because UAF chains intentionally continue after deletion even when the bucket may be empty.
+                if step.profile_name == "secondary" and i > 0 and chain.steps[i - 1].profile_name == "primary" and fresh_bucket.is_empty():
+                    self.logger.info(f"[{step.profile_name}] Setup phase produced no objects — aborting chain")
                     break
 
-        # Post-execution analysis
-        self.idor_detector.detect(chain, results, self.stats)
-        self.uaf_detector.detect(chain, results, self.stats)
-        if self.on_chain_done:
-            self.on_chain_done(chain, results)
+                # Select profile
+                profile = self.profiles.get(step.profile_name)
+                if not profile:
+                    self.logger.error(f"Profile '{step.profile_name}' not found — skipping step")
+                    continue
+                if step.profile_name != "primary" and not profile.auth_token:
+                    self.logger.warning(
+                        f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
+                        f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
+                    )
+                    break
+
+                if step.profile_name == "post_delete":
+                    # Use the pre-delete snapshot so the materializer can still resolve the object ID
+                    # that was removed from the live bucket by the preceding DELETE step.
+                    bucket_for_step = pre_delete_snapshot if pre_delete_snapshot is not None else fresh_bucket
+
+                    if config.DEBUG:
+                        snapshot_empty = pre_delete_snapshot is None or pre_delete_snapshot.is_empty()
+                        snapshot_objects = {} if pre_delete_snapshot is None else dict(pre_delete_snapshot.objects)
+                        print(f"[UAF-DEBUG] post_delete step: node={node.name}")
+                        print(f"[UAF-DEBUG]   snapshot non-empty: {not snapshot_empty}  objects={snapshot_objects}")
+                        print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
+
+                    self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
+                    _response, result = self.fengine.run_minimal_payload_with_profile(
+                        node.name, bucket_for_step, node.graphql_type, profile
+                    )
+
+                    if config.DEBUG:
+                        node_data = result.data.get(node.name) if result.data else None
+                        print(f"[UAF-DEBUG]   result.success={result.success}  node_data={node_data!r}")
+
+                    results.append((step, result))
+                elif step.profile_name != "primary":
+                    # Multi-profile test phase (e.g. secondary / IDOR)
+                    self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
+                    _response, result = self.fengine.run_minimal_payload_with_profile(
+                        node.name, fresh_bucket, node.graphql_type, profile
+                    )
+                    results.append((step, result))
+                else:
+                    # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
+                    next_step = chain.steps[i + 1] if i + 1 < len(chain.steps) else None
+                    if next_step is not None and next_step.profile_name == "post_delete":
+                        pre_delete_snapshot = fresh_bucket.clone()
+                        if config.DEBUG:
+                            print(f"[UAF-DEBUG] Snapshotted bucket before DELETE step '{node.name}': {dict(pre_delete_snapshot.objects)}")
+
+                    self.logger.info(f"[chain] Running node: {node}")
+                    node_start = time.time()
+                    _next_paths, result = self.__evaluate(node, visit_path, objects_bucket=fresh_bucket)
+                    self.stats.record_node_timing(node, time.time() - node_start)
+                    self.stats.update_stats_from_result(node, result)
+                    if result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
+                        self._dep_blocked_nodes.add(node)
+                    if i == last_primary_index:
+                        self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
+                        self.__detect_vulnerabilities_on_node(node, fresh_bucket)
+                    results.append((step, result))
+                    if not result.success:
+                        self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
+                        # All subsequent primary non-Object steps were skipped because this node
+                        # failed; mark them as dep-blocked so the dep_retry phase can attempt them.
+                        for future_step in chain.steps[i + 1:]:
+                            if future_step.profile_name == "primary" and future_step.node.graphql_type != "Object":
+                                self._dep_blocked_nodes.add(future_step.node)
+                        break
+
+            # Post-execution analysis
+            self.idor_detector.detect(chain, results, self.stats)
+            self.uaf_detector.detect(chain, results, self.stats)
+            if self.on_chain_done:
+                self.on_chain_done(chain, results)
+        finally:
+            # Always remove the per-chain handler so the FD is released and logs
+            # don't bleed into subsequent chains even if an exception occurred.
+            self.logger.info(f"=== Chain end: {chain_path_str} ===")
+            fuzzer_logger.removeHandler(chain_file_handler)
+            chain_file_handler.close()
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -357,7 +477,6 @@ class Fuzzer(object):
         for node in nodes:
             if node.name in config.SKIP_NODES:
                 continue
-            self.stats.print_running_stats()
             self.logger.info(f"[island] Running node: {node}")
             node_start = time.time()
             _next_paths, result = self.__evaluate(node, [node])
@@ -365,6 +484,7 @@ class Fuzzer(object):
             self.stats.update_stats_from_result(node, result)
             self.__fuzz(node, [node])
             self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
+            self.stats.islands_completed += 1
 
     def __evaluate(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
         """Evaluates the node

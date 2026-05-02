@@ -20,20 +20,21 @@ def is_valid_object_materialization(materialized_str: str) -> bool:
     Returns:
         bool: Whether the output string is valid or not
     """
-    # Cleaned string
-    materialized_str = materialized_str.replace(" ", "")
-    materialized_str = remove_consecutive_characters(materialized_str, ",")
-    materialized_str = materialized_str.strip(",")
-    if "{}" in materialized_str or "{,}" in materialized_str:
+    # Check for empty object selections (strip spaces only for this heuristic check)
+    cleaned = remove_consecutive_characters(materialized_str.replace(" ", ""), ",").strip(",")
+    if "{}" in cleaned or "{,}" in cleaned:
         return False
 
-    # Parse the AST for validity of the payload
+    # Parse the AST for validity — keep spaces so that inline fragments
+    # (e.g. "... on Country {id}") remain syntactically valid GraphQL.
+    # graphql-core raises GraphQLSyntaxError (not Python's SyntaxError) so
+    # catch the broad Exception base class.
     try:
         dummy_payload = f"query STUFF{{{materialized_str}}}"
         parsed_obj = parse(dummy_payload)
         print_ast(parsed_obj).strip()
         return True
-    except (SyntaxError, ValueError, TypeError):
+    except Exception:
         return False
 
 

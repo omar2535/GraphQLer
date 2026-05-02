@@ -12,7 +12,14 @@ def write_config_to_toml(path: str) -> None:
     template, the current value is read from the live ``config`` module so
     any in-process changes are captured.  Keys absent from the live module
     fall back to the template's default value.
+
+    Sensitive fields (``LLM_API_KEY``, ``IDOR_SECONDARY_AUTH``, ``AUTHORIZATION``)
+    are always written as empty strings so that secrets provided via CLI flags
+    or environment variables are not accidentally persisted to disk.
     """
+    # Fields that must never be written to disk
+    _REDACTED_FIELDS = {"LLM_API_KEY", "IDOR_SECONDARY_AUTH", "AUTHORIZATION"}
+
     template_path = get_graphqler_root() / "examples" / "config.toml"
     with open(template_path, "rb") as fh:
         template: dict = tomllib.load(fh)
@@ -21,6 +28,9 @@ def write_config_to_toml(path: str) -> None:
     for key, template_value in template.items():
         if key == "CUSTOM_HEADERS":
             continue  # written as a TOML section below
+        if key in _REDACTED_FIELDS:
+            lines.append(f'{key} = ""\n')
+            continue
         value = getattr(config, key, template_value)
         if isinstance(value, bool):
             lines.append(f"{key} = {'true' if value else 'false'}\n")

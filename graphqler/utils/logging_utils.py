@@ -94,6 +94,25 @@ class Logger:
         # return the logger
         return self.idor_logger
 
+    def get_chain_logger(self, chain_id: str) -> logging.Logger:
+        """Creates (or reuses) a logger that writes to ``logs/chain_logs/<chain_id>/fuzzer.log``.
+
+        The logger name ``fuzzer.chain.<chain_id>`` is unique per chain so multiple chains
+        running sequentially each get an independent FileHandler pointing at their own file.
+
+        Args:
+            chain_id (str): The UUID of the chain.
+
+        Returns:
+            logging.Logger: A logger configured to write to the chain's log file.
+        """
+        chain_log_dir = Path(config.OUTPUT_DIRECTORY) / config.CHAIN_LOGS_DIR_NAME / chain_id
+        chain_log_dir.mkdir(parents=True, exist_ok=True)
+        chain_log_path = chain_log_dir / "fuzzer.log"
+        if not chain_log_path.exists():
+            initialize_file(chain_log_path)
+        return self._get_logger(f"fuzzer.chain.{chain_id}", chain_log_path)
+
     def _get_logger(self, name: str, file_path: str | Path) -> logging.Logger:
         """Gets a logger with the given name, file path, and level. Creates any required directories
 
@@ -104,12 +123,18 @@ class Logger:
         Returns:
             logging.Logger: The logger returned
         """
-        # create directories if they don't exist
+        logger = logging.getLogger(name)
+
+        # Avoid adding duplicate handlers when the same named logger is requested again
+        resolved_path = str(Path(file_path).resolve())
+        for h in logger.handlers:
+            if isinstance(h, logging.FileHandler) and str(Path(h.baseFilename).resolve()) == resolved_path:
+                return logger
+
         formatter = logging.Formatter("[%(levelname)s][%(asctime)s][%(name)s]:%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
         handler = logging.FileHandler(file_path)
         handler.setFormatter(formatter)
 
-        logger = logging.getLogger(name)
         if config.DEBUG:
             logger.setLevel(logging.DEBUG)
         else:

@@ -28,6 +28,7 @@ dist/
 *-test/
 *-tests/
 graphqler-output/
+graphqler-output-no-llm/
 
 # Codeql
 codeql/

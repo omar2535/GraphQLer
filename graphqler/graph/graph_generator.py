@@ -95,10 +95,12 @@ class GraphGenerator:
             self.create_object_subscription_edges(object_nodes, subscription_nodes)
 
     def create_object_mutation_edges(self, object_nodes: dict, mutation_nodes: dict):
-        """Updates the dependency graph with edges between objects and mutations. 3 cases:
+        """Updates the dependency graph with edges between objects and mutations. 4 cases:
            Case 1: M -> O | When object(O) depends on mutation(M), means O has M in its "associatedMutations", weight 100
            Case 2: O -> M | When mutation(M) depends on object(O), means M has O in its "hardDependsOn", weight 100
            Case 3: O -> M | When mutation(M) depends on object(O), means M has O in its "softDependsOn", weight 1
+           Case 4: M -> O | When a list/connection mutation(M) produces inner objects of type O via "produces"
+                            (e.g. createCountries -> Country, unwrapped from CountryConnection), weight 100.
 
         Args:
             object_nodes (dict): Mapping of object_name -> object node
@@ -140,11 +142,24 @@ class GraphGenerator:
                         object_node = object_nodes[object_name]
                         self.dependency_graph.add_edge(object_node, mutation_node, weight=1)
 
+        # Case 4: list/connection mutations that produce an inner object type
+        for mutation_name, mutation_node in mutation_nodes.items():
+            mutation_information = self.compiled_mutations[mutation_name]
+            produces = mutation_information.get("produces", "")
+            if produces and produces in object_nodes:
+                inner_object_node = object_nodes[produces]
+                self.dependency_graph.add_edge(mutation_node, inner_object_node, weight=100)
+
     def create_object_query_edges(self, object_nodes: dict, query_nodes: dict):
-        """Updates the dependency graph with edges in between objects and queries. 3 cases:
-           Case 1: M -> O | When object(O) is produced by query(Q), means O has Q in its "associatedQueries", weight 100
+        """Updates the dependency graph with edges in between objects and queries. 4 cases:
+           Case 1: Q -> O | When object(O) is the *direct* output of query(Q) (in "associatedQueries"), weight 100
+                            (e.g. country -> Country, or countries -> CountryConnection)
            Case 2: O -> Q | When query(Q) depends on object(O), means Q has O in its "hardDependsOn", weight 100
            Case 3: O -> Q | When query(Q) depends on object(O), means Q has O in its "softDependsOn", weight 1
+           Case 4: Q -> O | When a list/connection query(Q) produces inner objects of type O via "produces"
+                            (e.g. countries -> Country, unwrapped from CountryConnection), weight 100.
+                            Ensures list queries are scheduled before singular ID-argument queries that
+                            depend on the inner type.
 
         Args:
             object_nodes (dict): Mapping of object_name -> object node
@@ -183,6 +198,15 @@ class GraphGenerator:
                 if object_name != "UNKNOWN" and object_name in object_nodes:
                     object_node = object_nodes[object_name]
                     self.dependency_graph.add_edge(object_node, query_node, weight=1)
+
+        # Case 4: list/connection queries that produce an inner object type
+        for query_name, query_node in query_nodes.items():
+            query_information = self.compiled_queries[query_name]
+            produces = query_information.get("produces", "")
+            if produces and produces in object_nodes:
+                inner_object_node = object_nodes[produces]
+                self.dependency_graph.add_edge(query_node, inner_object_node, weight=100)
+
 
     def create_object_subscription_edges(self, object_nodes: dict, subscription_nodes: dict):
         """Updates the dependency graph with edges between objects and subscriptions. 3 cases:

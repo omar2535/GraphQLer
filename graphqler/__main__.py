@@ -11,7 +11,7 @@ from graphqler.fuzzer import Fuzzer
 from graphqler.graph import GraphGenerator
 from graphqler.utils.stats import Stats
 from graphqler.utils.cli_utils import set_auth_token_constant, set_idor_auth_token_constant, is_compiled
-from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path
+from graphqler.utils.config_handler import parse_config, set_config, generate_new_config, does_config_file_exist_in_path, write_config_to_toml
 from graphqler.utils.file_utils import get_or_create_directory
 from graphqler import config
 
@@ -187,6 +187,12 @@ def main(args: dict):
     if args.get('use_llm'):
         config.USE_LLM = True
         print("(P) LLM mode enabled via CLI flag")
+    if args.get('no_llm_compilation'):
+        config.LLM_USE_FOR_COMPILATION = False
+        print("(P) LLM disabled for compilation phase")
+    if args.get('no_llm_fuzzing'):
+        config.LLM_USE_FOR_FUZZING = False
+        print("(P) LLM disabled for fuzzing phase")
     if args.get('llm_report'):
         config.LLM_ENABLE_REPORTER = True
     if args.get('llm_model'):
@@ -202,6 +208,14 @@ def main(args: dict):
     if args.get('disable_mutations'):
         config.DISABLE_MUTATIONS = True
         print("(P) Mutation fuzzing disabled — only Query chains will be generated")
+
+    # Apply detections CLI override
+    if args.get('no_detections'):
+        config.SKIP_INJECTION_ATTACKS = True
+        config.SKIP_MISC_ATTACKS = True
+        config.SKIP_DOS_ATTACKS = True
+        config.SKIP_ENUMERATION_ATTACKS = True
+        print("(P) All detections disabled")
 
     # Apply ablation CLI overrides
     if args.get('no_objects_bucket'):
@@ -219,6 +233,19 @@ def main(args: dict):
     if args.get('subscriptions'):
         config.SKIP_SUBSCRIPTIONS = False
         print("(P) Subscription fuzzing enabled")
+
+    if args.get('no_endpoint_results'):
+        config.SAVE_ENDPOINT_RESULTS = False
+        print("(P) Endpoint results writing disabled")
+
+    if args.get('classic_coverage'):
+        config.NO_DATA_COUNT_AS_SUCCESS = True
+    if args.get('debug'):
+        config.DEBUG = True
+        print("(P) Classic coverage mode enabled — all non-error responses count as successes")
+
+    # Persist the final resolved config (file defaults + CLI overrides) back to disk
+    write_config_to_toml(f"{args['path']}/{config.CONFIG_FILE_NAME}")
 
     # Initialize the compiler and fuzzer
     compiler = Compiler(args['path'], args['url'])
@@ -298,12 +325,15 @@ if __name__ == "__main__":
     parser.add_argument("--node", help="node to run (only used in single mode)", required=False)
     parser.add_argument("--plugins-path", help="path to plugins directory", required=False)
     parser.add_argument("--use-llm", help="enable LLM-powered features: dependency graph inference, endpoint classification, IDOR chain classification, and UAF chain classification (requires LLM_MODEL and credentials)", action="store_true", default=False)
+    parser.add_argument("--no-llm-compilation", help="disable LLM during the compilation phase (dependency resolver, IDOR/UAF chain classifiers) — overrides --use-llm for that phase", action="store_true", default=False)
+    parser.add_argument("--no-llm-fuzzing", help="disable LLM during the fuzzing phase (payload generation, error retry, endpoint classification, report) — overrides --use-llm for that phase", action="store_true", default=False)
     parser.add_argument("--llm-report", help="generate an LLM vulnerability report (report.md) after fuzzing completes — requires --use-llm", action="store_true", default=False)
     parser.add_argument("--llm-model", help="litellm model string, e.g. 'gpt-4o-mini', 'ollama/llama3', 'anthropic/claude-3-5-haiku-20241022'", required=False)
     parser.add_argument("--llm-api-key", help="API key for the LLM provider (or set OPENAI_API_KEY / ANTHROPIC_API_KEY env var)", required=False)
     parser.add_argument("--llm-base-url", help="custom base URL for LLM endpoint (required for Ollama and LiteLLM proxies)", required=False)
     parser.add_argument("--llm-max-retries", help="number of retries when LLM returns non-JSON (default: 2)", type=int, required=False)
     parser.add_argument("--disable-mutations", help="only generate and run Query chains — all Mutation nodes are excluded from fuzzing", action="store_true", default=False)
+    parser.add_argument("--no-detections", help="disable all vulnerability detections (injection, misc, DoS, enumeration, API-level checks)", action="store_true", default=False)
 
     # Ablation / research flags
     parser.add_argument("--no-objects-bucket", help="ablation: disable the objects bucket — requests carry no state from prior responses", action="store_true", default=False)
@@ -312,7 +342,9 @@ if __name__ == "__main__":
     parser.add_argument("--allow-deletion", help="remove objects from the bucket when a DELETE mutation succeeds (default: off)", action="store_true", default=False)
     parser.add_argument("--subscriptions", help="enable fuzzing of GraphQL subscriptions via WebSocket (disabled by default — requires WebSocket support on the target)", action="store_true", default=False)
 
-    parser.add_argument("--version", help="display version", action="store_true")
+    parser.add_argument("--no-endpoint-results", help="skip writing per-endpoint result files to disk (useful when results are very large)", action="store_true", default=False)
+    parser.add_argument("--classic-coverage", help="count responses with no data as successes (sets NO_DATA_COUNT_AS_SUCCESS=true)", action="store_true", default=False)
+    parser.add_argument("--debug", help="enable debug mode: runs the fuzzer in a thread instead of a subprocess so pdb/breakpoint() work", action="store_true", default=False)
 
     # MCP server flags (handled before argument parsing; registered here for --help visibility)
     parser.add_argument("--mcp", help="launch the GraphQLer MCP server (requires pip install GraphQLer[mcp])", action="store_true", default=False)

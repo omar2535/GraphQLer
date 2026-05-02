@@ -124,10 +124,11 @@ class Materializer:
         # Main materialiation logic
         if output_field["kind"] == "OBJECT":
             materialized_object_fields = self.materialize_output_object_fields(operator_info, output_field["type"], used_objects, objects_bucket, minimal_materialization, max_depth, current_depth)
-            if materialized_object_fields != "":
-                built_str += " {"
-                built_str += materialized_object_fields
-                built_str += "},"
+            if materialized_object_fields == "":
+                return ""  # Object type with no materializable fields (e.g. depth limit) — skip to avoid bare field without selection set
+            built_str += " {"
+            built_str += materialized_object_fields
+            built_str += "},"
         elif output_field["kind"] == "UNION":  # For a UNION type, loop through all the UNION types and materialize them into fragments
             union_def = self.api.unions.get(output_field["type"], {})
             union_types = union_def.get("possibleTypes", [])
@@ -272,8 +273,29 @@ class Materializer:
 
         # Go through each input field and materialize it
         for input_name, input_field in inputs.items():
-            built_str += f"{input_name}: " + self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1) + ","
+            value = self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, True, max_depth, current_depth + 1)
+            if value:
+                built_str += f"{input_name}: {value},"
         return built_str
+
+    def _input_has_list_type(self, input_field: dict) -> bool:
+        """Returns True if the input_field's type hierarchy contains a LIST kind anywhere.
+
+        Used to determine whether a dependency-resolved scalar value must be wrapped
+        in ``[...]`` to form a valid GraphQL list literal (e.g. ``ids: ["1"]``).
+
+        Args:
+            input_field (dict): A compiled input field dict (may have nested ``ofType``)
+
+        Returns:
+            bool: True if any level of the type hierarchy is a LIST
+        """
+        current: dict | None = input_field
+        while current is not None:
+            if current.get("kind") == "LIST":
+                return True
+            current = current.get("ofType")
+        return False
 
     def materialize_input_recursive(self,
                                     operator_info: dict,
@@ -308,7 +330,9 @@ class Materializer:
                 # Use the object from the objects bucket, mark it as used, then continue constructing the string
                 randomly_chosen_object_dependency_val = self.getter.get_closest_value_to_input(input_field["name"], hard_dependency_object_name, objects_bucket)
                 self.used_objects[hard_dependency_object_name] = randomly_chosen_object_dependency_val
-                built_str += f'"{randomly_chosen_object_dependency_val}"'
+                quoted_val = f'"{randomly_chosen_object_dependency_val}"'
+                # Preserve LIST shape: if the input type is a list, wrap the single resolved value in [...]
+                built_str += f"[{quoted_val}]" if self._input_has_list_type(input_field) else quoted_val
             elif hard_dependency_object_name == "UNKNOWN":
                 self.logger.info(f"Using UNKNOWN input for field: {input_field}")
                 built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
@@ -321,10 +345,15 @@ class Materializer:
         elif check_deps and input_field["name"] in soft_dependencies:
             soft_depedency_name = soft_dependencies[input_field["name"]]
             if objects_bucket.is_object_in_bucket(soft_depedency_name):
-                # Use the object from the objects bucket, mark it as used, then continue constructing the string
-                randomly_chosen_dependency_val = objects_bucket.get_random_object_field_value(soft_depedency_name, input_field["name"])
+                # Use the getter so singular/plural fallback (ids→id) also applies to soft deps
+                try:
+                    randomly_chosen_dependency_val = self.getter.get_closest_value_to_input(input_field["name"], soft_depedency_name, objects_bucket)
+                except Exception:
+                    randomly_chosen_dependency_val = objects_bucket.get_random_object_field_value(soft_depedency_name, input_field["name"])
                 self.used_objects[soft_depedency_name] = randomly_chosen_dependency_val
-                built_str += f'"{randomly_chosen_dependency_val}"'
+                quoted_val = f'"{randomly_chosen_dependency_val}"'
+                # Preserve LIST shape: if the input type is a list, wrap the single resolved value in [...]
+                built_str += f"[{quoted_val}]" if self._input_has_list_type(input_field) else quoted_val
             else:
                 built_str += self.materialize_input_recursive(operator_info, input_field, objects_bucket, input_name, False, max_depth, current_depth)
         elif input_field["kind"] == "NON_NULL":

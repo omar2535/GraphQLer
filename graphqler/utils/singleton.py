@@ -1,17 +1,28 @@
-def singleton(myClass):
-    instances = {}
+from typing import Any, Generic, TypeVar
 
-    def getInstance(*args, **kwargs):
-        if myClass not in instances:
-            instances[myClass] = myClass(*args, **kwargs)
-        return instances[myClass]
+_T = TypeVar("_T")
 
-    # Expose the original class so callers can create fresh non-singleton instances
-    # when needed (e.g. per-chain ObjectsBucket in the fuzzer):
-    #   fresh_bucket = ObjectsBucket.__wrapped__(api)
-    setattr(getInstance, "__wrapped__", myClass)
 
-    # Allow clearing the cached instance (useful for test isolation).
-    setattr(getInstance, "reset", lambda: instances.pop(myClass, None))
+class _SingletonCallable(Generic[_T]):
+    """Callable wrapper returned by the @singleton decorator.
 
-    return getInstance
+    Exposes the original class as ``__wrapped__`` and provides a ``reset()``
+    helper that clears the cached instance (useful for test isolation).
+    """
+
+    def __init__(self, cls: type[_T]) -> None:
+        self.__wrapped__: type[_T] = cls
+        self._instances: dict[type[_T], _T] = {}
+
+    def __call__(self, *args: Any, **kwargs: Any) -> _T:
+        if self.__wrapped__ not in self._instances:
+            self._instances[self.__wrapped__] = self.__wrapped__(*args, **kwargs)
+        return self._instances[self.__wrapped__]
+
+    def reset(self) -> None:
+        """Clear the cached instance so the next call creates a fresh one."""
+        self._instances.pop(self.__wrapped__, None)
+
+
+def singleton(myClass: type[_T]) -> _SingletonCallable[_T]:
+    return _SingletonCallable(myClass)

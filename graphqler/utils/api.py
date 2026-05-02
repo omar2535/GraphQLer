@@ -30,14 +30,14 @@ class API:
         self.extracted_interfaces_save_path = Path(save_path) / config.INTERFACE_LIST_FILE_NAME
 
         self.url = url
-        self.queries = read_yaml_to_dict(self.compiled_queries_save_path)
-        self.objects = read_yaml_to_dict(self.compiled_objects_save_path)
-        self.mutations = read_yaml_to_dict(self.compiled_mutations_save_path)
-        self.subscriptions = read_yaml_to_dict(self.compiled_subscriptions_save_path)
-        self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path)
-        self.enums = read_yaml_to_dict(self.extracted_enums_save_path)
-        self.unions = read_yaml_to_dict(self.extracted_unions_save_path)
-        self.interfaces = read_yaml_to_dict(self.extracted_interfaces_save_path)
+        self.queries = read_yaml_to_dict(self.compiled_queries_save_path) or {}
+        self.objects = read_yaml_to_dict(self.compiled_objects_save_path) or {}
+        self.mutations = read_yaml_to_dict(self.compiled_mutations_save_path) or {}
+        self.subscriptions = read_yaml_to_dict(self.compiled_subscriptions_save_path) or {}
+        self.input_objects = read_yaml_to_dict(self.extracted_input_objects_save_path) or {}
+        self.enums = read_yaml_to_dict(self.extracted_enums_save_path) or {}
+        self.unions = read_yaml_to_dict(self.extracted_unions_save_path) or {}
+        self.interfaces = read_yaml_to_dict(self.extracted_interfaces_save_path) or {}
 
     def get_num_queries(self) -> int:
         """Gets the number of queries

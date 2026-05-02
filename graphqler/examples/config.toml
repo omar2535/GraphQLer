@@ -24,6 +24,8 @@ MAX_LEVENSHTEIN_THRESHOLD = 20  # A very high threshold, we could probably lower
 #   LiteLLM proxy:  "openai/my-model"                   + LLM_BASE_URL = "http://my-proxy:4000"
 # ──────────────────────────────────────────────────────────────────────────────
 USE_LLM = false                       # master toggle
+LLM_USE_FOR_COMPILATION = true        # when USE_LLM=true, apply LLM in compilation phase (dependency resolver, IDOR/UAF chain classifiers)
+LLM_USE_FOR_FUZZING = true            # when USE_LLM=true, apply LLM in fuzzing phase (payload generation, error retry, endpoint classification, reporting)
 LLM_MODEL = "gpt-4o-mini"            # litellm model string
 LLM_API_KEY = ""                      # API key; if empty, reads from env (OPENAI_API_KEY, etc.)
 LLM_BASE_URL = ""                     # custom base URL (required for Ollama / LiteLLM proxies)
@@ -57,6 +59,9 @@ SKIP_MISC_ATTACKS = false # This mode is for when we want to skip the miscellane
 SKIP_SUBSCRIPTIONS = true         # Disable subscription fuzzing by default (requires WebSocket support); enable with --subscriptions
 SUBSCRIPTION_TIMEOUT = 5          # Seconds to wait for events on each subscription
 SUBSCRIPTION_PROTOCOL = "graphql-ws"  # "graphql-ws" (modern) or "subscriptions-transport-ws" (legacy Apollo)
+
+# For stats output
+SAVE_ENDPOINT_RESULTS = true  # Set false to skip writing per-endpoint result files (can be large)
 
 # For each request
 REQUEST_TIMEOUT = 120  # in seconds

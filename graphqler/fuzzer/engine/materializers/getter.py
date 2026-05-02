@@ -180,4 +180,14 @@ class Getter:
         if found_value is not None:
             return found_value
 
+        # Try the singular form as a fallback for pluralised ID input names
+        # (e.g. 'ids' → 'id', 'userIds' → 'userId').  This is safe here because
+        # get_closest_value_to_input is only called for inputs that were identified
+        # as ID-type dependencies, so field names always follow the id / ids pattern.
+        if input_name.lower().endswith("s") and len(input_name) > 1:
+            singular_name = input_name[:-1]
+            found_value = objects_bucket.get_random_object_field_value(object_name, singular_name)
+            if found_value is not None:
+                return found_value
+
         raise Exception(f"Could not find a value for the input name: {input_name} in the object: {object_name}")

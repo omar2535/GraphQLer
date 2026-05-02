@@ -87,7 +87,7 @@ class UAFChainStrategy(BaseChainStrategy):
                                                        f"heuristic: {reason}"))
                 continue
 
-            if config.UAF_USE_LLM_FALLBACK and config.USE_LLM:
+            if config.UAF_USE_LLM_FALLBACK and config.USE_LLM and config.LLM_USE_FOR_COMPILATION:
                 is_candidate, llm_reason = llm_uaf_classifier.classify(chain, split_index)
                 if is_candidate:
                     effective_split = split_index if split_index > 0 else self._last_delete_split(chain)

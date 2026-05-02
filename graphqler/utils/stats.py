@@ -1,6 +1,8 @@
 import json
 import cloudpickle as pickle
 import pprint
+import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Self
@@ -8,6 +10,7 @@ from typing import Self
 from graphqler import config
 from graphqler.fuzzer.engine.types import Result
 from graphqler.graph import Node
+from graphqler.fuzzer.engine.types import ResultEnum
 
 from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path, get_or_create_file
 from .singleton import singleton
@@ -35,6 +38,19 @@ class Stats :
     vulnerabilities = {}  # Mapping of vulnerability to node name, and if it's a potential or confirmed vulnerability
     node_timings: dict[str, list[float]] = {}  # Mapping of node name to list of elapsed times in seconds
 
+    # Chain progress tracking
+    chains_total: int = 0
+    chains_completed: int = 0
+    current_iteration: int = 1
+    total_iterations: int = 1
+
+    # Phase tracking ("chains" | "islands" | "dep_retry" | "detections")
+    phase: str = "chains"
+    islands_total: int = 0
+    islands_completed: int = 0
+    dep_retry_total: int = 0
+    dep_retry_completed: int = 0
+
     # Detection stats
     is_introspection_available: bool = False
 
@@ -53,6 +69,15 @@ class Stats :
         self.vulnerabilities = {}
         self.node_timings = {}
         self.is_introspection_available = False
+        self.chains_total = 0
+        self.chains_completed = 0
+        self.current_iteration = 1
+        self.total_iterations = 1
+        self.phase = "chains"
+        self.islands_total = 0
+        self.islands_completed = 0
+        self.dep_retry_total = 0
+        self.dep_retry_completed = 0
         self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
 
     def load(self) -> Self:
@@ -127,18 +152,56 @@ class Stats :
 
         # Do the endpoint results directory
         self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
-        recreate_path(self.endpoint_results_dir)
+        if config.SAVE_ENDPOINT_RESULTS:
+            recreate_path(self.endpoint_results_dir)
 
         # Do the unique responses file
         self.unique_responses_file_path = Path(working_dir) / config.UNIQUE_RESPONSES_FILE_NAME
         initialize_file(self.unique_responses_file_path)
 
     def print_running_stats(self):
-        """Function to print stats during runtime (not saved to file)"""
-        print(f"Number of success: {self.number_of_successes}", end="")
-        print("|", end="")
-        print(f"Number of failures: {self.number_of_failures}", end="")
-        print("\r", end="", flush=True)
+        """Print a single-line progress update that overwrites itself each second."""
+        elapsed = time.time() - self.start_time
+        elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+        counts = f"✓ {self.number_of_successes} | ✗ {self.number_of_failures}"
+
+        if self.phase == "detections":
+            progress = f"[Detections] {counts} | {elapsed_str} elapsed"
+        elif self.phase == "dep_retry":
+            progress = (
+                f"[Dep-Retry {self.dep_retry_completed}/{self.dep_retry_total}] "
+                f"{counts} | {elapsed_str} elapsed"
+            )
+        elif self.phase == "islands":
+            progress = (
+                f"[Islands {self.islands_completed}/{self.islands_total}] "
+                f"{counts} | {elapsed_str} elapsed"
+            )
+        elif self.chains_total > 0:
+            overall_done = (self.current_iteration - 1) * self.chains_total + self.chains_completed
+            overall_total = self.total_iterations * self.chains_total
+            # Only show ETA once we have enough samples to make a reasonable estimate
+            if overall_done >= 3 and elapsed > 0:
+                eta_secs = (elapsed / overall_done) * (overall_total - overall_done)
+                eta_str = time.strftime("%H:%M:%S", time.gmtime(eta_secs))
+            else:
+                eta_str = "--:--:--"
+            progress = (
+                f"[Iter {self.current_iteration}/{self.total_iterations} | "
+                f"Chain {self.chains_completed}/{self.chains_total}] "
+                f"{counts} | "
+                f"{elapsed_str} elapsed | ETA {eta_str}"
+            )
+        else:
+            progress = f"{counts} | {elapsed_str} elapsed"
+
+        if not sys.stdout.isatty():
+            return
+        # Truncate to terminal width - 1 to prevent wrapping (wrapping breaks \r overwrite)
+        term_cols = shutil.get_terminal_size((80, 24)).columns
+        progress = progress[: term_cols - 1]
+        # \r returns to line start; \x1b[K erases to end-of-line — no leftover ghosting
+        print(f"\r\x1b[K{progress}", end="", flush=True)
 
     def add_vulnerability(
         self,
@@ -240,6 +303,10 @@ class Stats :
         Args:
             result (Result): the result
         """
+        # Hard dependency not met means the node was never executed — skip all tracking
+        if result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
+            return
+
         result_status = result.success
 
         # Update success / fail stats first
@@ -330,7 +397,8 @@ class Stats :
             if len(self.vulnerabilities) > 0:
                 f.write("\n===================Detected Vulnerabilities===================\n")
                 f.write(json.dumps(self.vulnerabilities, indent=4))
-        self.save_endpoint_results()
+        if config.SAVE_ENDPOINT_RESULTS:
+            self.save_endpoint_results()
         self.save_unique_response()
         self.save_json()
 

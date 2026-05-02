@@ -18,5 +18,8 @@
     "graphql-tools": "^9.0.26",
     "sqlite3": "^6.0.1",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "picomatch": "^4.0.4"
   }
 }

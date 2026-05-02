@@ -14,6 +14,8 @@ from .uaf_chain_detector import UAFChainDetector as UAFChainDetector
 from .introspection.introspection_detector import IntrospectionDetector
 from .field_suggestion.field_suggestion_detector import FieldSuggestionsDetector
 
+from .dos import FieldDuplicationDetector, CircularFragmentDetector, ResourceExhaustionDetector
+
 
 injection_detectors = [
     OSCommandInjectionDetector,
@@ -26,7 +28,10 @@ injection_detectors = [
 ]
 
 misc_detectors = [
-    QueryDenyBypassDetector
+    QueryDenyBypassDetector,
+    FieldDuplicationDetector,
+    CircularFragmentDetector,
+    ResourceExhaustionDetector,
 ]
 
 enumeration_detectors = [

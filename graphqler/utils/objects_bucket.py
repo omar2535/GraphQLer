@@ -21,7 +21,7 @@ import cloudpickle as pickle
 from graphqler import config
 from graphqler.utils.api import API
 from graphqler.utils.file_utils import get_or_create_file
-from graphqler.utils.parser_utils import get_output_type_from_details
+from graphqler.utils.parser_utils import get_base_oftype, get_output_type_from_details
 
 from .singleton import singleton
 
@@ -194,6 +194,10 @@ class ObjectsBucket:
                 self.put_object_in_bucket(operation_output_type, item)
         else:
             self.put_object_in_bucket(operation_output_type, data)
+            # Also unpack connection/pagination wrapper types so individual items
+            # are stored under their actual inner type (e.g. Country, not CountryConnection).
+            if isinstance(data, dict):
+                self._unpack_connection_wrapper(operation_output_type, data)
 
     def parse_as_scalar(self, method_name: str, method_data: dict | list | str | int | float | bool | None):
         """Parses the data as a scalar (can be a list, dict, or any of the base GraphQL types
@@ -215,6 +219,91 @@ class ObjectsBucket:
                 self.parse_as_scalar(method_name, item)
         elif isinstance(method_data, dict):
             self.parse_object_scalars(method_data)
+
+    def _get_inner_list_item_type(self, type_name: str, field_name: str) -> str | None:
+        """Returns the base OBJECT type name for a list field of a known object type.
+
+        Looks up ``type_name`` in the API objects registry, finds the field named
+        ``field_name``, and resolves its inner (NON_NULL / LIST wrapper stripped)
+        OBJECT type.  Also handles direct OBJECT-kinded fields (no wrapper).
+
+        Args:
+            type_name (str): The outer object type (e.g. "CountryConnection")
+            field_name (str): The list field name (e.g. "items", "nodes", "edges")
+
+        Returns:
+            str | None: The inner object type name, or None if it cannot be determined
+        """
+        if type_name not in self.api.objects:
+            return None
+        for field in self.api.objects[type_name].get("fields", []):
+            if field["name"] != field_name:
+                continue
+            oftype = field.get("ofType")
+            if oftype:
+                base = get_base_oftype(oftype)
+                if base.get("kind") == "OBJECT":
+                    return base.get("type") or base.get("name")
+            # Direct (non-wrapped) OBJECT field
+            if field.get("kind") == "OBJECT":
+                return field.get("type") or field.get("name")
+        return None
+
+    def _unpack_connection_wrapper(self, outer_type: str, data: dict):
+        """Unpacks connection/pagination wrapper objects and stores inner items under their real type.
+
+        Recognises well-known GraphQL pagination conventions by field name
+        (``items``, ``nodes``, ``edges``, ``results``) and falls back to auto-detecting
+        any LIST field whose elements are OBJECT types in case an API uses a
+        non-standard field name (e.g. ``data``).
+
+        For Relay-style ``edges`` fields the ``node`` value is stored under the type
+        of ``EdgeType.node``, not the edge type itself, so that the bucket holds the
+        actual domain objects.
+
+        Each inner item is stored under its resolved OBJECT type name.
+
+        Args:
+            outer_type (str): The outer connection/wrapper type name (e.g. "CountryConnection")
+            data (dict): The response data dict for the outer wrapper
+        """
+        preferred_keys = ("items", "nodes", "edges", "results")
+
+        # Build a list of candidate (field_name, inner_type) pairs.
+        candidates: list[tuple[str, str]] = []
+        fallback: tuple[str, str] | None = None
+
+        if outer_type not in self.api.objects:
+            return
+        for field in self.api.objects[outer_type].get("fields", []):
+            field_name = field["name"]
+            if field_name in preferred_keys:
+                inner_type = self._get_inner_list_item_type(outer_type, field_name)
+                if inner_type:
+                    candidates.append((field_name, inner_type))
+            elif field.get("kind") == "LIST" and fallback is None:
+                inner_type = self._get_inner_list_item_type(outer_type, field_name)
+                if inner_type:
+                    fallback = (field_name, inner_type)
+
+        if not candidates and fallback:
+            candidates = [fallback]
+
+        for field_name, inner_type in candidates:
+            value = data.get(field_name)
+            if not isinstance(value, list):
+                continue
+            if field_name == "edges":
+                node_type = self._get_inner_list_item_type(inner_type, "node") or inner_type
+                for edge in value:
+                    if isinstance(edge, dict):
+                        node = edge.get("node")
+                        if isinstance(node, dict):
+                            self.put_object_in_bucket(node_type, node)
+            else:
+                for item in value:
+                    if isinstance(item, dict):
+                        self.put_object_in_bucket(inner_type, item)
 
     def put_object_in_bucket(self, object_name: str, object_info: dict):
         """Puts an object in the bucket, skipping duplicates

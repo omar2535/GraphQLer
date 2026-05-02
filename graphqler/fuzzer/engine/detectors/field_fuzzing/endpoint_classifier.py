@@ -232,7 +232,7 @@ class EndpointPrivacyClassifier:
             return "public"
 
         # Ambiguous — try LLM if enabled
-        if config.USE_LLM:
+        if config.USE_LLM and config.LLM_USE_FOR_FUZZING:
             logger.debug("Endpoint %r is ambiguous (score %d); asking LLM", endpoint_name, score)
             return _llm_classify(endpoint_name, return_type_name, return_type_fields)
 
