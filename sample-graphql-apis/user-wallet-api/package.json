@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@apollo/server": "^4.13.0",
+    "@apollo/server": "^5.5.0",
     "@graphql-tools/schema": "^10.0.31",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
