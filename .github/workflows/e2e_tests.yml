@@ -8,32 +8,29 @@ permissions:
 jobs:
   setup-and-test:
     runs-on: ubuntu-latest
+    env:
+      TZ: UTC
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Setup timezone
-      uses: zcong1993/setup-timezone@master
-      with:
-        timezone: UTC
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
     - name: Install the latest version of uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v6
 
     - name: Install Python dependencies
       run: uv sync
 
     - name: Run e2e tests in parallel
-      run: |
-        uv run pytest tests/e2e/ -n auto --dist loadfile --verbose --cov=. --cov-report html
+      run: uv run pytest tests/e2e/ -n auto --dist loadfile --verbose

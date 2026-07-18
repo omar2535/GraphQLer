@@ -10,10 +10,9 @@ from graphqler import config
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.utils.stats import Stats
 from graphqler.utils.parser_utils import get_output_type
 from graphqler.utils import plugins_handler
-from graphqler.utils.singleton import singleton
-from graphqler.utils.stats import Stats
 from graphqler.utils import request_utils as _request_utils
 
 from .exceptions import HardDependencyNotMetException
@@ -24,15 +23,11 @@ from .types.profile import RuntimeProfile
 from .utils import check_is_data_empty
 
 
-@singleton
 class FEngine(object):
-    def __init__(self, api: API):
-        """The intiialization of the FEngine
-
-        Args:
-            api (API): The API object
-        """
+    def __init__(self, api: API, stats: Stats | None = None):
+        """Initialize the execution engine for one fuzzing run."""
         self.api = api
+        self.stats = stats or Stats()
         self.logger = Logger().get_fuzzer_logger()
 
     def run_minimal_payload(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, check_hard_depends_on: bool = True) -> tuple[dict, Result]:
@@ -70,6 +65,30 @@ class FEngine(object):
         self.logger.info(f"Running minimal payload with profile '{profile.name}': {name}")
         materializer = GeneralPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False)
         return self.__run_payload_with_profile(name, objects_bucket, materializer, graphql_type, profile)
+
+    def run_payload_with_profile(self, name: str, payload: str, profile: RuntimeProfile) -> tuple[dict, Result]:
+        """Send an already-materialized payload under a specific profile."""
+        result = Result()
+        result.payload = payload
+        try:
+            graphql_response, request_response = _request_utils.send_graphql_request_with_headers(
+                self.api.url,
+                payload,
+                profile.get_headers(),
+            )
+            result.status_code = request_response.status_code
+            result.graphql_response = graphql_response
+            result.raw_response_text = request_response.text
+            if not graphql_response or result.has_errors or not result.has_data or result.data.get(name) is None:
+                result.result_enum = ResultEnum.EXTERNAL_FAILURE
+            else:
+                result.result_enum = ResultEnum.HAS_DATA_SUCCESS
+            return graphql_response, result
+        except Exception as exc:
+            self.logger.info(f"[{profile.name}/{name}] Exception: {exc}")
+            self.logger.debug(traceback.format_exc())
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return {}, result
 
     def run_minimal_payload_with_auth(self, name: str, objects_bucket: ObjectsBucket, graphql_type: str, auth_override: str) -> tuple[dict, "Result"]:
         """Backward-compatible wrapper for run_minimal_payload_with_profile."""
@@ -112,34 +131,38 @@ class FEngine(object):
         return results
 
     def run_subscription_payload(self, name: str, objects_bucket: ObjectsBucket) -> tuple[list[dict], Result]:
-        """Executes a GraphQL subscription over a WebSocket connection and returns collected events.
+        """Execute a materialized subscription using the configured request headers."""
+        materializer = SubscriptionMaterializer(self.api, fail_on_hard_dependency_not_met=False)
+        try:
+            payload_str, _used_objects = materializer.get_payload(name, objects_bucket, "Subscription")
+        except Exception as exc:
+            self.logger.warning(f"Subscription {name} failed during materialization: {exc}")
+            return [], Result(ResultEnum.EXTERNAL_FAILURE)
+        headers = plugins_handler.get_request_utils().get_headers()
+        return self._run_subscription_payload(name, payload_str, headers)
 
-        Args:
-            name (str): Subscription name
-            objects_bucket (ObjectsBucket): Shared objects bucket
+    def run_subscription_with_profile(self, name: str, payload: str, profile: RuntimeProfile) -> tuple[list[dict], Result]:
+        """Execute an already-materialized subscription under a specific profile."""
+        return self._run_subscription_payload(name, payload, profile.get_headers())
 
-        Returns:
-            tuple[list[dict], Result]: List of event payloads received and a Result
-        """
+    def _run_subscription_payload(self, name: str, payload: str, headers: dict[str, str]) -> tuple[list[dict], Result]:
         from graphqler.utils.websocket_utils import send_graphql_subscription
 
+        result = Result()
+        result.payload = payload
         try:
-            materializer = SubscriptionMaterializer(self.api, fail_on_hard_dependency_not_met=False)
-            payload_str, _used_objects = materializer.get_payload(name, objects_bucket, "Subscription")
-            graphql_payload = {"query": payload_str}
-            request_utils = plugins_handler.get_request_utils()
             events = send_graphql_subscription(
                 url=self.api.url,
-                payload=graphql_payload,
-                headers=request_utils.get_headers(),
+                payload={"query": payload},
+                headers=headers,
             )
-            if events:
-                return events, Result(ResultEnum.GENERAL_SUCCESS)
-            else:
-                return [], Result(ResultEnum.EXTERNAL_FAILURE)
-        except Exception as e:
-            self.logger.warning(f"Subscription {name} failed: {e}")
-            return [], Result(ResultEnum.EXTERNAL_FAILURE)
+            result.graphql_response = events
+            result.result_enum = ResultEnum.GENERAL_SUCCESS if events else ResultEnum.EXTERNAL_FAILURE
+            return events, result
+        except Exception as exc:
+            self.logger.warning(f"Subscription {name} failed: {exc}")
+            result.result_enum = ResultEnum.INTERNAL_FAILURE
+            return [], result
 
     def __run_payload(self, name: str, objects_bucket: ObjectsBucket, materializer: Materializer, graphql_type: str) -> tuple[dict, Result]:
         """Runs the payload (either Query or Mutation), and returns a new objects bucket
@@ -187,7 +210,7 @@ class FEngine(object):
             payload_string, _ = materializer.get_payload(name, objects_bucket, graphql_type)
             result.payload = payload_string
             self.logger.info(f"[{profile.name}/{name}] Sending payload with profile '{profile.name}':\n {payload_string}")
-            
+
             # Use full profile headers (Authorization + any extra profile-specific headers)
             graphql_response, request_response = _request_utils.send_graphql_request_with_headers(self.api.url, payload_string, profile.get_headers())
             result.status_code = request_response.status_code
@@ -210,7 +233,6 @@ class FEngine(object):
             self.logger.debug(traceback.format_exc())
             result.result_enum = ResultEnum.INTERNAL_FAILURE
             return ({}, result)
-
 
     def __run_mutation(self, endpoint_name: str, objects_bucket: ObjectsBucket, materializer: Materializer) -> tuple[dict, Result]:
         """Runs the mutation, and returns a new objects bucket. Performs a few things:
@@ -245,7 +267,7 @@ class FEngine(object):
 
             # Stats tracking stuff, results
             self.logger.info(f"Request Response code: {status_code}")
-            Stats().add_http_status_code(endpoint_name, status_code)
+            self.stats.add_http_status_code(endpoint_name, status_code)
             result.status_code = status_code
             result.graphql_response = graphql_response
             result.raw_response_text = request_response.text
@@ -339,7 +361,7 @@ class FEngine(object):
 
             # Stats tracking stuff
             self.logger.info(f"Request Response code: {status_code}")
-            Stats().add_http_status_code(endpoint_name, status_code)
+            self.stats.add_http_status_code(endpoint_name, status_code)
             result.status_code = status_code
             result.graphql_response = graphql_response
             result.raw_response_text = request_response.text

@@ -1,9 +1,9 @@
-from graphqler.fuzzer import Fuzzer
+from graphqler import config
 from graphqler.compiler import Compiler
-from graphqler.utils.config_handler import set_config
-from graphqler.utils.stats import Stats
-from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.fuzzer import Fuzzer
 from graphqler.utils.api import API
+from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.utils.stats import Stats
 
 
 def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> dict:
@@ -32,26 +32,27 @@ def compile_and_fuzz(path: str, url: str, input_config: dict | None = None) -> d
                 - 'interfaces' (dict): A dictionary of interfaces { interface_name: interface_info }.
             - 'results' (dict): A dictionary of results { endpoint: Set(Result) }. See the `Result` class for more details.
     """
-    if input_config:
-        set_config(input_config)
+    overrides = dict(input_config or {})
+    overrides["OUTPUT_DIRECTORY"] = path
+    settings = config.snapshot(overrides)
+    with config.activate(settings):
+        compiler = Compiler(path, url, settings=settings)
+        compiler.run()
+        compiler.run_chain_generation_and_save()
 
-    compiler = Compiler(path, url)
-    compiler.run()
+        stats = Stats()
+        stats.set_file_paths(path)
 
-    stats = Stats()
-    stats.set_file_paths(path)
+        fuzzer = Fuzzer(path, url, stats=stats, settings=settings)
+        fuzzer.run()
 
-    fuzzer = Fuzzer(path, url)
-    fuzzer.run()
-
-    api: API = fuzzer.api
-
-    objects_bucket = ObjectsBucket(api=api).load()
-    stats = Stats().load()
+        api: API = fuzzer.api
+        objects_bucket = ObjectsBucket(api=api).load()
+        stats.load()
 
     return {
-        'objects_bucket': objects_bucket,
-        'stats': stats,
-        'api': fuzzer.api,
-        'results': stats.results
+        "objects_bucket": objects_bucket,
+        "stats": stats,
+        "api": fuzzer.api,
+        "results": stats.results,
     }

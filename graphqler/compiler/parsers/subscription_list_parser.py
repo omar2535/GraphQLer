@@ -1,4 +1,4 @@
-"""Simple singleton class to parse subscription listings from the introspection query"""
+"""Parse subscription listings from an introspection response."""
 
 from .parser import Parser
 

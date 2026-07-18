@@ -13,14 +13,16 @@ class ResultEnum(Enum):
 
 
 class Result:
-    def __init__(self,
-                 result_enum: Optional[ResultEnum] = None,
-                 payload: Optional[str] | Optional[list[str]] | dict = None,
-                 errors: Optional[list] = None,
-                 data: Optional[dict] = None,
-                 status_code: Optional[int] = None,
-                 graphql_response: Optional[dict] = None,
-                 raw_response_text: Optional[str] = None):
+    def __init__(
+        self,
+        result_enum: Optional[ResultEnum] = None,
+        payload: str | list[str] | dict | None = None,
+        errors: Optional[list] = None,
+        data: Optional[dict] = None,
+        status_code: Optional[int] = None,
+        graphql_response: dict | list[dict] | None = None,
+        raw_response_text: Optional[str] = None,
+    ):
         """Initializes the result object"""
         self._result_enum = result_enum
         self._payload = payload
@@ -53,15 +55,34 @@ class Result:
         Implement hashing for Result objects.
         This allows Result objects to be used in sets and as dictionary keys.
         """
-        return hash((
-            self._result_enum,
-            str(self._payload),
-            str(self._errors),
-            str(self._data),
-            self._status_code,
-            str(self._graphql_response),
-            self._raw_response_text
-        ))
+        return hash((self._result_enum, str(self._payload), str(self._errors), str(self._data), self._status_code, str(self._graphql_response), self._raw_response_text))
+
+    def to_dict(self) -> dict:
+        """Return a JSON-compatible representation."""
+        return {
+            "result_type": self._result_enum.name if self._result_enum is not None else None,
+            "payload": self._payload,
+            "errors": self._errors,
+            "data": self._data,
+            "status_code": self._status_code,
+            "graphql_response": self._graphql_response,
+            "raw_response_text": self._raw_response_text,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Result":
+        """Restore a result from :meth:`to_dict` output."""
+        result_name = data.get("result_type")
+        result_enum = ResultEnum[result_name] if result_name is not None else None
+        return cls(
+            result_enum=result_enum,
+            payload=data.get("payload"),
+            errors=data.get("errors"),
+            data=data.get("data"),
+            status_code=data.get("status_code"),
+            graphql_response=data.get("graphql_response"),
+            raw_response_text=data.get("raw_response_text"),
+        )
 
     def __str__(self) -> str:
         """Returns a string representation of the result"""
@@ -156,7 +177,7 @@ class Result:
         self._status_code = status_code
 
     @property
-    def graphql_response(self) -> dict:
+    def graphql_response(self) -> dict | list[dict]:
         """Gets the graphql response"""
         if self._graphql_response is None:
             return {}
@@ -166,17 +187,17 @@ class Result:
     def graphql_response(self, graphql_response):
         """Sets graphql response"""
         self._graphql_response = graphql_response
-        if graphql_response is not None:
-            if 'errors' in graphql_response:
-                self._errors = graphql_response['errors']
-            if 'data' in graphql_response:
-                self._data = graphql_response['data']
+        if isinstance(graphql_response, dict):
+            if "errors" in graphql_response:
+                self._errors = graphql_response["errors"]
+            if "data" in graphql_response:
+                self._data = graphql_response["data"]
 
     @property
     def raw_response_text(self) -> str:
         """Gets the raw response text"""
         if self._raw_response_text is None:
-            return ''
+            return ""
         return self._raw_response_text
 
     @raw_response_text.setter

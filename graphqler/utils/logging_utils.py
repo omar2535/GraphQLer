@@ -1,22 +1,15 @@
 import logging
 from graphqler import config
 from pathlib import Path
-from graphqler.utils.singleton import singleton
 from graphqler.utils.file_utils import initialize_file
 
 
-@singleton
 class Logger:
-    fuzzer_logger = None
-    compiler_logger = None
-    detector_logger = None
-    idor_logger = None
-    fuzzer_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.FUZZER_LOG_FILE_PATH)
-    compiler_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.COMPILER_LOG_FILE_PATH)
-    detector_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.DETECTOR_LOG_FILE_PATH)
-    idor_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.IDOR_LOG_FILE_PATH)
-
     def __init__(self):
+        self.fuzzer_logger: logging.Logger | None = None
+        self.compiler_logger: logging.Logger | None = None
+        self.detector_logger: logging.Logger | None = None
+        self.idor_logger: logging.Logger | None = None
         self.fuzzer_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.FUZZER_LOG_FILE_PATH)
         self.compiler_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.COMPILER_LOG_FILE_PATH)
         self.detector_log_path = Path(config.OUTPUT_DIRECTORY) / Path(config.DETECTOR_LOG_FILE_PATH)
