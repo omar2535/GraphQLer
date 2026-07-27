@@ -11,6 +11,29 @@ class Resolver:
     def __init__(self):
         pass
 
+    def _is_payload_wrapper(self, type_name: str, endpoint_name: str, objects: dict) -> bool:
+        """Returns True when *type_name* looks like an operation's response envelope.
+
+        Mutations conventionally return a payload type named after the mutation
+        itself (``deleteNote`` → ``DeleteNote``) rather than the resource being
+        operated on. Such a type describes the response, not the object an ``id``
+        input refers to, so it must not be used to infer an ID dependency --
+        doing so makes the mutation depend on its own output.
+
+        Two signals, either of which is sufficient:
+
+        1. The type name matches the endpoint name (ignoring case).
+        2. The type name carries a CRUD prefix that, once stripped, names a
+           known object (``DeleteNote`` → ``Note``). The membership check keeps
+           genuine types that merely begin with a verb (``Setting``) intact.
+        """
+        if not type_name:
+            return False
+        if type_name.lower() == endpoint_name.lower():
+            return True
+        stripped = strip_crud_prefix(type_name)
+        return stripped != type_name and stripped in objects
+
     def _resolve_object_type_from_output(self, operation: dict, objects: dict) -> str:
         """Extracts the base OBJECT type name from an operation's output, or returns "".
 
@@ -205,7 +228,11 @@ class Resolver:
             if input_name.lower() in ("id", "ids"):
                 # Prefer output-type inference: the operation's return type directly
                 # tells us which object these IDs belong to, without any name matching.
+                # Payload wrappers are excluded -- they name the response envelope, not
+                # the resource, and would otherwise make an operation depend on itself.
                 guessed_object_name = self._resolve_object_type_from_output(operation, objects) if operation else ""
+                if self._is_payload_wrapper(guessed_object_name, endpoint_name, objects):
+                    guessed_object_name = ""
                 # Fall back to endpoint-name matching when output type is unavailable.
                 # For "ids" strip a "ByIds" suffix first so that "charactersByIds" →
                 # "characters" → "character" → "Character" rather than "Characters".

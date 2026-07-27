@@ -128,3 +128,63 @@ class TestMutationObjectResolverProduces:
         result = self.resolver.resolve(objects, mutations, {})
         assert result["createCountries"]["produces"] == "Country"
         assert result["createCountry"]["produces"] == ""
+
+
+class TestMutationPayloadWrapperIdDependency:
+    """A bare 'id' input must resolve to the resource, not the mutation's payload type.
+
+    GraphQL mutations conventionally return an envelope named after the mutation
+    (deleteNote -> DeleteNote). Inferring the ID dependency from that output makes
+    the mutation depend on its own result, which detaches DELETE operations from
+    the CREATE that produced the resource and silently disables the IDOR and UAF
+    chain strategies.
+    """
+
+    def setup_method(self):
+        self.resolver = MutationObjectResolver()
+
+    def _idor_api_objects(self):
+        return {
+            "Note": _make_object([]),
+            "Order": _make_object([]),
+            "DeleteNote": _make_object([]),
+            "DeleteOrder": _make_object([]),
+        }
+
+    def _object_output(self, type_name):
+        return {"kind": "OBJECT", "name": type_name, "type": type_name, "ofType": None}
+
+    def test_delete_mutation_id_resolves_to_resource_not_payload(self):
+        objects = self._idor_api_objects()
+        operation = {"output": self._object_output("DeleteNote")}
+        result = self.resolver.resolve_inputs_related_to_ids_to_objects(
+            "deleteNote", {"id": True}, objects, operation=operation
+        )
+        assert result["hardDependsOn"].get("id") == "Note"
+
+    def test_delete_mutation_payload_wrapper_not_self_referential(self):
+        objects = self._idor_api_objects()
+        operation = {"output": self._object_output("DeleteOrder")}
+        result = self.resolver.resolve_inputs_related_to_ids_to_objects(
+            "deleteOrder", {"id": True}, objects, operation=operation
+        )
+        assert result["hardDependsOn"].get("id") != "DeleteOrder"
+        assert result["hardDependsOn"].get("id") == "Order"
+
+    def test_mutation_returning_resource_directly_still_uses_output(self):
+        """When the output is the resource itself, output inference is correct."""
+        objects = self._idor_api_objects()
+        operation = {"output": self._object_output("Note")}
+        result = self.resolver.resolve_inputs_related_to_ids_to_objects(
+            "updateNote", {"id": True}, objects, operation=operation
+        )
+        assert result["hardDependsOn"].get("id") == "Note"
+
+    def test_object_name_beginning_with_verb_is_not_treated_as_wrapper(self):
+        """'Setting' starts with a CRUD verb but is a real type, so it is kept."""
+        objects = {"Setting": _make_object([])}
+        operation = {"output": self._object_output("Setting")}
+        result = self.resolver.resolve_inputs_related_to_ids_to_objects(
+            "fetchConfig", {"id": True}, objects, operation=operation
+        )
+        assert result["hardDependsOn"].get("id") == "Setting"
