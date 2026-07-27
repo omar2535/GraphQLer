@@ -1,7 +1,8 @@
 import re
 
-from .utils import find_closest_string, strip_crud_prefix
 from graphqler.utils.parser_utils import get_base_oftype
+
+from .utils import find_closest_string, strip_crud_prefix
 
 # Used only in the name-based fallback when no operation output type is available.
 _BY_IDS_SUFFIX_RE = re.compile(r"byids?$", re.IGNORECASE)
