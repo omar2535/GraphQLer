@@ -1,11 +1,8 @@
-"""GraphGenerator: Creates a networkx graph and stores it in a pickle file for use later on during fuzzing
-The linker does the following:
-- Serialize all the objects (Objects, Queries, Mutations, InputObjects, Enums)
-- Generate a graph of object dependencies
-- Attach queries to the object node
-- Attach mutations related to the object node
+"""Build and reload the dependency graph represented by compiled YAML artifacts.
 
-!Note!: We decide to not link object-objects together here as it is not relevant for graph traversal
+The linker creates nodes for schema objects and operations, attaches queries and
+mutations to their related object nodes, and intentionally omits object-to-object
+links that do not contribute to operation traversal.
 """
 
 from pathlib import Path
@@ -206,7 +203,6 @@ class GraphGenerator:
             if produces and produces in object_nodes:
                 inner_object_node = object_nodes[produces]
                 self.dependency_graph.add_edge(query_node, inner_object_node, weight=100)
-
 
     def create_object_subscription_edges(self, object_nodes: dict, subscription_nodes: dict):
         """Updates the dependency graph with edges between objects and subscriptions. 3 cases:

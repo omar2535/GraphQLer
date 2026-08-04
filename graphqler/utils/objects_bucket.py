@@ -1,32 +1,22 @@
-"""Class for an objects bucket to contain the history of all objects in the system under test
-What does an objects bucket track?
-- For each type of object, track any values that were associated to that object to be used later
-- For each kind of scalar, track any values seen to be used later
+"""Run-scoped store of object and scalar values observed from GraphQL responses.
 
-TODO: Implement the following:
-The class should have two functionalities
-1. Given the graphql data response, parse the data and put objects in the bucket
-2. Be able to return random scalars / objects from the bucket
-3. Be able to return objects from the bucket if given a type and the object name
+Values are reused to satisfy dependencies in later requests. Checkpoints use a
+versioned JSON representation containing primitives only.
 """
 
+import json
 import copy
 import pathlib
 import pprint
 import random
 from typing import Self
 
-import cloudpickle as pickle
-
 from graphqler import config
 from graphqler.utils.api import API
-from graphqler.utils.file_utils import get_or_create_file
+from graphqler.utils.file_utils import atomic_write_json, get_or_create_file, read_json_file
 from graphqler.utils.parser_utils import get_base_oftype, get_output_type_from_details
 
-from .singleton import singleton
 
-
-@singleton
 class ObjectsBucket:
     def __init__(self, api: API):
         self.api = api
@@ -38,7 +28,7 @@ class ObjectsBucket:
         self.scalars: dict[str, dict] = {}
 
         # File paths
-        self.pickle_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.OBJECTS_BUCKET_PICKLE_FILE_NAME
+        self.state_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.OBJECTS_BUCKET_STATE_FILE_NAME
         self.text_save_path = pathlib.Path(config.OUTPUT_DIRECTORY) / config.OBJECTS_BUCKET_TEXT_FILE_NAME
 
     def __str__(self):
@@ -52,20 +42,22 @@ class ObjectsBucket:
 
         return built_str
 
-    # ------------------- Pickle -------------------
-    def __getstate__(self):
-        # Return a dictionary of the attributes to pickle
-        return self.__dict__
-
-    def __setstate__(self, state):
-        # Restore the state from the pickled attributes
-        self.__dict__.update(state)
-
+    # ------------------- Persistence -------------------
     def save(self):
-        """Saves the objects bucket as a pickle file and as a text file"""
-        self.pickle_save_path = get_or_create_file(self.pickle_save_path)
-        with open(self.pickle_save_path, "wb") as file:
-            pickle.dump(self, file)
+        """Save the bucket as versioned JSON and a human-readable text file."""
+        state = {
+            "format": "graphqler.objects_bucket",
+            "version": 1,
+            "objects": self.objects,
+            "scalars": {
+                name: {
+                    **details,
+                    "values": list(details.get("values", set())),
+                }
+                for name, details in self.scalars.items()
+            },
+        }
+        atomic_write_json(state, self.state_save_path)
 
         self.text_save_path = get_or_create_file(self.text_save_path)
         with open(self.text_save_path, "w") as file:
@@ -74,17 +66,26 @@ class ObjectsBucket:
             file.write(str(self))
 
     def load(self) -> Self:
-        """Loads the objects bucket from a pickle file. If the file doesn't exist, does nothing.
-        """
-        if self.pickle_save_path.exists():
-            try:
-                with open(self.pickle_save_path, "rb") as file:
-                    loaded_bucket = pickle.load(file)
-                    self.__dict__ = loaded_bucket.__dict__
-            except (EOFError, Exception):
-                # File may be empty or corrupt (e.g. child process killed mid-write); skip load.
-                pass
+        """Load a versioned JSON bucket state if it exists."""
+        if not self.state_save_path.exists():
+            return self
 
+        try:
+            state = read_json_file(self.state_save_path)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Unable to read objects bucket state: {self.state_save_path}") from exc
+
+        if state.get("format") != "graphqler.objects_bucket" or state.get("version") != 1:
+            raise ValueError(f"Unsupported objects bucket state format: {self.state_save_path}")
+
+        self.objects = state.get("objects", {})
+        self.scalars = {
+            name: {
+                **details,
+                "values": set(details.get("values", [])),
+            }
+            for name, details in state.get("scalars", {}).items()
+        }
         return self
 
     # ------------------- GETTERS -------------------
@@ -338,20 +339,29 @@ class ObjectsBucket:
             self.scalars[name] = {"type": type, "values": {data}}
         self.scalars[name]["values"].add(data)
 
+    def merge(self, other: "ObjectsBucket") -> None:
+        """Merge observations from another bucket without sharing mutable state."""
+        for object_name, objects in other.objects.items():
+            for object_info in objects:
+                self.put_object_in_bucket(object_name, copy.deepcopy(object_info))
+        for scalar_name, details in other.scalars.items():
+            if scalar_name not in self.scalars:
+                self.scalars[scalar_name] = {
+                    **copy.deepcopy(details),
+                    "values": set(details.get("values", set())),
+                }
+            else:
+                self.scalars[scalar_name]["values"].update(details.get("values", set()))
+
     # ------------------- CLONE -------------------
     def clone(self) -> "ObjectsBucket":
-        """Creates an independent copy of this bucket, bypassing the singleton.
-
-        Uses ``type(self)`` which resolves to the inner (unwrapped) class, so the
-        new instance is allocated directly without going through the singleton
-        ``getInstance`` wrapper.
-        """
+        """Create an independent copy of this bucket."""
         real_cls = type(self)
         new_bucket = real_cls.__new__(real_cls)
         new_bucket.api = self.api
         new_bucket.objects = copy.deepcopy(self.objects)
         new_bucket.scalars = copy.deepcopy(self.scalars)
-        new_bucket.pickle_save_path = self.pickle_save_path
+        new_bucket.state_save_path = self.state_save_path
         new_bucket.text_save_path = self.text_save_path
         return new_bucket
 

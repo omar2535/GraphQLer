@@ -4,7 +4,7 @@ Explanation:
   iterates every character in a configurable charset over String input fields
   and flags the node as potentially vulnerable to blind data extraction when the
   response length varies significantly between characters.
-  
+
   This is like time-based blind SQLi but with response length as the oracle instead of time.
 
 Detection logic
@@ -25,7 +25,6 @@ import requests
 from graphqler import config
 from graphqler.utils import plugins_handler
 from graphqler.utils.api import API
-from graphqler.utils.stats import Stats
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.fuzzer.engine.detectors.detector import Detector
@@ -33,6 +32,7 @@ from graphqler.fuzzer.engine.detectors.field_fuzzing.scalar_utils import _resolv
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def collect_string_inputs(inputs: dict) -> list[str]:
     """Return field names whose resolved scalar type is String."""
@@ -44,6 +44,7 @@ def collect_string_inputs(inputs: dict) -> list[str]:
 
 
 # ── Custom getter / materializer ─────────────────────────────────────────────
+
 
 class _FixedStringGetter(Getter):
     """Returns a fixed value for a specific field; falls back to default for all others."""
@@ -68,6 +69,7 @@ class _FixedStringMaterializer(RegularPayloadMaterializer):
 
 
 # ── Detector ──────────────────────────────────────────────────────────────────
+
 
 class FieldCharsetFuzzingDetector(Detector):
     """Detect blind field enumeration by charset-fuzzing String inputs.
@@ -113,12 +115,8 @@ class FieldCharsetFuzzingDetector(Detector):
         self.potentially_vulnerable = bool(enumerable_fields)
 
         last_payload = self._build_payload(string_fields[0], config.FIELD_CHARSET[0]) if string_fields else ""
-        evidence = (
-            f"response length varies across charset for field(s): {enumerable_fields}"
-            if enumerable_fields
-            else ""
-        )
-        Stats().add_vulnerability(
+        evidence = f"response length varies across charset for field(s): {enumerable_fields}" if enumerable_fields else ""
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,
@@ -151,10 +149,8 @@ class FieldCharsetFuzzingDetector(Detector):
         if not payload:
             return 0
         try:
-            _, request_response = plugins_handler.get_request_utils().send_graphql_request(
-                self.api.url, payload
-            )
-            Stats().add_http_status_code(self.name, request_response.status_code)
+            _, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, payload)
+            self.stats.add_http_status_code(self.name, request_response.status_code)
             return len(request_response.text)
         except (ConnectionError, TimeoutError, OSError, AttributeError):
             return 0
