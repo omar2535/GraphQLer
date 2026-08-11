@@ -51,13 +51,7 @@ def _build_bucket(connection_fields=None):
         }
     }
 
-    # Access the underlying class to bypass the singleton decorator for isolated testing.
-    # ObjectsBucket.__wrapped__ is the original undecorated class set by the @singleton decorator.
-    real_cls = ObjectsBucket.__wrapped__  # type: ignore
-    bucket = real_cls.__new__(real_cls)
-    bucket.api = api
-    bucket.objects = {}
-    bucket.scalars = {}
+    bucket = ObjectsBucket(api)
     return bucket
 
 
@@ -192,7 +186,6 @@ class TestUnpackConnectionWrapper:
         data = {"data": [{"id": "20", "name": "Brazil"}]}
         bucket._unpack_connection_wrapper("CountryConnection", data)
         assert {"id": "20", "name": "Brazil"} in bucket.objects.get("Country", [])
-
 
         """A connection field value that is not a list is silently ignored."""
         bucket = _build_bucket()

@@ -1,3 +1,14 @@
+from __future__ import annotations
+
+import copy
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from functools import wraps
+from types import ModuleType
+from typing import Any, Callable, Iterator, Mapping, TypeVar, cast
+
 # Configuration
 
 """Debugging purposes"""
@@ -19,11 +30,13 @@ ENDPOINT_RESULTS_DIR_NAME = "endpoint_results"
 DETECTIONS_DIR_NAME = "detections"
 
 INTROSPECTION_RESULT_FILE_NAME = "introspection_result.json"
+ARTIFACT_MANIFEST_FILE_NAME = "manifest.json"
+ARTIFACT_SCHEMA_VERSION = 1
 CONFIG_FILE_NAME = "config.toml"
 
-"""Pickle files -- mainly for cross-process communication"""
-OBJECTS_BUCKET_PICKLE_FILE_NAME = "objects_bucket.pkl"
-STATS_PICKLE_FILE_NAME = "stats.pkl"
+"""Versioned JSON state files used for cross-process communication."""
+OBJECTS_BUCKET_STATE_FILE_NAME = "objects_bucket.json"
+STATS_STATE_FILE_NAME = "stats.json"
 
 QUERY_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/query_parameter_list.yml"
 MUTATION_PARAMETER_FILE_NAME = f"{EXTRACTED_DIR_NAME}/mutation_parameter_list.yml"
@@ -53,17 +66,17 @@ Model string uses litellm format:
   Ollama:    "ollama/llama3"  (set LLM_BASE_URL to "http://localhost:11434")
   LiteLLM proxy: "openai/my-model"  (set LLM_BASE_URL to your proxy URL)
 """
-USE_LLM: bool = False                         # Master toggle: use LLM for dependency graph inference, endpoint classification, and IDOR chain classification
-LLM_USE_FOR_COMPILATION: bool = True          # When USE_LLM=True, use LLM during the compilation phase (dependency resolver, IDOR/UAF chain classifiers)
-LLM_USE_FOR_FUZZING: bool = True              # When USE_LLM=True, use LLM during the fuzzing phase (payload generation, error retry, endpoint classification, reporting)
-LLM_MODEL: str = "gpt-4o-mini"              # litellm model string (encodes provider + model)
-LLM_API_KEY: str = ""                        # API key; if empty, reads from env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
-LLM_BASE_URL: str = ""                       # Custom base URL (required for Ollama and LiteLLM proxies)
-LLM_RESOLVER_FALLBACK_TO_ID: bool = True      # Fall back to classic ID-based resolver if LLM call fails
-LLM_RESOLVER_SAVE_COMPARISON: bool = True     # Save a side-by-side comparison JSON of LLM vs classic results
-LLM_MAX_RETRIES: int = 2                     # How many times to retry when the LLM returns non-JSON
-LLM_ENABLE_REPORTER: bool = False             # Independent toggle: generate an LLM vulnerability report at end of fuzzing (requires USE_LLM=True)
-LLM_REPORT_FILE_NAME: str = "report.md"     # Output filename for the LLM-generated report
+USE_LLM: bool = False  # Master toggle: use LLM for dependency graph inference, endpoint classification, and IDOR chain classification
+LLM_USE_FOR_COMPILATION: bool = True  # When USE_LLM=True, use LLM during the compilation phase (dependency resolver, IDOR/UAF chain classifiers)
+LLM_USE_FOR_FUZZING: bool = True  # When USE_LLM=True, use LLM during the fuzzing phase (payload generation, error retry, endpoint classification, reporting)
+LLM_MODEL: str = "gpt-4o-mini"  # litellm model string (encodes provider + model)
+LLM_API_KEY: str = ""  # API key; if empty, reads from env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+LLM_BASE_URL: str = ""  # Custom base URL (required for Ollama and LiteLLM proxies)
+LLM_RESOLVER_FALLBACK_TO_ID: bool = True  # Fall back to classic ID-based resolver if LLM call fails
+LLM_RESOLVER_SAVE_COMPARISON: bool = True  # Save a side-by-side comparison JSON of LLM vs classic results
+LLM_MAX_RETRIES: int = 2  # How many times to retry when the LLM returns non-JSON
+LLM_ENABLE_REPORTER: bool = False  # Independent toggle: generate an LLM vulnerability report at end of fuzzing (requires USE_LLM=True)
+LLM_REPORT_FILE_NAME: str = "report.md"  # Output filename for the LLM-generated report
 
 """For the linker"""
 GRAPH_VISUALIZATION_OUTPUT = "dependency_graph.png"
@@ -108,6 +121,7 @@ SKIP_MAXIMAL_PAYLOADS: bool = False  # This mode is for when we want to skip the
 SKIP_DOS_ATTACKS: bool = True  # This mode is for when we want to skip the DoS check
 SKIP_INJECTION_ATTACKS: bool = False  # This mode is for when we want to skip the injection check
 SKIP_MISC_ATTACKS: bool = False  # This mode is for when we want to skip the miscellaneous attacks
+RESUME: bool = False  # Continue from the latest atomic stats/object-bucket checkpoint
 SKIP_SUBSCRIPTIONS: bool = True  # Subscriptions require WebSocket transport; disabled by default (opt-in with --subscriptions)
 SUBSCRIPTION_TIMEOUT: int = 1  # Seconds to wait for events when executing a subscription
 SUBSCRIPTION_PROTOCOL: str = "graphql-transport-ws"  # WebSocket sub-protocol: "graphql-transport-ws" (modern) or "subscriptions-transport-ws" (legacy Apollo)
@@ -126,7 +140,9 @@ SKIP_ENUMERATION_ATTACKS: bool = True  # Disabled by default (sends many request
 # Charset used for field-level enumeration fuzzing (printable ASCII minus obvious injection chars)
 FIELD_CHARSET: str = "0123456789abcdefghijklmnopqrstuvwxyz"
 MAX_CHARSET_FUZZ_FIELDS: int = 3  # Max string fields to fuzz per node
-FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = 0.5  # Flag if (max-min)/avg response length exceeds this ratio (raised from 0.2 to reduce FPs; paired with near-empty fraction check in detector)
+FIELD_RESPONSE_LENGTH_VARIANCE_THRESHOLD = (
+    0.5  # Flag if (max-min)/avg response length exceeds this ratio (raised from 0.2 to reduce FPs; paired with near-empty fraction check in detector)
+)
 # ID / integer enumeration (IDOR detection)
 ID_ENUMERATION_COUNT: int = 10  # Number of integer IDs to probe (1 .. N)
 ID_ENUMERATION_SUCCESS_THRESHOLD = 2  # Min distinct IDs that must return data to flag IDOR
@@ -143,18 +159,19 @@ SKIP_NODES = []
 CUSTOM_HEADERS = {}
 
 """For chain-based IDOR detection (cross-user access testing)"""
-IDOR_SECONDARY_AUTH: str | None = None              # Attacker/secondary auth token (e.g. "Bearer token2"); if None, chain-based IDOR phase is skipped
-SKIP_IDOR_CHAIN_FUZZING: bool = False         # Set True to disable the chain-based IDOR phase entirely
+IDOR_SECONDARY_AUTH: str | None = None  # Attacker/secondary auth token (e.g. "Bearer token2"); if None, chain-based IDOR phase is skipped
+SKIP_IDOR_CHAIN_FUZZING: bool = False  # Set True to disable the chain-based IDOR phase entirely
 IDOR_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
-IDOR_USE_LLM_FALLBACK: bool = False           # When True, use LLM classifier for low-confidence chains
+IDOR_USE_LLM_FALLBACK: bool = False  # When True, use LLM classifier for low-confidence chains
 
 """For chain-based UAF detection (use-after-delete / use-after-free testing)"""
-SKIP_UAF_CHAIN_FUZZING: bool = False          # Set True to disable the chain-based UAF phase entirely
+SKIP_UAF_CHAIN_FUZZING: bool = False  # Set True to disable the chain-based UAF phase entirely
 UAF_HEURISTIC_CONFIDENCE_THRESHOLD: float = 0.5  # Chains scoring below this trigger LLM fallback (when enabled)
-UAF_USE_LLM_FALLBACK: bool = False            # When True, use LLM classifier for low-confidence chains
+UAF_USE_LLM_FALLBACK: bool = False  # When True, use LLM classifier for low-confidence chains
 
 """For arbitrary runtime profiles (multi-auth, custom headers, etc.)"""
 PROFILES = {}
+AUTHORIZATION_DIFFERENTIAL: bool = False  # Replay private operations under anonymous and alternate profiles; opt in because this adds requests
 
 # TUI-only: last URL entered in the TUI (not persisted to config.toml, not used by CLI)
 TUI_LAST_URL: str = ""
@@ -163,3 +180,66 @@ TUI_LAST_URL: str = ""
 # callbacks and log capture work inside the Textual event loop.  Set by the TUI
 # at startup; never written to config.toml and never read by the CLI.
 TUI_MODE: bool = False
+
+
+@dataclass(frozen=True)
+class RunSettings:
+    """Immutable snapshot of uppercase configuration values for one run."""
+
+    values: Mapping[str, Any]
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self.values[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+
+_ACTIVE_SETTINGS: ContextVar[RunSettings | None] = ContextVar("graphqler_active_settings", default=None)
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+def snapshot(overrides: Mapping[str, Any] | None = None) -> RunSettings:
+    """Capture module defaults plus validated per-run overrides."""
+    module = sys.modules[__name__]
+    values = {name: copy.deepcopy(ModuleType.__getattribute__(module, name)) for name in ModuleType.__dir__(module) if name.isupper() and not name.startswith("_")}
+    for name, value in (overrides or {}).items():
+        if name not in values:
+            raise KeyError(f"Unknown GraphQLer configuration key: {name}")
+        values[name] = copy.deepcopy(value)
+    return RunSettings(values)
+
+
+@contextmanager
+def activate(settings: RunSettings) -> Iterator[None]:
+    """Expose a run's immutable settings through existing ``config.X`` reads."""
+    token = _ACTIVE_SETTINGS.set(settings)
+    try:
+        yield
+    finally:
+        _ACTIVE_SETTINGS.reset(token)
+
+
+def use_settings(method: _F) -> _F:
+    """Run an instance method under ``self.settings``."""
+
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        with activate(self.settings):
+            return method(self, *args, **kwargs)
+
+    return cast(_F, wrapped)
+
+
+class _RuntimeConfigModule(ModuleType):
+    """Resolve uppercase settings from the active run before module defaults."""
+
+    def __getattribute__(self, name: str) -> Any:
+        if name.isupper() and not name.startswith("_"):
+            active = _ACTIVE_SETTINGS.get()
+            if active is not None and name in active.values:
+                return active.values[name]
+        return ModuleType.__getattribute__(self, name)
+
+
+sys.modules[__name__].__class__ = _RuntimeConfigModule

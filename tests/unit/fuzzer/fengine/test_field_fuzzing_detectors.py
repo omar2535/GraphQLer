@@ -148,10 +148,8 @@ class TestFieldCharsetFuzzingDetector(unittest.TestCase):
         self.assertFalse(confirmed)
         self.assertFalse(potential)
 
-    @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.field_charset_fuzzing_detector.Stats")
     @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.field_charset_fuzzing_detector.plugins_handler")
-    def test_flags_potential_on_high_variance(self, mock_ph, mock_stats):
-        mock_stats.return_value = MagicMock()
+    def test_flags_potential_on_high_variance(self, mock_ph):
         # 'a' → short response, 'b' → very long, 'c' → short
         def fake_send(url, payload):
             resp = MagicMock()
@@ -176,10 +174,8 @@ class TestFieldCharsetFuzzingDetector(unittest.TestCase):
         self.assertFalse(confirmed, "charset fuzzing should never confirm")
         self.assertTrue(potential, "high response variance should flag as potential")
 
-    @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.field_charset_fuzzing_detector.Stats")
     @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.field_charset_fuzzing_detector.plugins_handler")
-    def test_no_flag_on_uniform_responses(self, mock_ph, mock_stats):
-        mock_stats.return_value = MagicMock()
+    def test_no_flag_on_uniform_responses(self, mock_ph):
         def fake_send(url, payload):
             resp = MagicMock()
             resp.text = "x" * 150
@@ -230,10 +226,8 @@ class TestIDEnumerationDetector(unittest.TestCase):
         self.assertFalse(confirmed)
         self.assertFalse(potential)
 
-    @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.Stats")
     @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.plugins_handler")
-    def test_flags_potential_on_multiple_id_hits(self, mock_ph, mock_stats):
-        mock_stats.return_value = MagicMock()
+    def test_flags_potential_on_multiple_id_hits(self, mock_ph):
         # IDs 1, 2, 3 return data; 4, 5 do not
         def fake_send(url, payload):
             resp = MagicMock()
@@ -253,20 +247,16 @@ class TestIDEnumerationDetector(unittest.TestCase):
         self.assertFalse(confirmed, "ID enumeration should never confirm")
         self.assertTrue(potential, "3 IDs returning data >= threshold of 2 should flag")
 
-    @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.Stats")
     @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.plugins_handler")
-    def test_no_flag_when_single_id_returns_data(self, mock_ph, mock_stats):
-        mock_stats.return_value = MagicMock()
+    def test_no_flag_when_single_id_returns_data(self, mock_ph):
         det = _make_detector(IDEnumerationDetector, INT_INPUT)
         det._probe_ids = lambda f: (1, ['query { searchItems(id: 1) { id } }'])
 
         _, potential = det.detect()
         self.assertFalse(potential, "only 1 ID hit < threshold of 2 should NOT flag")
 
-    @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.Stats")
     @patch("graphqler.fuzzer.engine.detectors.field_fuzzing.id_enumeration_detector.plugins_handler")
-    def test_no_flag_when_no_ids_return_data(self, mock_ph, mock_stats):
-        mock_stats.return_value = MagicMock()
+    def test_no_flag_when_no_ids_return_data(self, mock_ph):
         det = _make_detector(IDEnumerationDetector, INT_INPUT)
         det._probe_ids = lambda f: (0, [])
 

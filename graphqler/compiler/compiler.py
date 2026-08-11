@@ -8,10 +8,30 @@
 from pathlib import Path
 from graphqler.utils import plugins_handler
 from graphqler.utils.file_utils import write_dict_to_yaml, write_json_to_file, initialize_file, intialize_file_if_not_exists
+from graphqler.utils.artifact_manifest import write_manifest
 from graphqler.utils.logging_utils import Logger
 from .introspection_query import introspection_query
-from .parsers import QueryListParser, ObjectListParser, MutationListParser, SubscriptionListParser, InputObjectListParser, EnumListParser, UnionListParser, InterfaceListParser, Parser
-from .resolvers import ObjectDependencyResolver, ObjectMethodResolver, MutationObjectResolver, QueryObjectResolver, SubscriptionObjectResolver, LLMMutationObjectResolver, LLMQueryObjectResolver, ResolverComparison
+from .parsers import (
+    QueryListParser,
+    ObjectListParser,
+    MutationListParser,
+    SubscriptionListParser,
+    InputObjectListParser,
+    EnumListParser,
+    UnionListParser,
+    InterfaceListParser,
+    Parser,
+)
+from .resolvers import (
+    ObjectDependencyResolver,
+    ObjectMethodResolver,
+    MutationObjectResolver,
+    QueryObjectResolver,
+    SubscriptionObjectResolver,
+    LLMMutationObjectResolver,
+    LLMQueryObjectResolver,
+    ResolverComparison,
+)
 from graphqler.chains import ChainGenerator, TopologicalChainStrategy, IDORChainStrategy, UAFChainStrategy, Chain
 from graphqler.graph import GraphGenerator
 from graphqler import config
@@ -22,7 +42,7 @@ import json
 
 
 class Compiler:
-    def __init__(self, save_path: str, url: str):
+    def __init__(self, save_path: str, url: str, settings: config.RunSettings | None = None):
         """Initializes the compiler,
             creates all necessary file paths to save the outputs for run if doesn't already exist
 
@@ -31,20 +51,21 @@ class Compiler:
             url (str): URL for graphql introspection query to hit
         """
         self.save_path = save_path
-        self.introspection_result_save_path = Path(save_path) / Path(config.INTROSPECTION_RESULT_FILE_NAME)
-        self.object_list_save_path = Path(save_path) / config.OBJECT_LIST_FILE_NAME
-        self.input_object_list_save_path = Path(save_path) / config.INPUT_OBJECT_LIST_FILE_NAME
-        self.mutation_parameter_save_path = Path(save_path) / config.MUTATION_PARAMETER_FILE_NAME
-        self.query_parameter_save_path = Path(save_path) / config.QUERY_PARAMETER_FILE_NAME
-        self.subscription_parameter_save_path = Path(save_path) / config.SUBSCRIPTION_PARAMETER_FILE_NAME
-        self.enum_list_save_path = Path(save_path) / config.ENUM_LIST_FILE_NAME
-        self.union_list_save_path = Path(save_path) / config.UNION_LIST_FILE_NAME
-        self.interface_list_save_path = Path(save_path) / config.INTERFACE_LIST_FILE_NAME
+        self.settings = settings or config.snapshot()
+        self.introspection_result_save_path = Path(save_path) / Path(self.settings.INTROSPECTION_RESULT_FILE_NAME)
+        self.object_list_save_path = Path(save_path) / self.settings.OBJECT_LIST_FILE_NAME
+        self.input_object_list_save_path = Path(save_path) / self.settings.INPUT_OBJECT_LIST_FILE_NAME
+        self.mutation_parameter_save_path = Path(save_path) / self.settings.MUTATION_PARAMETER_FILE_NAME
+        self.query_parameter_save_path = Path(save_path) / self.settings.QUERY_PARAMETER_FILE_NAME
+        self.subscription_parameter_save_path = Path(save_path) / self.settings.SUBSCRIPTION_PARAMETER_FILE_NAME
+        self.enum_list_save_path = Path(save_path) / self.settings.ENUM_LIST_FILE_NAME
+        self.union_list_save_path = Path(save_path) / self.settings.UNION_LIST_FILE_NAME
+        self.interface_list_save_path = Path(save_path) / self.settings.INTERFACE_LIST_FILE_NAME
 
-        self.compiled_objects_save_path = Path(save_path) / config.COMPILED_OBJECTS_FILE_NAME
-        self.compiled_mutations_save_path = Path(save_path) / config.COMPILED_MUTATIONS_FILE_NAME
-        self.compiled_queries_save_path = Path(save_path) / config.COMPILED_QUERIES_FILE_NAME
-        self.compiled_subscriptions_save_path = Path(save_path) / config.COMPILED_SUBSCRIPTIONS_FILE_NAME
+        self.compiled_objects_save_path = Path(save_path) / self.settings.COMPILED_OBJECTS_FILE_NAME
+        self.compiled_mutations_save_path = Path(save_path) / self.settings.COMPILED_MUTATIONS_FILE_NAME
+        self.compiled_queries_save_path = Path(save_path) / self.settings.COMPILED_QUERIES_FILE_NAME
+        self.compiled_subscriptions_save_path = Path(save_path) / self.settings.COMPILED_SUBSCRIPTIONS_FILE_NAME
         self.url = url
 
         # Initialize the parsers we will use
@@ -57,16 +78,12 @@ class Compiler:
         self.union_list_parser = UnionListParser()
         self.interface_list_parser = InterfaceListParser()
 
-        # Initialize the logger
-        self.logger = Logger().get_compiler_logger()
+        with config.activate(self.settings):
+            self.logger = Logger().get_compiler_logger()
+            self.request_utils = plugins_handler.get_request_utils()
+            self.chain_generator = ChainGenerator()
 
-        # Initialize the plugins handler to get request utils
-        self.request_utils = plugins_handler.get_request_utils()
-
-        # ChainGenerator — populated after run() completes
-        self.chain_generator: ChainGenerator = ChainGenerator()
-
-        # Create empty files for these files
+    def _initialize_output_files(self) -> None:
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
         initialize_file(self.introspection_result_save_path)
         initialize_file(self.object_list_save_path)
@@ -82,6 +99,7 @@ class Compiler:
         intialize_file_if_not_exists(self.compiled_queries_save_path)
         intialize_file_if_not_exists(self.compiled_subscriptions_save_path)
 
+    @config.use_settings
     def run(self):
         """The only function required to be run from the caller, will perform:
         1. Introspection query
@@ -89,6 +107,7 @@ class Compiler:
         3. Run the parsers, storing files into objects / query / mutations
         4. Creating dependencies between objects and attaching methods (query/mutations) to objects
         """
+        self._initialize_output_files()
         introspection_result = self.get_introspection_query_results()
         if introspection_result is None or introspection_result == {}:
             print("(C) Introspection query failed, trying clairvoyance")
@@ -99,6 +118,7 @@ class Compiler:
 
         self.run_parsers_and_save(introspection_result)
         self.run_resolvers_and_save(introspection_result)
+        write_manifest(self.save_path, self.url, "graph", self.settings)
 
     def get_introspection_query_results(self) -> dict:
         """Run the introspection query, grab results and output to file. Raises error if introspection query wasn't successful
@@ -215,6 +235,7 @@ class Compiler:
         write_dict_to_yaml(queries, self.compiled_queries_save_path)
         write_dict_to_yaml(subscriptions, self.compiled_subscriptions_save_path)
 
+    @config.use_settings
     def run_chain_generation_and_save(self):
         """Builds the dependency graph, runs each configured strategy, and persists the chains.
 
@@ -225,6 +246,7 @@ class Compiler:
         in_degrees = dict(dependency_graph.in_degree())
         if not in_degrees:
             self.logger.warning("Dependency graph is empty — no chains generated")
+            write_manifest(self.save_path, self.url, "chains", self.settings)
             return
 
         min_degree = min(in_degrees.values())
@@ -241,9 +263,7 @@ class Compiler:
             if not strategy.is_enabled():
                 continue
 
-            chains = self.chain_generator.generate_with_strategy(
-                strategy, dependency_graph, starter_nodes, regular_chains
-            )
+            chains = self.chain_generator.generate_with_strategy(strategy, dependency_graph, starter_nodes, regular_chains)
 
             # If this was the first strategy, its output becomes the 'source' for others
             if not regular_chains:
@@ -253,3 +273,4 @@ class Compiler:
 
         self.chain_generator.save_to_yaml(self.save_path)
         self.logger.info(f"Chains saved to {self.save_path}/{config.CHAINS_DIR_NAME}/")
+        write_manifest(self.save_path, self.url, "chains", self.settings)

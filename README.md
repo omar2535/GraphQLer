@@ -181,6 +181,26 @@ python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH>
 
 While fuzzing, statistics related to the GraphQL API and any ongoing request counts are logged in the console. Any request return codes are written to `<SAVE_PATH>/stats.txt`. All logs during fuzzing are kept in `<SAVE_PATH>/logs/fuzzer.log`. The log file will tell you exactly which requests are sent to which endpoints, and what the response was. This can be used for further result analysis. If IDOR chains were generated during compile, the fuzzer automatically tests them and writes detection results to `<SAVE_PATH>/detections/`.
 
+Compilation writes `<SAVE_PATH>/manifest.json` with the artifact schema version, target endpoint, compile phase, and SHA-256 hashes. Fuzzing validates this contract before loading YAML, so incomplete, stale, endpoint-mismatched, or modified artifacts fail with a specific error instead of failing later during graph execution.
+
+Interrupted fuzz runs can continue from their latest atomic `serialized/stats.json` and `serialized/objects_bucket.json` checkpoints:
+
+```sh
+python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH> --resume
+```
+
+For broader authorization testing, provide named identities and enable differential replay. GraphQLer replays likely private queries and mutations with the exact same payload under anonymous and alternate profiles, compares returned fields, and also checks subscription event exposure when subscriptions are enabled:
+
+```sh
+python -m graphqler --mode fuzz --url <URL> --path <SAVE_PATH> \
+  --auth primary='Bearer <USER_A_TOKEN>' \
+  --auth user-b='Bearer <USER_B_TOKEN>' \
+  --auth admin='Bearer <ADMIN_TOKEN>' \
+  --authorization-differential --subscriptions
+```
+
+Differential replay is opt-in because it adds requests and can repeat mutation side effects. Anonymous exact-data matches are confirmed findings; alternate authenticated-profile responses are potential findings unless an ownership-aware IDOR chain confirms them.
+
 ### IDOR Checking mode
 
 ```sh
@@ -192,7 +212,7 @@ python -m graphqler --mode idor --url <URL> --path <SAVE_PATH>
 
 [Insecure direct object reference (IDOR)](https://portswigger.net/web-security/access-control/idor) detection works via multi-profile chain replay. During **compile**, `--idor-auth` enables generation of IDOR candidate chains: endpoints that create or expose user-scoped objects are identified via heuristics (and optionally an LLM classifier), then split into primary-profile steps (authenticated user) and secondary-profile steps (attacker token). These chains are saved to `compiled/chains/idor.yml`.
 
-During **fuzz**, the `IDORChainDetector` executes each IDOR chain — the primary profile creates or retrieves the object, then the secondary profile attempts to access it. Any data returned to the secondary profile is flagged as a potential IDOR vulnerability and written to `<SAVE_PATH>/detections/IDOR/<endpoint>/`.
+During **fuzz**, the `IDORChainDetector` executes each IDOR chain — the primary profile creates or retrieves the object, then the secondary profile attempts to access it. Any data returned to the secondary profile is flagged as a potential IDOR vulnerability and written to `<SAVE_PATH>/detections/IDOR_CHAIN/<endpoint>/`.
 
 The standalone **idor** mode re-executes only the IDOR chains without running regular fuzzing. This is useful for targeted re-testing after fixing an issue, or when you only want to check access-control without the overhead of a full fuzz run.
 
@@ -236,6 +256,10 @@ There are also variables that can be modified with the `--config` flag as a TOML
 | SKIP_NODES | Nodes to skip (query or mutation names) | List | [] |
 | DISABLE_MUTATIONS | Only generate and run Query chains — all Mutation nodes are excluded from chain generation and fuzzing. Can also be set via `--disable-mutations` CLI flag. | Boolean | False |
 | IDOR_SECONDARY_AUTH | Secondary (attacker) authentication token for IDOR chain detection (e.g. `"Bearer token2"`). If not set, the IDOR chain phase is skipped. | String | None |
+| AUTHORIZATION_DIFFERENTIAL | Replay likely private operations under anonymous and alternate profiles. Opt-in because it adds requests and repeats mutation payloads. | Boolean | False |
+| PROFILES | Named runtime profiles with auth tokens, headers, or variables; CLI equivalent is repeated `--auth name=token`. | Object | `{}` |
+| SKIP_SUBSCRIPTIONS | Disable WebSocket subscription execution. Set false or pass `--subscriptions` to enable it. | Boolean | True |
+| RESUME | Continue an interrupted fuzz run from atomic checkpoints. CLI equivalent is `--resume`. | Boolean | False |
 
 ## AI Features
 

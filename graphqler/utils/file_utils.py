@@ -2,6 +2,9 @@ from pathlib import Path
 import yaml
 import json
 import shutil
+import os
+import tempfile
+from typing import Any
 
 
 def initialize_file(file_path: str | Path):
@@ -95,6 +98,35 @@ def write_dict_to_yaml(contents: dict, output_file: str | Path):
     yaml_data = yaml.dump(contents, default_flow_style=False)
     with open(output_file, "w") as yaml_file:
         yaml_file.write(yaml_data)
+
+
+def atomic_write_json(contents: Any, output_file: str | Path) -> None:
+    """Atomically replace a JSON file with fully-written contents."""
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=output_path.parent,
+        prefix=f".{output_path.name}.",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(descriptor, "w") as file_handle:
+            json.dump(contents, file_handle, indent=2, sort_keys=True)
+            file_handle.flush()
+            os.fsync(file_handle.fileno())
+        os.replace(temporary_name, output_path)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def read_json_file(input_file: str | Path) -> Any:
+    """Read and decode a JSON file."""
+    with open(input_file) as file_handle:
+        return json.load(file_handle)
 
 
 def read_yaml_to_dict(read_path: Path) -> dict:

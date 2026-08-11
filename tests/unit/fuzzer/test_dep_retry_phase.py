@@ -45,11 +45,10 @@ class TestFEngineHardDepResult:
     into ResultEnum.HARD_DEPENDENCY_NOT_MET (not INTERNAL_FAILURE)."""
 
     def _make_fengine(self):
-        """Create a FEngine instance with a mocked API, resetting the singleton first."""
+        """Create an execution engine with a mocked API."""
         from graphqler.fuzzer.engine.fengine import FEngine
         from graphqler.utils.api import API
 
-        FEngine.reset()  # ty: ignore[unresolved-attribute]
         api = MagicMock(spec=API)
         api.url = "http://example.com/graphql"
         return FEngine(api)
@@ -108,9 +107,6 @@ class TestDepRetryTracking:
     def _make_fuzzer(self):
         """Build a Fuzzer with all heavy dependencies mocked out."""
         from graphqler.fuzzer.fuzzer import Fuzzer
-        from graphqler.fuzzer.engine.fengine import FEngine
-
-        FEngine.reset()  # ty: ignore[unresolved-attribute]
 
         with (
             patch("graphqler.fuzzer.fuzzer.API"),
@@ -134,10 +130,10 @@ class TestDepRetryTracking:
         """When a chain stops early, all subsequent primary non-Object nodes must be dep-blocked."""
         fuzzer = self._make_fuzzer()
 
-        node2 = _make_node("character", "Query")      # fails
-        node3 = _make_node("charactersByIds", "Query") # never reached
-        node4 = _make_node("episode", "Query")         # never reached
-        obj_node = _make_node("Character", "Object")   # should be excluded
+        node2 = _make_node("character", "Query")  # fails
+        node3 = _make_node("charactersByIds", "Query")  # never reached
+        node4 = _make_node("episode", "Query")  # never reached
+        obj_node = _make_node("Character", "Object")  # should be excluded
 
         # Build fake chain steps matching the structure in fuzzer.py
         def _make_step(node, profile="primary"):
@@ -148,10 +144,10 @@ class TestDepRetryTracking:
 
         chain_steps = [
             _make_step(_make_node("characters", "Query")),  # step 0 — succeeds
-            _make_step(node2),                               # step 1 — fails
-            _make_step(node3),                               # step 2 — skipped
-            _make_step(node4),                               # step 3 — skipped
-            _make_step(obj_node),                            # step 4 — Object, must be excluded
+            _make_step(node2),  # step 1 — fails
+            _make_step(node3),  # step 2 — skipped
+            _make_step(node4),  # step 3 — skipped
+            _make_step(obj_node),  # step 4 — Object, must be excluded
         ]
 
         # Simulate the break logic from __run_chain (i=1, failure at node2)
@@ -159,7 +155,7 @@ class TestDepRetryTracking:
         fail_result = Result(ResultEnum.HARD_DEPENDENCY_NOT_MET)
         if fail_result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
             fuzzer._dep_blocked_nodes.add(node2)
-        for future_step in chain_steps[i + 1:]:
+        for future_step in chain_steps[i + 1 :]:
             if future_step.profile_name == "primary" and future_step.node.graphql_type != "Object":
                 fuzzer._dep_blocked_nodes.add(future_step.node)
 
@@ -167,7 +163,6 @@ class TestDepRetryTracking:
         assert node3 in fuzzer._dep_blocked_nodes
         assert node4 in fuzzer._dep_blocked_nodes
         assert obj_node not in fuzzer._dep_blocked_nodes
-
 
         """A node that returns HARD_DEPENDENCY_NOT_MET should be in _dep_blocked_nodes."""
         fuzzer = self._make_fuzzer()
@@ -193,20 +188,13 @@ class TestDepRetryTracking:
         fuzzer.fengine.run_maximal_payload.return_value = ({}, success_result)
 
         # Run the dep_retry logic (extracted from __run_fuzz)
-        dep_retry_nodes = [
-            n for n in fuzzer._dep_blocked_nodes
-            if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes
-        ]
+        dep_retry_nodes = [n for n in fuzzer._dep_blocked_nodes if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes]
         for n in dep_retry_nodes:
             fuzzer.fengine.run_minimal_payload(n.name, fuzzer.objects_bucket, n.graphql_type, check_hard_depends_on=False)
             fuzzer.fengine.run_maximal_payload(n.name, fuzzer.objects_bucket, n.graphql_type, check_hard_depends_on=False)
 
-        fuzzer.fengine.run_minimal_payload.assert_called_once_with(
-            "charactersByIds", fuzzer.objects_bucket, "Query", check_hard_depends_on=False
-        )
-        fuzzer.fengine.run_maximal_payload.assert_called_once_with(
-            "charactersByIds", fuzzer.objects_bucket, "Query", check_hard_depends_on=False
-        )
+        fuzzer.fengine.run_minimal_payload.assert_called_once_with("charactersByIds", fuzzer.objects_bucket, "Query", check_hard_depends_on=False)
+        fuzzer.fengine.run_maximal_payload.assert_called_once_with("charactersByIds", fuzzer.objects_bucket, "Query", check_hard_depends_on=False)
 
     def test_dep_retry_skips_already_successful_nodes(self):
         """Nodes that already succeeded during chains/islands must NOT be retried."""
@@ -216,10 +204,7 @@ class TestDepRetryTracking:
         # Mark as already successful
         fuzzer.stats.successful_nodes = {"Query|charactersByIds": 1}
 
-        dep_retry_nodes = [
-            n for n in fuzzer._dep_blocked_nodes
-            if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes
-        ]
+        dep_retry_nodes = [n for n in fuzzer._dep_blocked_nodes if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes]
         assert dep_retry_nodes == []
 
     def test_dep_retry_empty_when_no_hard_dep_failures(self):
@@ -227,19 +212,14 @@ class TestDepRetryTracking:
         fuzzer = self._make_fuzzer()
         fuzzer._dep_blocked_nodes = set()
 
-        dep_retry_nodes = [
-            n for n in fuzzer._dep_blocked_nodes
-            if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes
-        ]
+        dep_retry_nodes = [n for n in fuzzer._dep_blocked_nodes if f"{n.graphql_type}|{n.name}" not in fuzzer.stats.successful_nodes]
         assert dep_retry_nodes == []
         fuzzer.fengine.run_minimal_payload.assert_not_called()
 
     def test_dep_blocked_nodes_initialized_empty(self):
         """Fuzzer._dep_blocked_nodes must start as an empty set."""
         from graphqler.fuzzer.fuzzer import Fuzzer
-        from graphqler.fuzzer.engine.fengine import FEngine
 
-        FEngine.reset()  # ty: ignore[unresolved-attribute]
         with (
             patch("graphqler.fuzzer.fuzzer.API"),
             patch("graphqler.fuzzer.fuzzer.GraphGenerator"),
@@ -248,6 +228,7 @@ class TestDepRetryTracking:
             patch("graphqler.fuzzer.fuzzer.FEngine"),
             patch("graphqler.fuzzer.fuzzer.ObjectsBucket"),
             patch("graphqler.fuzzer.fuzzer.Stats"),
+            patch("graphqler.fuzzer.fuzzer.validate_manifest"),
         ):
             fuzzer = Fuzzer(save_path="/tmp/fake", url="http://example.com/graphql")
 

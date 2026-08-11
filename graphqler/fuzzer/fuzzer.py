@@ -20,92 +20,94 @@ from graphqler import config
 from graphqler.chains import Chain, ChainGenerator, ChainStep
 from graphqler.graph import GraphGenerator, Node
 from graphqler.utils.api import API
+from graphqler.utils.artifact_manifest import validate_manifest
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.utils.run_context import RunContext
 from graphqler.utils.stats import Stats
 
 from .engine.fengine import FEngine
 from .engine.dengine import DEngine
 from .engine.types import Result, ResultEnum
 from .engine.types.profile import RuntimeProfile
-from .engine.detectors import IDORChainDetector, UAFChainDetector
+from .engine.detectors import AuthorizationDifferentialDetector, IDORChainDetector, UAFChainDetector
+from .engine.detectors.field_fuzzing.endpoint_classifier import EndpointPrivacyClassifier
 from .reporters import LLMReporter
 
 
 class Fuzzer(object):
-    def __init__(self, save_path: str, url: str, objects_bucket: typing.Optional[ObjectsBucket] = None):
-        """Initializes the fuzzer, reading information from the compiled files
-
-        Args:
-            save_path (str): Save directory path
-            url (str): URL for graphql introspection query to hit
-        """
+    def __init__(
+        self,
+        save_path: str,
+        url: str,
+        objects_bucket: typing.Optional[ObjectsBucket] = None,
+        stats: typing.Optional[Stats] = None,
+        settings: config.RunSettings | None = None,
+    ):
+        """Initialize a fuzzer and its isolated run state."""
         self.save_path = save_path
         self.url = url
-        self.logger = Logger().get_fuzzer_logger()
-        self.stats = Stats()
-        self.api = API(url, save_path)
+        self.settings = settings or config.snapshot()
 
-        self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
-        # Reset the FEngine singleton so it binds to the current API.  When multiple
-        # Fuzzer instances are created sequentially (e.g. in run_all_experiments.py),
-        # the stale singleton would otherwise keep the first API's queries/mutations,
-        # causing KeyErrors for every operation in the subsequent API.
-        FEngine.reset()  # ty: ignore[unresolved-attribute]
-        self.fengine = FEngine(self.api)
-        self.dengine = DEngine(self.api)
-        self.idor_detector = IDORChainDetector()
-        self.uaf_detector = UAFChainDetector()
+        with config.activate(self.settings):
+            validate_manifest(save_path, "chains", self.settings, expected_endpoint=url)
+            self.logger = Logger().get_fuzzer_logger()
+            run_stats = stats or Stats()
+            run_stats.set_file_paths(save_path, reset=not self.settings.RESUME)
+            if self.settings.RESUME:
+                run_stats.load()
+            self.api = API(url, save_path)
+            self.dependency_graph = GraphGenerator(save_path).get_dependency_graph()
+            run_bucket = objects_bucket or ObjectsBucket(self.api)
+            if self.settings.RESUME:
+                run_bucket.load()
+            self.context = RunContext(Path(save_path), self.settings, run_stats, run_bucket)
+            self.stats = self.context.stats
+            self.objects_bucket = self.context.objects_bucket
+            self.fengine = FEngine(self.api, self.stats)
+            self.dengine = DEngine(self.api, self.stats, self.objects_bucket)
+            self.idor_detector = IDORChainDetector()
+            self.uaf_detector = UAFChainDetector()
+            self.authorization_detector = AuthorizationDifferentialDetector()
 
-        # Initialize runtime profiles
-        self.profiles: dict[str, RuntimeProfile] = {
-            "primary": RuntimeProfile(name="primary", auth_token=config.AUTHORIZATION),
-            "secondary": RuntimeProfile(name="secondary", auth_token=config.IDOR_SECONDARY_AUTH),
-            # post_delete uses the primary auth token — UAF tests same-user access after deletion
-            "post_delete": RuntimeProfile(name="post_delete", auth_token=config.AUTHORIZATION),
-        }
-        # Add any other profiles defined in config.PROFILES
-        for name, profile_data in getattr(config, "PROFILES", {}).items():
-            if isinstance(profile_data, dict):
-                self.profiles[name] = RuntimeProfile(
-                    name=name,
-                    auth_token=profile_data.get("auth_token"),
-                    headers=profile_data.get("headers", {}),
-                    variables=profile_data.get("variables", {})
-                )
-            elif isinstance(profile_data, str):
-                self.profiles[name] = RuntimeProfile(name=name, auth_token=profile_data)
+            self.profiles: dict[str, RuntimeProfile] = {
+                "primary": RuntimeProfile(name="primary", auth_token=self.settings.AUTHORIZATION),
+                "secondary": RuntimeProfile(name="secondary", auth_token=self.settings.IDOR_SECONDARY_AUTH),
+                "post_delete": RuntimeProfile(name="post_delete", auth_token=self.settings.AUTHORIZATION),
+            }
+            for name, profile_data in self.settings.PROFILES.items():
+                if isinstance(profile_data, dict):
+                    self.profiles[name] = RuntimeProfile(
+                        name=name,
+                        auth_token=profile_data.get("auth_token"),
+                        headers=profile_data.get("headers", {}),
+                        variables=profile_data.get("variables", {}),
+                    )
+                elif isinstance(profile_data, str):
+                    self.profiles[name] = RuntimeProfile(name=name, auth_token=profile_data)
 
-        if objects_bucket:
-            self.objects_bucket = objects_bucket
-        else:
-            self.objects_bucket = ObjectsBucket(self.api)
+            self.chains = ChainGenerator().load_from_yaml(save_path, self.dependency_graph)
 
-        # Load pre-generated chains produced during compilation
-        self.chains: list[Chain] = ChainGenerator().load_from_yaml(save_path, self.dependency_graph)
-
-        # Stats about the run
         self.stats.number_of_queries = self.api.get_num_queries()
         self.stats.number_of_mutations = self.api.get_num_mutations()
         self.stats.number_of_objects = self.api.get_num_objects()
-
-        # Optional TUI callbacks — None by default so CLI mode has zero overhead.
-        # Set these before calling run() / run_chain() when using the TUI.
         self.on_chain_start: typing.Optional[typing.Callable[[Chain], None]] = None
         self.on_chain_done: typing.Optional[typing.Callable[[Chain, list], None]] = None
+        blocked_keys = set(self.stats.dep_retry_nodes)
+        self._dep_blocked_nodes: set[Node] = {
+            node for node in self.dependency_graph.nodes if f"{node.graphql_type}|{node.name}" in blocked_keys
+        }
+        self._authorization_tested_nodes: set[Node] = set()
 
-        # Nodes that failed due to unmet hard dependencies during chain execution;
-        # re-run as standalone in the dep_retry phase after islands.
-        self._dep_blocked_nodes: set[Node] = set()
-
+    @config.use_settings
     def run(self):
         """Main function to run the fuzzer"""
         queue = multiprocessing.Queue()
         if config.DEBUG:
-            p = threading.Thread(target=self.__run_fuzz, args=(queue,))
+            p = threading.Thread(target=self._run_fuzz_scoped, args=(queue,))
             p.daemon = True
         else:
-            p = multiprocessing.Process(target=self.__run_fuzz, args=(queue,))
+            p = multiprocessing.Process(target=self._run_fuzz_scoped, args=(queue,))
         p.start()
         p.join(config.MAX_TIME)
 
@@ -119,6 +121,11 @@ class Fuzzer(object):
         if not queue.empty():
             _ = queue.get()
 
+    def _run_fuzz_scoped(self, queue: multiprocessing.Queue) -> None:
+        with config.activate(self.settings):
+            self.__run_fuzz(queue)
+
+    @config.use_settings
     def run_chain(self, chain: Chain) -> None:
         """Execute a single chain (public API for use by the TUI chain explorer).
 
@@ -127,6 +134,7 @@ class Fuzzer(object):
         """
         self.__run_chain(chain)
 
+    @config.use_settings
     def run_single(self, node_name: str):
         """Runs a single node
 
@@ -147,6 +155,7 @@ class Fuzzer(object):
         self.stats.save_eval_summary()
         self.objects_bucket.save()
 
+    @config.use_settings
     def run_idor_only(self):
         """Run only the IDOR chain phase, skipping regular fuzzing.
 
@@ -155,10 +164,10 @@ class Fuzzer(object):
         """
         queue = multiprocessing.Queue()
         if config.DEBUG:
-            p = threading.Thread(target=self.__run_idor_steps, args=(queue,))
+            p = threading.Thread(target=self._run_idor_scoped, args=(queue,))
             p.daemon = True
         else:
-            p = multiprocessing.Process(target=self.__run_idor_steps, args=(queue,))
+            p = multiprocessing.Process(target=self._run_idor_scoped, args=(queue,))
         p.start()
         p.join(config.MAX_TIME)
 
@@ -171,6 +180,10 @@ class Fuzzer(object):
 
         if not queue.empty():
             _ = queue.get()
+
+    def _run_idor_scoped(self, queue: multiprocessing.Queue) -> None:
+        with config.activate(self.settings):
+            self.__run_idor_steps(queue)
 
     def __run_idor_steps(self, queue: multiprocessing.Queue):
         """Run only IDOR chains (no regular fuzzing, no island nodes, no API-level detections)."""
@@ -206,10 +219,15 @@ class Fuzzer(object):
         Args:
             queue (multiprocessing.Queue): Queue for communicating back to the parent process
         """
+        if config.RESUME and self.stats.phase == "completed":
+            self.logger.info("Run checkpoint is already complete; nothing to resume")
+            return
+        resume_phase = self.stats.phase if config.RESUME else "chains"
         self.stats.start_time = time.time()
 
         # Single background thread that refreshes the progress line for the entire run
         stop_progress = threading.Event()
+
         def _refresh_progress():
             while not stop_progress.is_set():
                 self.stats.print_running_stats()
@@ -225,18 +243,21 @@ class Fuzzer(object):
             elif self.chains:
                 max_iter = max(1, config.MAX_FUZZING_ITERATIONS)
                 self.stats.chains_total = len(self.chains)
-                self.stats.total_iterations = max_iter
-                self.logger.info(f"Running {len(self.chains)} pre-generated chains for up to {max_iter} iteration(s)")
-                for iteration in range(max_iter):
+                start_iteration = self.stats.current_iteration - 1 if config.RESUME else 0
+                for iteration in range(start_iteration, max_iter):
                     if time.time() - self.stats.start_time >= config.MAX_TIME:
                         self.logger.info(f"MAX_TIME reached during iteration {iteration + 1} — stopping chain loop early")
                         break
+                    resume_index = self.stats.chains_completed if config.RESUME and iteration == start_iteration else 0
                     self.stats.current_iteration = iteration + 1
-                    self.stats.chains_completed = 0
-                    self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}")
-                    for chain in self.chains:
+                    self.stats.chains_completed = resume_index
+                    self.logger.info(f"Chain iteration {iteration + 1}/{max_iter}, starting at chain {resume_index + 1}")
+                    for chain_index, chain in enumerate(self.chains):
+                        if chain_index < resume_index:
+                            continue
                         self.__run_chain(chain)
-                        self.stats.chains_completed += 1
+                        self.stats.chains_completed = chain_index + 1
+                        self.stats.checkpoint()
                 self.logger.info("Completed all chain iterations")
 
                 chained_nodes: set[Node] = {node for chain in self.chains for node in chain.nodes}
@@ -261,26 +282,32 @@ class Fuzzer(object):
                 uncovered_nodes = list(self.dependency_graph.nodes)
 
             if uncovered_nodes:
-                self.logger.info(f"Running {len(uncovered_nodes)} uncovered node(s)")
                 self.stats.phase = "islands"
                 self.stats.islands_total = len(uncovered_nodes)
-                self.stats.islands_completed = 0
-                self.__run_nodes(uncovered_nodes)
+                if resume_phase in {"dep_retry", "detections"}:
+                    island_start = len(uncovered_nodes)
+                elif resume_phase == "islands":
+                    island_start = self.stats.islands_completed
+                else:
+                    island_start = 0
+                self.stats.islands_completed = island_start
+                self.__run_nodes(uncovered_nodes[island_start:])
 
             # Dep-retry phase: re-run nodes that failed every chain attempt due to unmet hard
             # dependencies, now using the globally shared objects_bucket (populated by islands
             # and any successful chain steps) and bypassing hard-dep checks so they get a
             # genuine attempt with whatever objects are available (or random fallbacks).
-            dep_retry_nodes = [
-                node for node in self._dep_blocked_nodes
-                if f"{node.graphql_type}|{node.name}" not in self.stats.successful_nodes
-            ]
+            dep_retry_nodes = sorted(
+                (node for node in self._dep_blocked_nodes if f"{node.graphql_type}|{node.name}" not in self.stats.successful_nodes),
+                key=lambda node: (node.graphql_type, node.name),
+            )
             if dep_retry_nodes:
                 self.logger.info(f"Dep-retry phase: retrying {len(dep_retry_nodes)} node(s) that always had unmet hard dependencies")
                 self.stats.phase = "dep_retry"
                 self.stats.dep_retry_total = len(dep_retry_nodes)
-                self.stats.dep_retry_completed = 0
-                for node in dep_retry_nodes:
+                retry_start = self.stats.dep_retry_completed if config.RESUME else 0
+                self.stats.dep_retry_completed = retry_start
+                for node in dep_retry_nodes[retry_start:]:
                     self.logger.info(f"[dep_retry] Running node: {node}")
                     node_start = time.time()
                     _response, result = self.fengine.run_minimal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
@@ -289,6 +316,7 @@ class Fuzzer(object):
                     self.fengine.run_maximal_payload(node.name, self.objects_bucket, node.graphql_type, check_hard_depends_on=False)
                     self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
                     self.stats.dep_retry_completed += 1
+                    self.stats.checkpoint()
 
             # Detections
             self.stats.phase = "detections"
@@ -299,6 +327,7 @@ class Fuzzer(object):
             # LLM report (opt-in via config.LLM_ENABLE_REPORTER)
             if config.LLM_ENABLE_REPORTER:
                 LLMReporter(self.save_path, self.url).generate()
+            self.stats.phase = "completed"
         finally:
             stop_progress.set()
             progress_thread.join()
@@ -327,8 +356,7 @@ class Fuzzer(object):
         Args:
             chain (Chain): The chain to execute.
         """
-        bucket_cls = typing.cast(typing.Any, getattr(ObjectsBucket, "__wrapped__", ObjectsBucket))
-        fresh_bucket: ObjectsBucket = bucket_cls(self.api)
+        fresh_bucket = ObjectsBucket(self.api)
         results: list[tuple[ChainStep, Result]] = []
         pre_delete_snapshot: typing.Optional[ObjectsBucket] = None
 
@@ -391,8 +419,7 @@ class Fuzzer(object):
                     continue
                 if step.profile_name != "primary" and not profile.auth_token:
                     self.logger.warning(
-                        f"Profile '{step.profile_name}' has no auth token configured — aborting chain "
-                        f"(set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
+                        f"Profile '{step.profile_name}' has no auth token configured — aborting chain (set IDOR_SECONDARY_AUTH in your config to enable IDOR chain testing)"
                     )
                     break
 
@@ -409,9 +436,7 @@ class Fuzzer(object):
                         print(f"[UAF-DEBUG]   token: {repr(profile.auth_token)}")
 
                     self.logger.info(f"[post_delete][test] Running node with post-delete profile: {node}")
-                    _response, result = self.fengine.run_minimal_payload_with_profile(
-                        node.name, bucket_for_step, node.graphql_type, profile
-                    )
+                    _response, result = self.fengine.run_minimal_payload_with_profile(node.name, bucket_for_step, node.graphql_type, profile)
 
                     if config.DEBUG:
                         node_data = result.data.get(node.name) if result.data else None
@@ -421,9 +446,7 @@ class Fuzzer(object):
                 elif step.profile_name != "primary":
                     # Multi-profile test phase (e.g. secondary / IDOR)
                     self.logger.info(f"[{step.profile_name}][test] Running node with profile '{step.profile_name}': {node}")
-                    _response, result = self.fengine.run_minimal_payload_with_profile(
-                        node.name, fresh_bucket, node.graphql_type, profile
-                    )
+                    _response, result = self.fengine.run_minimal_payload_with_profile(node.name, fresh_bucket, node.graphql_type, profile)
                     results.append((step, result))
                 else:
                     # Regular primary phase — snapshot bucket before DELETE so UAF post_delete step can use it
@@ -439,7 +462,7 @@ class Fuzzer(object):
                     self.stats.record_node_timing(node, time.time() - node_start)
                     self.stats.update_stats_from_result(node, result)
                     if result.result_enum == ResultEnum.HARD_DEPENDENCY_NOT_MET:
-                        self._dep_blocked_nodes.add(node)
+                        self.__mark_dep_blocked(node)
                     if i == last_primary_index:
                         self.__fuzz(node, visit_path, objects_bucket=fresh_bucket)
                         self.__detect_vulnerabilities_on_node(node, fresh_bucket)
@@ -448,9 +471,9 @@ class Fuzzer(object):
                         self.logger.info(f"[chain] Node {node} failed — stopping chain execution early")
                         # All subsequent primary non-Object steps were skipped because this node
                         # failed; mark them as dep-blocked so the dep_retry phase can attempt them.
-                        for future_step in chain.steps[i + 1:]:
+                        for future_step in chain.steps[i + 1 :]:
                             if future_step.profile_name == "primary" and future_step.node.graphql_type != "Object":
-                                self._dep_blocked_nodes.add(future_step.node)
+                                self.__mark_dep_blocked(future_step.node)
                         break
 
             # Post-execution analysis
@@ -459,11 +482,21 @@ class Fuzzer(object):
             if self.on_chain_done:
                 self.on_chain_done(chain, results)
         finally:
+            # Preserve run-wide observations for island retries, reports, and callers
+            # while keeping each chain's dependency inputs isolated.
+            self.objects_bucket.merge(fresh_bucket)
             # Always remove the per-chain handler so the FD is released and logs
             # don't bleed into subsequent chains even if an exception occurred.
             self.logger.info(f"=== Chain end: {chain_path_str} ===")
             fuzzer_logger.removeHandler(chain_file_handler)
             chain_file_handler.close()
+
+    def __mark_dep_blocked(self, node: Node) -> None:
+        """Record a hard-dependency failure in resumable run state."""
+        self._dep_blocked_nodes.add(node)
+        key = f"{node.graphql_type}|{node.name}"
+        if key not in self.stats.dep_retry_nodes:
+            self.stats.dep_retry_nodes.append(key)
 
     def __run_nodes(self, nodes: list[Node]):
         """Runs the nodes given in the list
@@ -476,6 +509,8 @@ class Fuzzer(object):
         """
         for node in nodes:
             if node.name in config.SKIP_NODES:
+                self.stats.islands_completed += 1
+                self.stats.checkpoint()
                 continue
             self.logger.info(f"[island] Running node: {node}")
             node_start = time.time()
@@ -485,6 +520,7 @@ class Fuzzer(object):
             self.__fuzz(node, [node])
             self.__detect_vulnerabilities_on_node(node, self.objects_bucket)
             self.stats.islands_completed += 1
+            self.stats.checkpoint()
 
     def __evaluate(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None) -> tuple[list[list[Node]], Result]:
         """Evaluates the node
@@ -502,19 +538,75 @@ class Fuzzer(object):
 
         if node.graphql_type == "Query":
             _response, result = self.fengine.run_minimal_payload(node.name, objects_bucket, "Query")
+            if result.success:
+                self.__run_authorization_differential(node, result)
             return [], result
         elif node.graphql_type == "Mutation":
             _response, result = self.fengine.run_minimal_payload(node.name, objects_bucket, "Mutation")
+            if result.success:
+                self.__run_authorization_differential(node, result)
             return [], result
         elif node.graphql_type == "Subscription":
             if not config.SKIP_SUBSCRIPTIONS:
                 _events, result = self.fengine.run_subscription_payload(node.name, objects_bucket)
+                if result.success:
+                    self.__run_authorization_differential(node, result)
                 return [], result
             return [], Result(ResultEnum.GENERAL_SUCCESS)
         elif node.graphql_type == "Object":
             return [], Result(ResultEnum.GENERAL_SUCCESS)
         else:
             raise Exception(f"Unknown GraphQL type: {node.graphql_type}")
+
+    def __run_authorization_differential(self, node: Node, primary_result: Result) -> None:
+        """Replay one private operation under anonymous and alternate profiles."""
+        if not config.AUTHORIZATION_DIFFERENTIAL or node in self._authorization_tested_nodes:
+            return
+        if node.graphql_type == "Query":
+            operation = self.api.queries.get(node.name, {})
+        elif node.graphql_type == "Mutation":
+            operation = self.api.mutations.get(node.name, {})
+        elif node.graphql_type == "Subscription":
+            operation = self.api.subscriptions.get(node.name, {})
+        else:
+            return
+
+        output = operation.get("output", {})
+        type_node = output
+        while isinstance(type_node, dict) and type_node and type_node.get("kind") != "OBJECT":
+            type_node = type_node.get("ofType")
+        type_name = ""
+        if isinstance(type_node, dict):
+            type_name = type_node.get("name") or type_node.get("type") or ""
+        object_definition = self.api.objects.get(type_name, {})
+        fields = [field["name"] for field in object_definition.get("fields", []) if "name" in field]
+        if EndpointPrivacyClassifier().classify(node.name, type_name, fields) != "private":
+            return
+
+        primary_profile = self.profiles["primary"]
+        candidates: list[RuntimeProfile] = []
+        if primary_profile.get_headers():
+            candidates.append(RuntimeProfile(name="anonymous"))
+        for name, profile in self.profiles.items():
+            if name in {"primary", "post_delete"} or not profile.get_headers():
+                continue
+            if profile.get_headers() != primary_profile.get_headers():
+                candidates.append(profile)
+        if not candidates:
+            return
+        payload = primary_result.payload
+        if not isinstance(payload, str):
+            return
+
+        self._authorization_tested_nodes.add(node)
+        profile_results: list[tuple[RuntimeProfile, Result]] = []
+        for profile in candidates:
+            if node.graphql_type == "Subscription":
+                _response, result = self.fengine.run_subscription_with_profile(node.name, payload, profile)
+            else:
+                _response, result = self.fengine.run_payload_with_profile(node.name, payload, profile)
+            profile_results.append((profile, result))
+        self.authorization_detector.detect(node.name, primary_result, profile_results, self.stats)
 
     def __fuzz(self, node: Node, visit_path: list[Node], objects_bucket: typing.Optional[ObjectsBucket] = None):
         """Fuzzes the node
@@ -542,4 +634,4 @@ class Fuzzer(object):
         """
         if node.graphql_type == "Query" or node.graphql_type == "Mutation":
             self.dengine.run_detections_on_graphql_object(node, objects_bucket, node.graphql_type)
-        # Subscription detection is a future enhancement
+        # Subscription authorization is covered by differential replay; payload mutation detectors are HTTP-only.

@@ -15,10 +15,10 @@ from graphqler import config
 logger = logging.getLogger(__name__)
 
 
-async def _send_graphql_ws(websocket, payload: dict, timeout: float) -> list[dict]:
+async def _send_graphql_ws(websocket, payload: dict, timeout: float, connection_payload: Optional[dict] = None) -> list[dict]:
     """graphql-ws protocol handler (modern standard)."""
-    # 1. Send connection_init
-    await websocket.send(json.dumps({"type": "connection_init", "payload": {}}))
+    # Send credentials in connection_init as required by many GraphQL WS servers.
+    await websocket.send(json.dumps({"type": "connection_init", "payload": connection_payload or {}}))
 
     # 2. Wait for connection_ack
     ack_raw = await asyncio.wait_for(websocket.recv(), timeout=timeout)
@@ -51,10 +51,10 @@ async def _send_graphql_ws(websocket, payload: dict, timeout: float) -> list[dic
     return events
 
 
-async def _send_subscriptions_transport_ws(websocket, payload: dict, timeout: float) -> list[dict]:
+async def _send_subscriptions_transport_ws(websocket, payload: dict, timeout: float, connection_payload: Optional[dict] = None) -> list[dict]:
     """subscriptions-transport-ws (legacy Apollo) protocol handler."""
-    # 1. Send connection_init
-    await websocket.send(json.dumps({"type": "connection_init", "payload": {}}))
+    # Legacy Apollo servers commonly read authentication from this payload.
+    await websocket.send(json.dumps({"type": "connection_init", "payload": connection_payload or {}}))
 
     # 2. Wait for connection_ack
     ack_raw = await asyncio.wait_for(websocket.recv(), timeout=timeout)
@@ -99,9 +99,9 @@ async def _run_subscription(url: str, payload: dict, timeout: float, protocol: s
 
     async with websockets.connect(ws_url, subprotocols=cast(Any, [protocol]), additional_headers=extra_headers) as websocket:
         if protocol in ("graphql-ws", "graphql-transport-ws"):
-            return await _send_graphql_ws(websocket, payload, timeout)
+            return await _send_graphql_ws(websocket, payload, timeout, extra_headers)
         else:
-            return await _send_subscriptions_transport_ws(websocket, payload, timeout)
+            return await _send_subscriptions_transport_ws(websocket, payload, timeout, extra_headers)
 
 
 def send_graphql_subscription(

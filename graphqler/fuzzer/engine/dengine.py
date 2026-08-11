@@ -3,6 +3,7 @@ from graphqler.graph.node import Node
 from graphqler.utils.api import API
 from graphqler.utils.logging_utils import Logger
 from graphqler.utils.objects_bucket import ObjectsBucket
+from graphqler.utils.stats import Stats
 
 from .detectors import api_detectors, injection_detectors, misc_detectors, enumeration_detectors
 from .detectors.detector import Detector
@@ -13,23 +14,27 @@ class DEngine:
     -- used to detect vulnerabilities in the API
     """
 
-    def __init__(self, api: API):
-        """The intiialization of the DEngine
-
-        Args:
-            api (API): The API object
-        """
+    def __init__(self, api: API, stats: Stats, objects_bucket: ObjectsBucket):
+        """Initialize the detector engine for one fuzzing run."""
         self.api = api
+        self.stats = stats
+        self.objects_bucket = objects_bucket
         self.logger = Logger().get_detector_logger()
-        self.nodes_ran: dict[str, dict[str, bool]] = {}  # {node_name: {detection_name: True/False}}
+        self.nodes_ran: dict[str, dict[str, bool]] = {}
 
     def run_detections_on_api(self):
         """Run detections on the API
-           - Uses API as the key for nodes_ran marking
+        - Uses API as the key for nodes_ran marking
         """
         for api_detector in api_detectors:
-            node = Node(graphql_type='misc', name=self.api.url, body={})  # Create a dummy node object for the API
-            detector = api_detector(api=self.api, node=node, objects_bucket=ObjectsBucket(self.api), graphql_type="")
+            node = Node(graphql_type="misc", name=self.api.url, body={})  # Create a dummy node object for the API
+            detector = api_detector(
+                api=self.api,
+                node=node,
+                objects_bucket=self.objects_bucket,
+                graphql_type="",
+                stats=self.stats,
+            )
             if not self.__should_run_detection(detector, self.api.url):
                 continue
             try:
@@ -65,7 +70,7 @@ class DEngine:
             graphql_type (str): The type of the GraphQL operation
         """
         for misc_detector in misc_detectors:
-            detector = misc_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            detector = misc_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type, stats=self.stats)
             if not self.__should_run_detection(detector, node.name):
                 continue
             try:
@@ -84,7 +89,7 @@ class DEngine:
             graphql_type (str): The type of the GraphQL operation
         """
         for injection_detector in injection_detectors:
-            detector = injection_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            detector = injection_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type, stats=self.stats)
             if not self.__should_run_detection(detector, node.name):
                 continue
             try:
@@ -103,7 +108,7 @@ class DEngine:
             graphql_type (str): The type of the GraphQL operation
         """
         for enum_detector in enumeration_detectors:
-            detector = enum_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type)
+            detector = enum_detector(api=self.api, node=node, objects_bucket=objects_bucket, graphql_type=graphql_type, stats=self.stats)
             if not self.__should_run_detection(detector, node.name):
                 continue
             try:

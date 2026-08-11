@@ -4,7 +4,6 @@ from typing import Type
 import requests
 
 from graphqler.utils import plugins_handler
-from graphqler.utils.stats import Stats
 from .field_suggestion_materializer import FieldSuggestionMaterializer
 from ..detector import Detector
 
@@ -44,19 +43,15 @@ class FieldSuggestionsDetector(Detector):
             misspelled = query_name + "abc"
             payload = f"query {{\n  {misspelled} {{\n    id\n  }}\n}}"
 
-            graphql_response, request_response = (
-                plugins_handler.get_request_utils().send_graphql_request(
-                    self.api.url, payload
-                )
-            )
-            Stats().add_http_status_code(self.name, request_response.status_code)
+            graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, payload)
+            self.stats.add_http_status_code(self.name, request_response.status_code)
 
             if self._is_vulnerable(graphql_response, request_response):
                 self.payload = payload
                 self.confirmed_vulnerable = True
                 self.potentially_vulnerable = True
                 evidence = self._get_evidence(graphql_response, request_response)
-                Stats().add_vulnerability(
+                self.stats.add_vulnerability(
                     self.DETECTION_NAME,
                     self.name,
                     self.confirmed_vulnerable,
@@ -64,17 +59,11 @@ class FieldSuggestionsDetector(Detector):
                     payload=payload,
                     evidence=evidence,
                 )
-                self.detector_logger.info(
-                    f"Detector {self.DETECTION_NAME} finished detecting - "
-                    f"is_vulnerable: True - potentially_vulnerable: True"
-                )
+                self.detector_logger.info(f"Detector {self.DETECTION_NAME} finished detecting - is_vulnerable: True - potentially_vulnerable: True")
                 return (True, True)
 
-        self.detector_logger.info(
-            f"Detector {self.DETECTION_NAME} finished detecting - "
-            f"is_vulnerable: False - potentially_vulnerable: False"
-        )
-        Stats().add_vulnerability(
+        self.detector_logger.info(f"Detector {self.DETECTION_NAME} finished detecting - is_vulnerable: False - potentially_vulnerable: False")
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             False,

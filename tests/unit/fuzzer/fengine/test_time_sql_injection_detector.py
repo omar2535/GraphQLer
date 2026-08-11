@@ -142,8 +142,7 @@ class TestTimeSQLInjectionDetector(unittest.TestCase):
     # --- full detect() with mocked request ---
 
     @patch("graphqler.fuzzer.engine.detectors.time_sql_injection.time_sql_injection_detector.plugins_handler")
-    @patch("graphqler.fuzzer.engine.detectors.time_sql_injection.time_sql_injection_detector.Stats")
-    def test_detect_flags_confirmed_on_slow_response(self, mock_stats, mock_plugins):
+    def test_detect_flags_confirmed_on_slow_response(self, mock_plugins):
         api = MagicMock()
         api.url = "http://localhost/graphql"
         node = MagicMock()
@@ -159,7 +158,6 @@ class TestTimeSQLInjectionDetector(unittest.TestCase):
             return ({"data": {"searchUser": None}}, fast_response)
 
         mock_plugins.get_request_utils.return_value.send_graphql_request.side_effect = slow_request
-        mock_stats.return_value = MagicMock()
 
         detector = TimeSQLInjectionDetector(api=api, node=node, objects_bucket=objects_bucket, graphql_type="Query")
 

@@ -17,6 +17,7 @@ pytest.importorskip("fastmcp", reason="MCP extras not installed (pip install Gra
 def _make_compiled_path(tmp_dir: str) -> None:
     """Create the minimal directory/file layout that is_compiled() expects."""
     from graphqler import config
+    from graphqler.utils.artifact_manifest import write_manifest
 
     compiled = os.path.join(tmp_dir, config.COMPILED_DIR_NAME)
     extracted = os.path.join(tmp_dir, config.EXTRACTED_DIR_NAME)
@@ -28,12 +29,14 @@ def _make_compiled_path(tmp_dir: str) -> None:
         config.COMPILED_OBJECTS_FILE_NAME,
         config.COMPILED_QUERIES_FILE_NAME,
         config.COMPILED_MUTATIONS_FILE_NAME,
+        config.COMPILED_SUBSCRIPTIONS_FILE_NAME,
         config.INTROSPECTION_RESULT_FILE_NAME,
     ]:
         full = os.path.join(tmp_dir, fname)
         os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "w") as f:
             f.write("")
+    write_manifest(tmp_dir, "http://example.com/graphql", "chains", config.snapshot())
 
 
 # ---------------------------------------------------------------------------

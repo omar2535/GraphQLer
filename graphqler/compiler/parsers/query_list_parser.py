@@ -1,4 +1,4 @@
-"""Simple singleton class to parse query listings from the introspection query"""
+"""Parse query listings from an introspection response."""
 
 from .parser import Parser
 
