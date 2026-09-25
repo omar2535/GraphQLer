@@ -42,3 +42,6 @@ data.db
 # Paper stuff
 paper/
 experiments/
+
+# Documentation build output
+site/

@@ -1,10 +1,23 @@
 # Plugins
 
-To use plugins in GraphQLer, you can use the `--plugins-path` flag. A general use case would be to do token refreshing, for example
-on the [Saleor](https://docs.saleor.io/api-reference/) API. In this case, the authentication token expires very quickly, requiring the a custom refresh token -> access token checker on each request. We can override the requests sent like so:
+Plugins replace parts of GraphQLer's internals with your own Python modules. Point `--plugins-path` at a directory (default: `graphqler-output/plugins`) containing any of the supported plugin files:
+
+| File | Replaces |
+|---|---|
+| `request_utils.py` | `graphqler.utils.request_utils` — every HTTP request GraphQLer sends |
+
+Functions you don't define fall back to GraphQLer's originals, and the resulting module must satisfy `RequestUtilsProtocol`.
+
+```sh
+python -m graphqler --mode run --url <URL> --plugins-path ./my-plugins
+```
+
+## Example: refreshing short-lived tokens
+
+On the [Saleor](https://docs.saleor.io/api-reference/) API, access tokens expire very quickly, so each request needs a refresh-token → access-token check. Overriding `send_graphql_request` handles this:
 
 ```py
-# my-output-dir/request_utils.py
+# my-plugins/request_utils.py
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 from typing import Callable
