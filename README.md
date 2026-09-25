@@ -14,6 +14,7 @@
 </br>
 <a href="https://arxiv.org/pdf/2504.13358"><img src="https://img.shields.io/badge/cs.CR-arXiv%3A2504.13358-B31B1B.svg"></a>
 <a href="https://github.com/omar2535/GraphQLer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+<a href="https://omar2535.github.io/GraphQLer/"><img src="https://img.shields.io/badge/docs-omar2535.github.io%2FGraphQLer-e10098"></a>
 </p>
 
 GraphQLer is a cutting-edge tool designed to dynamically test GraphQL APIs with a focus on awareness. It offers a range of sophisticated features that streamline the testing process and ensure robust analysis of GraphQL APIs such as being able to automatically read a schema and run tests against an API using the schema. Furthermore, GraphQLer is aware of dependencies between objects queries and mutations which is then used to perform security tests against APIs.
@@ -51,7 +52,7 @@ docker pull omar2535/graphqler:latest
 docker run --rm omar2535/graphqler --help
 ```
 
-For a more in-depth guide, check out the [installation guide](./docs/installation.md).
+For a more in-depth guide, check out the [documentation](https://omar2535.github.io/GraphQLer/) and the [installation guide](https://omar2535.github.io/GraphQLer/installation/).
 
 ## Interactive TUI
 
@@ -242,7 +243,7 @@ There are also variables that can be modified with the `--config` flag as a TOML
 LLM Enabled compilation (using ollama as an example):
 
 ```sh
-uv run graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-model ollama/qwen3.5:9b --llm-base-url http://localhost:11434
+python -m graphqler --url http://localhost:4000/graphql --mode run --use-llm --llm-model ollama/qwen3.5:9b --llm-base-url http://localhost:11434
 ```
 
 ## MCP Server
@@ -291,4 +292,4 @@ All tools accept an optional `auth` parameter for APIs that require an `Authoriz
 
 ### Plugins
 
-You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [docs](https://github.com/omar2535/GraphQLer/tree/main/docs).
+You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [plugins documentation](https://omar2535.github.io/GraphQLer/plugins/).

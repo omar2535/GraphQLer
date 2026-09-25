@@ -1,83 +1,88 @@
-# 🙂 Installation guide
+# Installation
 
-**Pre-requisites:**
+!!! info "Prerequisites"
 
-- **Windows users** will need to have VCC14 or higher. Get it at the [microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- Have **python 3.12**
+    - **Python 3.12** (GraphQLer requires `>=3.12,<3.13`)
+    - **Windows users** need Microsoft C++ Build Tools (VC 14 or newer) — get them from the [Microsoft page](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
-## 😀 User setup guide
+## User setup
 
-### Pip
+=== "pip"
 
-You can install GraphQLer via pip. The Pypi listing: [Pypi](https://pypi.org/project/GraphQLer/)
+    GraphQLer is published on [PyPI](https://pypi.org/project/GraphQLer/):
 
-```sh
-pip install GraphQLer
-```
+    ```sh
+    pip install GraphQLer
+    python -m graphqler --help
+    ```
 
-and use it like so:
+    To use the [MCP server](mcp.md), install the optional extras:
 
-```sh
-python -m graphqler --help
-```
+    ```sh
+    pip install "GraphQLer[mcp]"
+    ```
 
-### Docker
+=== "Docker"
 
-The dockerhub repository: [Dockerhub](https://hub.docker.com/repository/docker/omar2535/graphqler/general)
+    Images are published to [Docker Hub](https://hub.docker.com/r/omar2535/graphqler) and the GitHub Container Registry (`ghcr.io/omar2535/graphqler`):
 
-```sh
-docker pull omar2535/graphqler:latest
-```
+    ```sh
+    docker pull omar2535/graphqler:latest
+    docker run --rm omar2535/graphqler --help
+    ```
 
-and you can run it like so:
+    The container's entrypoint is `python -m graphqler` with working directory `/app`. Mount a volume to keep the output directory:
 
-```sh
-docker run --rm omar2535/graphqler --help
-```
+    ```sh
+    docker run --rm -v "$PWD/graphqler-output:/app/graphqler-output" \
+      omar2535/graphqler --mode run --url https://example.com/graphql
+    ```
 
-## 🤓 Developer setup guide
+## Developer setup
 
-Follow these steps to get set up as a developer. Firstly, setup uv by following [these steps](https://docs.astral.sh/uv/getting-started/installation/)
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
 
-### 1. Install OS specific dependencies
+### 1. Install OS-specific dependencies
 
-For ubuntu
+On Ubuntu:
 
 ```sh
 sudo apt-get install build-essential
 ```
 
-
-### 2. Setting up the environment
+### 2. Set up the environment
 
 ```sh
-# Creating the virtual environment & Install dependencies
-uv sync
+uv sync --extra mcp
 source .venv/bin/activate
 ```
 
-### 3. Running GraphQLer
+### 3. Run GraphQLer
 
 ```sh
-uv run graphqler --version
+uv run python -m graphqler --version
 ```
 
-### 4. Setting up pre-commit hooks (optional)
+### 4. Install pre-commit hooks (optional)
 
 ```sh
-(.env) pre-commit install
+pre-commit install
 ```
 
-### 5. Running tests
-
-**Unit tests:**
+### 5. Run tests
 
 ```sh
-uv run pytest tests/unit/
+uv run pytest tests/unit/          # unit tests
+uv run pytest tests/integration/   # integration tests
+uv run pytest tests/e2e/           # end-to-end tests
 ```
 
-**End-to-end tests:**
+The end-to-end tests need the sample APIs in `sample-graphql-apis/` — see [Contributing](CONTRIBUTING.md#running-tests).
+
+### 6. Preview the documentation (optional)
+
+This site is built with [Zensical](https://zensical.org/):
 
 ```sh
-uv run pytest tests/e2e/
+uv run --only-group docs zensical serve
 ```
