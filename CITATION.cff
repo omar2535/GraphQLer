@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use or reference this software, please cite it as below."
+message: "If you use or reference this software, please cite the published paper below."
 authors:
 - family-names: "Tsai"
   given-names: "Omar"
@@ -18,3 +18,40 @@ title: "GraphQLer"
 version: 2.2.3
 date-released: 2024-11-03
 url: "https://github.com/omar2535/GraphQLer"
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: "Tsai"
+    given-names: "Omar"
+    orcid: "https://orcid.org/0000-0002-6335-3335"
+  - family-names: "Li"
+    given-names: "Jianing"
+    orcid: "https://orcid.org/0009-0005-6436-1192"
+  - family-names: "Cheung"
+    given-names: "Tsz Tung"
+    orcid: "https://orcid.org/0009-0001-9950-5564"
+  - family-names: "Huang"
+    given-names: "Lejing"
+    orcid: "https://orcid.org/0009-0008-6450-2209"
+  - family-names: "Zhu"
+    given-names: "Hao"
+    orcid: "https://orcid.org/0009-0005-4767-5958"
+  - family-names: "Xiao"
+    given-names: "Jianrui"
+    orcid: "https://orcid.org/0009-0000-0613-9159"
+  - family-names: "Sharafaldin"
+    given-names: "Iman"
+    orcid: "https://orcid.org/0009-0009-1726-1729"
+  - family-names: "Tayebi"
+    given-names: "Mohammad A."
+    orcid: "https://orcid.org/0009-0006-8689-9038"
+  title: "GraphQLer: Enhancing GraphQL Security with Context-Aware API Testing"
+  collection-title: "Proceedings of the 41st IEEE/ACM International Conference on Automated Software Engineering"
+  publisher:
+    name: "ACM"
+  year: 2026
+  month: 10
+  start: 4054
+  end: 4065
+  doi: "10.1145/3832783.3834496"
+  url: "https://dl.acm.org/doi/10.1145/3832783.3834496"

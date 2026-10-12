@@ -14,7 +14,7 @@ hide:
 <a href="https://pypi.org/project/GraphQLer/"><img src="https://img.shields.io/pypi/v/GraphQLer?style=flat&logo=pypi" alt="PyPI"/></a>
 <a href="https://hub.docker.com/r/omar2535/graphqler"><img src="https://img.shields.io/docker/image-size/omar2535/graphqler/latest?style=flat&logo=docker" alt="Docker"/></a>
 <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12-blue" alt="python3.12"/></a>
-<a href="https://arxiv.org/pdf/2504.13358"><img src="https://img.shields.io/badge/cs.CR-arXiv%3A2504.13358-B31B1B.svg" alt="arXiv"/></a>
+<a href="https://dl.acm.org/doi/10.1145/3832783.3834496"><img src="https://img.shields.io/badge/ACM-ASE%20%2726-0085CA?style=flat&amp;logo=acm&amp;logoColor=white" alt="ACM paper — ASE '26"/></a>
 <a href="https://github.com/omar2535/GraphQLer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"/></a>
 </p>
 
@@ -102,4 +102,4 @@ flowchart LR
 
 ## Citation
 
-If you use GraphQLer in research, please cite the [paper on arXiv](https://arxiv.org/abs/2504.13358) or the software via [`CITATION.cff`](https://github.com/omar2535/GraphQLer/blob/main/CITATION.cff).
+If you use GraphQLer in research, please cite [GraphQLer: Enhancing GraphQL Security with Context-Aware API Testing](https://dl.acm.org/doi/10.1145/3832783.3834496), published at ASE '26. The [README citation section](https://github.com/omar2535/GraphQLer#citation) provides BibTeX, and [`CITATION.cff`](https://github.com/omar2535/GraphQLer/blob/main/CITATION.cff) provides the preferred paper citation.

@@ -12,7 +12,7 @@
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/unit_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/unit_tests.yml/badge.svg?branch=main" alt="unit_test_status" /></a>
 <a href="https://github.com/omar2535/GraphQLer/actions/workflows/e2e_tests.yml" target="_blank"><img src="https://github.com/omar2535/GraphQLer/actions/workflows/e2e_tests.yml/badge.svg?branch=main" alt="e2e_test_status" /></a>
 </br>
-<a href="https://arxiv.org/pdf/2504.13358"><img src="https://img.shields.io/badge/cs.CR-arXiv%3A2504.13358-B31B1B.svg"></a>
+<a href="https://dl.acm.org/doi/10.1145/3832783.3834496"><img src="https://img.shields.io/badge/ACM-ASE%20%2726-0085CA?style=flat&amp;logo=acm&amp;logoColor=white" alt="ACM paper — ASE '26"></a>
 <a href="https://github.com/omar2535/GraphQLer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 <a href="https://omar2535.github.io/GraphQLer/"><img src="https://img.shields.io/badge/docs-omar2535.github.io%2FGraphQLer-e10098"></a>
 </p>
@@ -293,3 +293,23 @@ All tools accept an optional `auth` parameter for APIs that require an `Authoriz
 ### Plugins
 
 You can also implement your own plugins for custom authentication (ie. short token lifetimes). See more in the [plugins documentation](https://omar2535.github.io/GraphQLer/plugins/).
+
+## Citation
+
+If you use GraphQLer in research, please cite [GraphQLer: Enhancing GraphQL Security with Context-Aware API Testing](https://dl.acm.org/doi/10.1145/3832783.3834496), published in the *Proceedings of the 41st IEEE/ACM International Conference on Automated Software Engineering* (ASE '26), pages 4054–4065.
+
+```bibtex
+@inproceedings{tsai2026graphqler,
+  author    = {Tsai, Omar and Li, Jianing and Cheung, Tsz Tung and Huang, Lejing and Zhu, Hao and Xiao, Jianrui and Sharafaldin, Iman and Tayebi, Mohammad A.},
+  title     = {{GraphQLer}: Enhancing {GraphQL} Security with Context-Aware {API} Testing},
+  booktitle = {Proceedings of the 41st IEEE/ACM International Conference on Automated Software Engineering},
+  series    = {ASE '26},
+  year      = {2026},
+  pages     = {4054--4065},
+  publisher = {ACM},
+  doi       = {10.1145/3832783.3834496},
+  url       = {https://dl.acm.org/doi/10.1145/3832783.3834496}
+}
+```
+
+The preferred paper citation is also available in [`CITATION.cff`](CITATION.cff).
