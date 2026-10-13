@@ -32,6 +32,7 @@ class FuzzScreen(Screen):
         self._mode = mode
         self._fuzz_running = False
         self._start_time: float | None = None
+        self._stats = None
 
     def compose(self) -> ComposeResult:
         mode_label = {"fuzz": "Fuzz", "run": "Run (Compile + Fuzz)", "idor": "IDOR Fuzz"}.get(self._mode, self._mode.title())
@@ -100,6 +101,7 @@ class FuzzScreen(Screen):
             get_or_create_directory(path)
             stats = Stats()
             stats.set_file_paths(path)
+            self._stats = stats
 
             if mode in ("run", "compile"):
                 compiler = Compiler(path, url)
@@ -108,7 +110,7 @@ class FuzzScreen(Screen):
                 graph_gen.draw_dependency_graph()
                 compiler.run_chain_generation_and_save()
 
-            fuzzer = Fuzzer(path, url)
+            fuzzer = Fuzzer(path, url, stats=stats)
 
             if mode == "idor":
                 fuzzer.run_idor_only()
@@ -127,11 +129,10 @@ class FuzzScreen(Screen):
         if not self._fuzz_running:
             return
         try:
-            from graphqler.utils.stats import Stats
-
-            stats = Stats()
+            if self._stats is None:
+                return
             panel = self.query_one("#fuzz-stats", StatsPanel)
-            panel.update_from_stats(stats, self._start_time)
+            panel.update_from_stats(self._stats, self._start_time)
         except Exception:
             pass
 
@@ -140,11 +141,9 @@ class FuzzScreen(Screen):
         self._set_status(message, error=not success)
         try:
             self.query_one("#btn-start", Button).disabled = False
-            # Final stats refresh
-            from graphqler.utils.stats import Stats
-
-            panel = self.query_one("#fuzz-stats", StatsPanel)
-            panel.update_from_stats(Stats(), self._start_time)
+            if self._stats is not None:
+                panel = self.query_one("#fuzz-stats", StatsPanel)
+                panel.update_from_stats(self._stats, self._start_time)
         except Exception:
             pass
 

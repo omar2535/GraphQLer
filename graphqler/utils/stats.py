@@ -1,6 +1,7 @@
 import json
-import cloudpickle as pickle
+import os
 import pprint
+import re
 import shutil
 import sys
 import time
@@ -8,18 +9,13 @@ from pathlib import Path
 from typing import Self
 
 from graphqler import config
-from graphqler.fuzzer.engine.types import Result
+from graphqler.fuzzer.engine.types import Result, ResultEnum
 from graphqler.graph import Node
-from graphqler.fuzzer.engine.types import ResultEnum
 
-from .file_utils import initialize_file, intialize_file_if_not_exists, recreate_path, get_or_create_file
-from .singleton import singleton
-import os
-import re
+from .file_utils import atomic_write_json, initialize_file, read_json_file, recreate_path
 
 
-@singleton
-class Stats :
+class Stats:
     ### PUT THE STATS YOU WANT HERE
     file_path = "/tmp/stats.txt"  # This gets overriden by the set_file_path function
     endpoint_results_dir = "/tmp/endpoint_results"
@@ -28,7 +24,7 @@ class Stats :
     http_status_codes: dict[str, dict[str, int]] = {}
     successful_nodes: dict[str, int] = {}
     failed_nodes: dict[str, int] = {}
-    results: dict[str, set[Result]] = {}    # Mapping of query/mutation to results for that node
+    results: dict[str, set[Result]] = {}  # Mapping of query/mutation to results for that node
     unique_responses: dict[str, list[str]] = {}  # Mapping of response to endpoints (query/mutation)
     number_of_queries: int = 0
     number_of_mutations: int = 0
@@ -50,6 +46,7 @@ class Stats :
     islands_completed: int = 0
     dep_retry_total: int = 0
     dep_retry_completed: int = 0
+    dep_retry_nodes: list[str] = []
 
     # Detection stats
     is_introspection_available: bool = False
@@ -78,11 +75,49 @@ class Stats :
         self.islands_completed = 0
         self.dep_retry_total = 0
         self.dep_retry_completed = 0
-        self.pickle_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_PICKLE_FILE_NAME
+        self.dep_retry_nodes = []
+        self.state_save_path = Path(config.OUTPUT_DIRECTORY) / config.SERIALIZED_DIR_NAME / config.STATS_STATE_FILE_NAME
+        self._last_checkpoint = time.monotonic()
 
     def load(self) -> Self:
-        """Loads the stats from the pickle file"""
-        self.__load_pickle()
+        """Load a versioned JSON stats snapshot."""
+        if not self.state_save_path.exists():
+            return self
+        try:
+            state = read_json_file(self.state_save_path)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Unable to read stats state: {self.state_save_path}") from exc
+        if state.get("format") != "graphqler.stats" or state.get("version") != 1:
+            raise ValueError(f"Unsupported stats state format: {self.state_save_path}")
+
+        for name in (
+            "start_time",
+            "http_status_codes",
+            "successful_nodes",
+            "failed_nodes",
+            "unique_responses",
+            "number_of_queries",
+            "number_of_mutations",
+            "number_of_objects",
+            "number_of_successes",
+            "number_of_failures",
+            "vulnerabilities",
+            "node_timings",
+            "is_introspection_available",
+            "chains_total",
+            "chains_completed",
+            "current_iteration",
+            "total_iterations",
+            "phase",
+            "islands_total",
+            "islands_completed",
+            "dep_retry_total",
+            "dep_retry_completed",
+            "dep_retry_nodes",
+        ):
+            if name in state:
+                setattr(self, name, state[name])
+        self.results = {name: {Result.from_dict(result) for result in results} for name, results in state.get("results", {}).items()}
         return self
 
     def add_successful_node(self, node: Node):
@@ -97,7 +132,6 @@ class Stats :
             self.successful_nodes[key_name] += 1
         else:
             self.successful_nodes[key_name] = 1
-        self.save()
 
     def add_failed_node(self, node: Node):
         """Adds a new failed node to the internal failed stats
@@ -111,7 +145,6 @@ class Stats :
             self.failed_nodes[key_name] += 1
         else:
             self.failed_nodes[key_name] = 1
-        self.save()
 
     def add_http_status_code(self, payload_name: str, status_code: int | None):
         """Adds the http status code to stats
@@ -130,34 +163,27 @@ class Stats :
                 self.http_status_codes[status_code_str][payload_name] = 1
         else:
             self.http_status_codes[status_code_str] = {payload_name: 1}
-        self.save()
 
-    def set_file_paths(self, working_dir: str):
-        """
-
-        Args:
-            working_dir (str): _description_
-        """
-        # Do the stats file first
-        initialize_file(Path(working_dir) / config.STATS_FILE_NAME)
-        self.file_path = Path(working_dir) / config.STATS_FILE_NAME
-
-        # JSON report path (machine-readable)
+    def set_file_paths(self, working_dir: str, reset: bool = True) -> None:
+        """Configure report/state paths, optionally preserving an interrupted run."""
+        root = Path(working_dir)
+        root.mkdir(parents=True, exist_ok=True)
+        self.file_path = root / config.STATS_FILE_NAME
         json_file_name = config.STATS_FILE_NAME.replace(".txt", ".json") if config.STATS_FILE_NAME.endswith(".txt") else config.STATS_FILE_NAME + ".json"
-        initialize_file(Path(working_dir) / json_file_name)
-        self.json_file_path = Path(working_dir) / json_file_name
+        self.json_file_path = root / json_file_name
+        self.eval_dir = root / config.EVAL_DIR_NAME
+        self.endpoint_results_dir = root / config.ENDPOINT_RESULTS_DIR_NAME
+        self.unique_responses_file_path = root / config.UNIQUE_RESPONSES_FILE_NAME
+        self.state_save_path = root / config.SERIALIZED_DIR_NAME / config.STATS_STATE_FILE_NAME
 
-        # Eval/ablation directory (written only when ablation flags are active)
-        self.eval_dir = Path(working_dir) / config.EVAL_DIR_NAME
-
-        # Do the endpoint results directory
-        self.endpoint_results_dir = Path(working_dir) / config.ENDPOINT_RESULTS_DIR_NAME
-        if config.SAVE_ENDPOINT_RESULTS:
-            recreate_path(self.endpoint_results_dir)
-
-        # Do the unique responses file
-        self.unique_responses_file_path = Path(working_dir) / config.UNIQUE_RESPONSES_FILE_NAME
-        initialize_file(self.unique_responses_file_path)
+        if reset:
+            initialize_file(self.file_path)
+            initialize_file(self.json_file_path)
+            initialize_file(self.unique_responses_file_path)
+            if config.SAVE_ENDPOINT_RESULTS:
+                recreate_path(self.endpoint_results_dir)
+        elif config.SAVE_ENDPOINT_RESULTS:
+            self.endpoint_results_dir.mkdir(parents=True, exist_ok=True)
 
     def print_running_stats(self):
         """Print a single-line progress update that overwrites itself each second."""
@@ -168,15 +194,9 @@ class Stats :
         if self.phase == "detections":
             progress = f"[Detections] {counts} | {elapsed_str} elapsed"
         elif self.phase == "dep_retry":
-            progress = (
-                f"[Dep-Retry {self.dep_retry_completed}/{self.dep_retry_total}] "
-                f"{counts} | {elapsed_str} elapsed"
-            )
+            progress = f"[Dep-Retry {self.dep_retry_completed}/{self.dep_retry_total}] {counts} | {elapsed_str} elapsed"
         elif self.phase == "islands":
-            progress = (
-                f"[Islands {self.islands_completed}/{self.islands_total}] "
-                f"{counts} | {elapsed_str} elapsed"
-            )
+            progress = f"[Islands {self.islands_completed}/{self.islands_total}] {counts} | {elapsed_str} elapsed"
         elif self.chains_total > 0:
             overall_done = (self.current_iteration - 1) * self.chains_total + self.chains_completed
             overall_total = self.total_iterations * self.chains_total
@@ -187,10 +207,7 @@ class Stats :
             else:
                 eta_str = "--:--:--"
             progress = (
-                f"[Iter {self.current_iteration}/{self.total_iterations} | "
-                f"Chain {self.chains_completed}/{self.chains_total}] "
-                f"{counts} | "
-                f"{elapsed_str} elapsed | ETA {eta_str}"
+                f"[Iter {self.current_iteration}/{self.total_iterations} | Chain {self.chains_completed}/{self.chains_total}] {counts} | {elapsed_str} elapsed | ETA {eta_str}"
             )
         else:
             progress = f"{counts} | {elapsed_str} elapsed"
@@ -326,6 +343,7 @@ class Stats :
             self.unique_responses[str(result.graphql_response)].append(node.name)
         else:
             self.unique_responses[str(result.graphql_response)] = [node.name]
+        self.maybe_checkpoint()
 
     def get_number_of_successful_mutations_and_queries(self) -> tuple[int, int]:
         """Returns the number of successful mutations and queries"""
@@ -370,8 +388,7 @@ class Stats :
         print("---------------------------------------------------------")
 
     def save(self):
-        """Saves the stats into the stats text file
-        """
+        """Saves the stats into the stats text file"""
         covered, total, coverage_frac = self.get_coverage_rate()
         failed, _, negative_frac = self.get_negative_coverage_rate()
         with open(self.file_path, "w") as f:
@@ -401,9 +418,7 @@ class Stats :
             self.save_endpoint_results()
         self.save_unique_response()
         self.save_json()
-
-        # Saves the pickle file as well
-        self.__save_pickle()
+        self.checkpoint()
 
     def save_json(self):
         """Saves a machine-readable JSON report alongside the text stats file"""
@@ -429,8 +444,7 @@ class Stats :
             "vulnerabilities": self.vulnerabilities,
             "node_timings": self.node_timings,
         }
-        with open(json_path, "w") as f:
-            json.dump(report, f, indent=4)
+        atomic_write_json(report, json_path)
 
     def save_eval_summary(self):
         """Saves an ablation/evaluation summary to the ``eval/`` directory.
@@ -444,11 +458,7 @@ class Stats :
         if eval_dir is None:
             return
 
-        is_ablation = (
-            not config.USE_OBJECTS_BUCKET
-            or not config.USE_DEPENDENCY_GRAPH
-            or config.MAX_FUZZING_ITERATIONS != 1
-        )
+        is_ablation = not config.USE_OBJECTS_BUCKET or not config.USE_DEPENDENCY_GRAPH or config.MAX_FUZZING_ITERATIONS != 1
         if not is_ablation:
             return
 
@@ -476,10 +486,7 @@ class Stats :
                 "number_of_failures": self.number_of_failures,
                 "operation_coverage": {"covered": covered, "total": total, "rate": round(coverage_frac, 4)},
                 "negative_coverage": {"failed": failed, "total": total, "rate": round(negative_frac, 4)},
-                "vulnerabilities_found": {
-                    vuln: {node: info.get("is_vulnerable", False) for node, info in nodes.items()}
-                    for vuln, nodes in self.vulnerabilities.items()
-                },
+                "vulnerabilities_found": {vuln: {node: info.get("is_vulnerable", False) for node, info in nodes.items()} for vuln, nodes in self.vulnerabilities.items()},
             },
         }
 
@@ -491,7 +498,7 @@ class Stats :
         # Also write a human-readable summary
         summary_file = eval_dir / "ablation_summary.txt"
         with open(summary_file, "a") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"Run at: {entry['timestamp']}\n")
             f.write(f"  USE_OBJECTS_BUCKET    : {config.USE_OBJECTS_BUCKET}\n")
             f.write(f"  USE_DEPENDENCY_GRAPH  : {config.USE_DEPENDENCY_GRAPH}\n")
@@ -508,60 +515,71 @@ class Stats :
                 f.write(f"  Vulnerabilities: {list(self.vulnerabilities.keys())}\n")
 
     def save_endpoint_results(self):
-        """Reads the results, for each node in the node name -> results, create a directory for the
-           result type, then a file for the response code, and append the payload and the response to the file.
-        """
-        unique_results = {}
-        # Filter out for only unique results
-        for node_name, results in self.results.items():
-            # If the node name has slashes, replace them with underscores
-            node_name = node_name.replace("/", "_")
-
+        """Rewrite deterministic, de-duplicated result files for each endpoint."""
+        recreate_path(Path(self.endpoint_results_dir))
+        unique_results: dict[Path, dict[str, object]] = {}
+        for raw_node_name, results in self.results.items():
+            node_name = raw_node_name.replace("/", "_")
             if os.name == "nt":
-                # Replace characters that are invalid in Windows filenames
                 node_name = re.sub(r'[\\/:*?"<>|]', "_", node_name)
 
             for result in results:
                 result_type = "success" if result.success else "failure"
-                result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / f"{result.status_code}"
+                result_file_path = Path(self.endpoint_results_dir) / node_name / result_type / str(result.status_code)
+                unique_results.setdefault(result_file_path, {})[str(result.payload)] = result.graphql_response
 
-                payload_string = str(result.payload)
-                if result_file_path not in unique_results:
-                    unique_results[result_file_path] = {payload_string: result.graphql_response}
-                else:
-                    if payload_string not in unique_results[result_file_path]:
-                        unique_results[result_file_path][payload_string] = result.graphql_response
-
-        # Write the unique results to the file
-        for result_file_path, payloads in unique_results.items():
-            intialize_file_if_not_exists(result_file_path)
-            for payload, response in payloads.items():
-                with open(result_file_path, "a") as f:
-                    f.write("------------------Payload:-------------------\n")
-                    f.write(f"{payload}\n")
-                    f.write("------------------Response:-------------------\n")
-                    f.write(f"{response}\n")
+        for result_file_path, payloads in sorted(unique_results.items(), key=lambda item: str(item[0])):
+            result_file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(result_file_path, "w") as file_handle:
+                for payload, response in sorted(payloads.items()):
+                    file_handle.write("------------------Payload:-------------------\n")
+                    file_handle.write(f"{payload}\n")
+                    file_handle.write("------------------Response:-------------------\n")
+                    file_handle.write(f"{response}\n")
 
     def save_unique_response(self):
-        """Saves the unique responses to a file"""
-        with open(Path(self.unique_responses_file_path), "w") as f:
+        """Save unique responses and the operations that returned them."""
+        with open(Path(self.unique_responses_file_path), "w") as file_handle:
             for response, endpoints in self.unique_responses.items():
-                f.write(f"Response: {response}\n")
-                f.write(f"Endpoints: {endpoints}\n")
+                file_handle.write(f"Response: {response}\n")
+                file_handle.write(f"Endpoints: {endpoints}\n")
 
-    def __save_pickle(self):
-        """Saves the stats to a pickle file"""
-        self.pickle_save_path = get_or_create_file(self.pickle_save_path)
-        with open(self.pickle_save_path, "wb") as file:
-            pickle.dump(self, file)
+    def _state(self) -> dict:
+        return {
+            "format": "graphqler.stats",
+            "version": 1,
+            "start_time": self.start_time,
+            "http_status_codes": self.http_status_codes,
+            "successful_nodes": self.successful_nodes,
+            "failed_nodes": self.failed_nodes,
+            "results": {name: [result.to_dict() for result in results] for name, results in self.results.items()},
+            "unique_responses": self.unique_responses,
+            "number_of_queries": self.number_of_queries,
+            "number_of_mutations": self.number_of_mutations,
+            "number_of_objects": self.number_of_objects,
+            "number_of_successes": self.number_of_successes,
+            "number_of_failures": self.number_of_failures,
+            "vulnerabilities": self.vulnerabilities,
+            "node_timings": self.node_timings,
+            "is_introspection_available": self.is_introspection_available,
+            "chains_total": self.chains_total,
+            "chains_completed": self.chains_completed,
+            "current_iteration": self.current_iteration,
+            "total_iterations": self.total_iterations,
+            "phase": self.phase,
+            "islands_total": self.islands_total,
+            "islands_completed": self.islands_completed,
+            "dep_retry_total": self.dep_retry_total,
+            "dep_retry_completed": self.dep_retry_completed,
+            "dep_retry_nodes": self.dep_retry_nodes,
+        }
 
-    def __load_pickle(self):
-        """Loads the stats from a pickle file"""
-        if self.pickle_save_path.exists():
-            try:
-                with open(self.pickle_save_path, "rb") as file:
-                    loaded_stats = pickle.load(file)
-                    self.__dict__.update(loaded_stats.__dict__)
-            except (EOFError, Exception):
-                # File may be empty or corrupt (e.g. child process killed mid-write); skip load.
-                pass
+    def checkpoint(self) -> None:
+        """Atomically persist a compact run snapshot."""
+        atomic_write_json(self._state(), self.state_save_path)
+        self._last_checkpoint = time.monotonic()
+
+    def maybe_checkpoint(self, interval_seconds: float = 5.0) -> None:
+        """Persist at most once per interval while a run is active."""
+        if time.monotonic() - self._last_checkpoint >= interval_seconds:
+            self.checkpoint()

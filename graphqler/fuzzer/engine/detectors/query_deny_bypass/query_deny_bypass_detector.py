@@ -9,7 +9,6 @@ from graphqler.fuzzer.engine.detectors.detector import Detector
 from graphqler.fuzzer.engine.materializers.utils.materialization_utils import prettify_graphql_payload
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler.utils.stats import Stats
 from graphqler.utils import plugins_handler
 
 
@@ -111,10 +110,9 @@ class QueryDenyBypassDetector(Detector):
         self.fuzzer_logger.debug(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_graphql_response}")
         self.detector_logger.info(f"[{aliased_request_response.status_code}]Aliased Response: {aliased_request_response.text}")
 
-        if (("400" in non_aliased_request_response.text and 'errors' in non_aliased_graphql_response)
-                or non_aliased_request_response.status_code == 400):
-            if (aliased_request_response.status_code == 200 and 'data' in aliased_graphql_response and aliased_graphql_response['data']):
-                if 'errors' in aliased_graphql_response and aliased_graphql_response['errors'] and len(aliased_graphql_response['errors']) != 0:
+        if ("400" in non_aliased_request_response.text and "errors" in non_aliased_graphql_response) or non_aliased_request_response.status_code == 400:
+            if aliased_request_response.status_code == 200 and "data" in aliased_graphql_response and aliased_graphql_response["data"]:
+                if "errors" in aliased_graphql_response and aliased_graphql_response["errors"] and len(aliased_graphql_response["errors"]) != 0:
                     self.potentially_vulnerable = True
                     self.confirmed_vulnerable = False
                 else:
@@ -124,33 +122,31 @@ class QueryDenyBypassDetector(Detector):
             self.potentially_vulnerable = False
             self.confirmed_vulnerable = False
 
-        non_aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
-                                    payload=non_aliased_payload,
-                                    status_code=non_aliased_request_response.status_code,
-                                    graphql_response=non_aliased_graphql_response,
-                                    raw_response_text=non_aliased_request_response.text)
-        aliased_result = Result(ResultEnum.GENERAL_SUCCESS,
-                                payload=aliased_payload,
-                                status_code=aliased_request_response.status_code,
-                                graphql_response=aliased_graphql_response,
-                                raw_response_text=aliased_request_response.text)
+        non_aliased_result = Result(
+            ResultEnum.GENERAL_SUCCESS,
+            payload=non_aliased_payload,
+            status_code=non_aliased_request_response.status_code,
+            graphql_response=non_aliased_graphql_response,
+            raw_response_text=non_aliased_request_response.text,
+        )
+        aliased_result = Result(
+            ResultEnum.GENERAL_SUCCESS,
+            payload=aliased_payload,
+            status_code=aliased_request_response.status_code,
+            graphql_response=aliased_graphql_response,
+            raw_response_text=aliased_request_response.text,
+        )
 
-        Stats().add_http_status_code(self.name, non_aliased_request_response.status_code)
-        Stats().add_http_status_code(self.name, aliased_request_response.status_code)
-        Stats().update_stats_from_result(self.node, non_aliased_result)
-        Stats().update_stats_from_result(self.node, aliased_result)
+        self.stats.add_http_status_code(self.name, non_aliased_request_response.status_code)
+        self.stats.add_http_status_code(self.name, aliased_request_response.status_code)
+        self.stats.update_stats_from_result(self.node, non_aliased_result)
+        self.stats.update_stats_from_result(self.node, aliased_result)
         evidence = ""
         if self.confirmed_vulnerable:
-            evidence = (
-                "query deny bypass confirmed: non-aliased request blocked (400/errors), "
-                "aliased request succeeded (200 with data and no errors)"
-            )
+            evidence = "query deny bypass confirmed: non-aliased request blocked (400/errors), aliased request succeeded (200 with data and no errors)"
         elif self.potentially_vulnerable:
-            evidence = (
-                "query deny bypass potential: non-aliased request blocked, "
-                "aliased request returned data but also contained errors"
-            )
-        Stats().add_vulnerability(
+            evidence = "query deny bypass potential: non-aliased request blocked, aliased request returned data but also contained errors"
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,

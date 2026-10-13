@@ -1,5 +1,6 @@
 from graphqler import config
 from pathlib import Path
+from graphqler.utils.artifact_manifest import ArtifactValidationError, validate_manifest
 
 
 def set_auth_token_constant(auth_argument: str) -> None:
@@ -14,6 +15,7 @@ def set_auth_token_constant(auth_argument: str) -> None:
     else:
         config.AUTHORIZATION = f"Bearer {auth_argument}"
     from graphqler.utils.request_utils import reset_session
+
     reset_session()
 
 
@@ -30,25 +32,17 @@ def set_idor_auth_token_constant(auth_argument: str) -> None:
     else:
         config.IDOR_SECONDARY_AUTH = f"Bearer {auth_argument}"
     from graphqler.utils.request_utils import reset_session
+
     reset_session()
 
 
 def is_compiled(path: str | Path) -> bool:
-    """Checks if the compiled directory exists
-
-    Args:
-        path (str): The path to the compiled directory
-
-    Returns:
-        bool: True if the compiled directory exists, False otherwise
-    """
+    """Return whether a compatible, complete artifact set exists."""
     if path is None:
         return False
-    path = Path(path)
-    return (
-        (path / config.COMPILED_DIR_NAME).exists()
-        and (path / config.COMPILED_OBJECTS_FILE_NAME).exists()
-        and (path / config.COMPILED_QUERIES_FILE_NAME).exists()
-        and (path / config.COMPILED_MUTATIONS_FILE_NAME).exists()
-        and (path / config.INTROSPECTION_RESULT_FILE_NAME).exists()
-    )
+    settings = config.snapshot()
+    try:
+        validate_manifest(path, "chains", settings)
+    except (ArtifactValidationError, OSError):
+        return False
+    return True

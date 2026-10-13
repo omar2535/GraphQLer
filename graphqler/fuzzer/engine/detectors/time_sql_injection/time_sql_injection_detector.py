@@ -6,7 +6,6 @@ import requests
 from graphqler.utils import plugins_handler
 from graphqler.fuzzer.engine.types import ResultEnum, Result
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
-from graphqler.utils.stats import Stats
 from graphqler import config
 
 from ..detector import Detector
@@ -74,9 +73,7 @@ class TimeSQLInjectionDetector(Detector):
         self.detector_logger.info(f"[Detector] Time-based SQLi payload:\n{self.payload}")
 
         start = time.monotonic()
-        graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(
-            self.api.url, self.payload
-        )
+        graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, self.payload)
         self.elapsed_time = time.monotonic() - start
 
         # Delta removes naturally-slow-endpoint noise
@@ -89,23 +86,19 @@ class TimeSQLInjectionDetector(Detector):
             graphql_response=graphql_response,
             raw_response_text=request_response.text,
         )
-        Stats().add_http_status_code(self.name, request_response.status_code)
-        Stats().update_stats_from_result(self.node, result)
+        self.stats.add_http_status_code(self.name, request_response.status_code)
+        self.stats.update_stats_from_result(self.node, result)
 
         self.detector_logger.info(
-            f"[{request_response.status_code}] elapsed={self.elapsed_time:.2f}s "
-            f"baseline={self.baseline_time:.2f}s delta={self.time_delta:.2f}s  "
-            f"Response: {request_response.text}"
+            f"[{request_response.status_code}] elapsed={self.elapsed_time:.2f}s baseline={self.baseline_time:.2f}s delta={self.time_delta:.2f}s  Response: {request_response.text}"
         )
         self.fuzzer_logger.info(
-            f"[{request_response.status_code}] elapsed={self.elapsed_time:.2f}s "
-            f"baseline={self.baseline_time:.2f}s delta={self.time_delta:.2f}s  "
-            f"Response: {graphql_response}"
+            f"[{request_response.status_code}] elapsed={self.elapsed_time:.2f}s baseline={self.baseline_time:.2f}s delta={self.time_delta:.2f}s  Response: {graphql_response}"
         )
 
         self._parse_response(graphql_response, request_response)
         evidence = self._get_evidence(graphql_response, request_response)
-        Stats().add_vulnerability(
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,

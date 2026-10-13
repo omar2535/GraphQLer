@@ -4,7 +4,6 @@ import requests
 import random
 
 from graphqler.utils.api import API
-from graphqler.utils.stats import Stats
 from graphqler.utils import plugins_handler, detection_writer
 from graphqler.fuzzer.engine.types import ResultEnum, Result
 
@@ -17,12 +16,12 @@ SQL_INJECTION_STRINGS = [
     # SQLite-specific: reference a non-existent table inside a subquery so the error
     # is raised within the *first* (and only) statement that sqlite3's db.all() executes.
     # These are placed first to ensure they are always tried.
-    "\"' AND 1=(SELECT 1 FROM nonexistent_sqli_table_xyzzy)--\"",
-    "\"' OR 1=(SELECT 1 FROM nonexistent_sqli_table_xyzzy)--\"",
-    "\"' AND (SELECT COUNT(*) FROM nonexistent_sqli_table_xyzzy)>0--\"",
+    '"\' AND 1=(SELECT 1 FROM nonexistent_sqli_table_xyzzy)--"',
+    '"\' OR 1=(SELECT 1 FROM nonexistent_sqli_table_xyzzy)--"',
+    '"\' AND (SELECT COUNT(*) FROM nonexistent_sqli_table_xyzzy)>0--"',
     # Generic
     '"aaa \' OR 1=1--"',
-    '"\' OR \'1\'=\'1"',
+    "\"' OR '1'='1\"",
     '"1; DROP TABLE users--"',
     '"1\' UNION SELECT null,null,null--"',
     '"1\' AND SLEEP(3)--"',
@@ -36,7 +35,7 @@ SQL_INJECTION_STRINGS = [
     '"1\'; SELECT pg_sleep(3)--"',
     '"1\' AND 1=(SELECT 1 FROM pg_user LIMIT 1)--"',
     # MSSQL-specific
-    '"1\'; WAITFOR DELAY \'0:0:3\'--"',
+    "\"1'; WAITFOR DELAY '0:0:3'--\"",
     '"1\' AND 1=@@version--"',
 ]
 
@@ -102,7 +101,7 @@ class SQLInjectionGetter(Getter):
 
     @override
     def get_random_string(self, input_name: str) -> str:
-        if input_name in ['filter', 'search', 'query', 'name', 'username', 'password', 'email', 'id', 'text', 'message', 'input', 'value']:
+        if input_name in ["filter", "search", "query", "name", "username", "password", "email", "id", "text", "message", "input", "value"]:
             if self._injection_string is not None:
                 return self._injection_string
             return random.choice(SQL_INJECTION_STRINGS)
@@ -168,8 +167,8 @@ class SQLInjectionDetector(Detector):
                 graphql_response=graphql_response,
                 raw_response_text=request_response.text,
             )
-            Stats().add_http_status_code(self.name, request_response.status_code)
-            Stats().update_stats_from_result(self.node, result)
+            self.stats.add_http_status_code(self.name, request_response.status_code)
+            self.stats.update_stats_from_result(self.node, result)
 
             self.detector_logger.info(f"[{request_response.status_code}] Response: {request_response.text}")
             self.fuzzer_logger.info(f"[{request_response.status_code}] Response: {graphql_response}")
@@ -182,7 +181,7 @@ class SQLInjectionDetector(Detector):
                 break
 
         evidence = self._get_evidence(last_graphql_response, last_request_response)
-        Stats().add_vulnerability(
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,

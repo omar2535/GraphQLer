@@ -6,21 +6,19 @@ jobs:
     name: Run GraphQLer Unit Tests
     runs-on: ubuntu-latest
 
+    env:
+      TZ: UTC
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    - name: Setup timezone
-      uses: zcong1993/setup-timezone@master
-      with:
-        timezone: UTC
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: 3.12
 
     - name: Install the latest version of uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v6
 
     - name: Install Python dependencies
       run: uv sync --extra mcp
@@ -31,6 +29,5 @@ jobs:
           sudo apt install -y $(grep -o ^[^#][[:alnum:]-]* packages.list)
         fi
 
-    - name: Test with pytest
-      run: |
-        uv run pytest tests/unit/ --exitfirst --verbose --failed-first --cov=. --cov-report html
+    - name: Test with pytest and enforce coverage
+      run: uv run pytest tests/unit/ --exitfirst --verbose --failed-first --cov=graphqler --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=50

@@ -20,10 +20,7 @@ from typing import Annotated, Literal
 try:
     from fastmcp import FastMCP
 except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "The 'mcp' package is required to run the GraphQLer MCP server. "
-        "Install it with:  pip install GraphQLer[mcp]"
-    ) from exc
+    raise ImportError("The 'mcp' package is required to run the GraphQLer MCP server. Install it with:  pip install GraphQLer[mcp]") from exc
 
 from graphqler import config
 from graphqler.utils.cli_utils import is_compiled
@@ -45,8 +42,8 @@ mcp = FastMCP(
     ),
 )
 
-# Global lock to serialise tool execution: compile/fuzz mutate global config state,
-# so concurrent HTTP/SSE requests must not run simultaneously.
+# stdout capture and Python's logging registry are process-global, so MCP tool
+# execution remains serialized even though run configuration is context-local.
 _pipeline_lock = threading.Lock()
 
 
@@ -55,51 +52,17 @@ _pipeline_lock = threading.Lock()
 # ---------------------------------------------------------------------------
 
 
-def _reset_singletons() -> None:
-    """Clear cached singleton instances so each tool call starts with a clean state."""
-    from graphqler.utils.stats import Stats
-    from graphqler.utils.objects_bucket import ObjectsBucket
-
-    getattr(Stats, "reset")()
-    getattr(ObjectsBucket, "reset")()
-
-    # Best-effort reset of additional singletons used by compile/fuzz pipeline.
-    try:
-        from graphqler.utils.logging_utils import Logger
-
-        reset_fn = getattr(Logger, "reset", None)
-        if callable(reset_fn):
-            reset_fn()
-    except ImportError:
-        pass
-
-    try:
-        from graphqler.fuzzer.engine.fengine import FEngine
-
-        reset_fn = getattr(FEngine, "reset", None)
-        if callable(reset_fn):
-            reset_fn()
-    except ImportError:
-        pass
-
-
-def _set_output_directory(path: str) -> None:
-    """Set config.OUTPUT_DIRECTORY and keep derived config paths in sync."""
-    config.OUTPUT_DIRECTORY = path
-    if hasattr(config, "PLUGINS_PATH"):
-        config.PLUGINS_PATH = f"{path}/plugins"
-
-
-def _apply_auth(auth: str | None) -> None:
-    """Apply an auth token to the global config, clearing any previous value when absent."""
-    if auth:
-        from graphqler.utils.cli_utils import set_auth_token_constant
-
-        set_auth_token_constant(auth)
-    else:
-        # Ensure no stale authorization token is reused across MCP tool calls.
-        if hasattr(config, "AUTHORIZATION"):
-            config.AUTHORIZATION = None
+def _run_settings(path: str, auth: str | None) -> config.RunSettings:
+    authorization = auth
+    if authorization and " " not in authorization:
+        authorization = f"Bearer {authorization}"
+    return config.snapshot(
+        {
+            "OUTPUT_DIRECTORY": path,
+            "PLUGINS_PATH": f"{path}/plugins",
+            "AUTHORIZATION": authorization,
+        }
+    )
 
 
 def _capture(fn, *args, **kwargs):
@@ -134,16 +97,12 @@ def compile(
     from graphqler.graph import GraphGenerator
     from graphqler.__main__ import run_compile_mode
 
-    with _pipeline_lock:
-        _reset_singletons()
-        _set_output_directory(path)
-        _apply_auth(auth)
-
+    settings = _run_settings(path, auth)
+    with _pipeline_lock, config.activate(settings):
         from graphqler.utils.file_utils import get_or_create_directory
 
         get_or_create_directory(path)
-
-        compiler = Compiler(path, url)
+        compiler = Compiler(path, url, settings=settings)
         stdout, _, error = _capture(run_compile_mode, compiler, path, url)
 
     if error:
@@ -177,28 +136,21 @@ def fuzz(
     from graphqler.__main__ import run_fuzz_mode
 
     if not is_compiled(path):
-        return (
-            f"The path '{path}' does not contain compiled artifacts. "
-            "Please run compile() first."
-        )
+        return f"The path '{path}' does not contain compiled artifacts. Please run compile() first."
 
-    with _pipeline_lock:
-        _reset_singletons()
-        _set_output_directory(path)
-        _apply_auth(auth)
-
+    settings = _run_settings(path, auth)
+    with _pipeline_lock, config.activate(settings):
         stats = Stats()
         stats.set_file_paths(path)
 
-        fuzzer = Fuzzer(path, url)
+        fuzzer = Fuzzer(path, url, stats=stats, settings=settings)
         stdout, _, error = _capture(run_fuzz_mode, fuzzer, path, url)
 
     if error:
         return f"Fuzzing failed:\n{error}\n\nOutput:\n{stdout}"
 
-    # Build summary from stats — fuzzer.run() uses multiprocessing so stats are written to
-    # disk by the child process; load them back into the parent-process singleton here.
-    stats_obj = Stats().load()
+    # Fuzzer runs in a child process, so reload its final state into the parent object.
+    stats_obj = stats.load()
     lines = [
         "Fuzzing complete.",
         f"Successes: {stats_obj.number_of_successes}",

@@ -1,9 +1,8 @@
 """Integration tests for GraphQLer CLI modes.
 
-Each test invokes ``python -m graphqler`` as a subprocess so that:
-- singletons (Stats, FEngine, ObjectsBucket) are fully isolated per test
-- config module state cannot leak between tests
-- the real CLI argument-parsing / dispatch path is exercised end-to-end
+Each test invokes ``python -m graphqler`` as a subprocess so that run-scoped
+configuration and state cannot leak between tests and the real CLI
+argument-parsing / dispatch path is exercised end-to-end.
 
 All tests share a single food-delivery-api server started in ``setUpClass``.
 Each test gets its own output directory that is deleted in ``tearDown``.
@@ -13,6 +12,12 @@ import os
 import shutil
 import subprocess
 import unittest
+import threading
+import time
+
+import requests
+
+from graphqler.utils.websocket_utils import send_graphql_subscription
 
 from tests.e2e.utils.run_api import run_node_project, wait_for_server
 
@@ -139,7 +144,8 @@ class TestCLIModes(unittest.TestCase):
         if os.path.isdir(chains_dir):
             chain_files = [f for f in os.listdir(chains_dir) if f.endswith(".yml")]
             self.assertEqual(
-                len(chain_files), 0,
+                len(chain_files),
+                0,
                 "compile-graph should not generate chain YAML files",
             )
 
@@ -152,11 +158,11 @@ class TestCLIModes(unittest.TestCase):
         self.assertEqual(result.returncode, 0, f"compile-chains failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
         self._assert_chains_exist()
 
-    def test_compile_chains_on_empty_directory_exits_cleanly(self):
-        """compile-chains with no prior graph handles an empty graph without crashing."""
+    def test_compile_chains_on_empty_directory_reports_missing_manifest(self):
+        """compile-chains rejects incomplete output instead of loading an empty graph."""
         result = self._compile_chains()
-        # Should exit 0 (it prints a warning and returns early, not sys.exit(1))
-        self.assertEqual(result.returncode, 0, f"compile-chains crashed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Missing manifest.json", result.stderr + result.stdout)
 
     # ── full compile mode ─────────────────────────────────────────────────────
 
@@ -266,6 +272,18 @@ class TestCLIModes(unittest.TestCase):
         self._assert_compiled_graph()
         self._assert_chains_exist()
 
+    def test_fuzz_rejects_tampered_compiled_artifact(self):
+        compile_result = self._compile()
+        self.assertEqual(compile_result.returncode, 0, compile_result.stderr)
+        queries_path = os.path.join(self.path, "compiled", "compiled_queries.yml")
+        with open(queries_path, "a") as file:
+            file.write("\n# tampered\n")
+
+        fuzz_result = self._fuzz()
+
+        self.assertNotEqual(fuzz_result.returncode, 0)
+        self.assertIn("integrity validation", fuzz_result.stderr + fuzz_result.stdout)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Subscription support tests (user-wallet-api)
@@ -350,6 +368,36 @@ class TestSubscriptionSupport(unittest.TestCase):
         # Then fuzz with subscriptions enabled
         fuzz_result = _run_cli_sub(self.path, "fuzz", extra_args=["--subscriptions"])
         self.assertEqual(fuzz_result.returncode, 0, f"fuzz --subscriptions failed:\nSTDOUT: {fuzz_result.stdout}\nSTDERR: {fuzz_result.stderr}")
+
+    def test_subscription_receives_and_parses_published_event(self):
+        """The real graphql-ws transport must receive a published event, not only connect."""
+        observed: list[dict] = []
+
+        def subscribe():
+            observed.extend(
+                send_graphql_subscription(
+                    SUB_URL,
+                    {"query": "subscription { onTransactionCreated { id amount } }"},
+                    timeout=5,
+                    protocol="graphql-transport-ws",
+                )
+            )
+
+        subscriber = threading.Thread(target=subscribe)
+        subscriber.start()
+        time.sleep(0.5)
+        response = requests.post(
+            SUB_URL,
+            json={"query": ('mutation { createTransaction(amount: 12.5, payerID: "payer-a", walletID: "wallet-a", currencyID: "currency-a") { id } }')},
+            timeout=10,
+        )
+        subscriber.join(timeout=7)
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(subscriber.is_alive(), "subscription listener did not finish")
+        self.assertTrue(observed, "subscription connected but received no event")
+        event = observed[0]["data"]["onTransactionCreated"]
+        self.assertEqual(event["amount"], 12.5)
 
     def test_fuzz_without_subscriptions_flag_still_works(self):
         """Without --subscriptions, subscription nodes are skipped and fuzzing should succeed."""

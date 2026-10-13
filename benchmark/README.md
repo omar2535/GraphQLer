@@ -151,6 +151,28 @@ uv run python benchmark/benchmark_llm_chains.py \
 
 ---
 
+### `benchmark_detector_accuracy.py` — Vulnerability detector accuracy
+
+Measures detector precision, recall, and F1 against the versioned labels in
+`ground_truth/detectors.yml`. Expected detector/node/level tuples are positives;
+any additional finding in the same completed runs is treated as a negative-control
+false positive. This prevents integration tests that only prove one vulnerable
+example from being reported as scanner-wide accuracy.
+
+The results root must contain the E2E output directories named by the corpus:
+
+```bash
+uv run python benchmark/benchmark_detector_accuracy.py \
+  --results-root . \
+  --output benchmark/detector_accuracy_results.json
+```
+
+The JSON report includes aggregate and per-detector TP/FP/FN, precision, recall,
+F1, and the exact unmatched findings. Update labels only with a reproducible API
+revision and retained run output.
+
+---
+
 ## Directory structure
 
 ```
@@ -159,10 +181,12 @@ benchmark/
 ├── benchmark_oob.py                  # Objects-bucket-only baseline
 ├── benchmark_ablation.py             # 4-config ablation study
 ├── benchmark_inference_accuracy.py   # Dependency inference precision/recall
+├── benchmark_detector_accuracy.py    # Detector precision/recall/F1 corpus
 ├── benchmark_llm_chains.py           # LLM vs heuristic chain generation
 ├── ground_truth/
 │   ├── countries.yml
 │   ├── rick_and_morty.yml
-│   └── graphql_zero.yml
-└── readme.md
+│   ├── graphql_zero.yml
+│   └── detectors.yml
+└── README.md
 ```

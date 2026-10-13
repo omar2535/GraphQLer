@@ -10,6 +10,7 @@ from .field_fuzzing.field_charset_fuzzing_detector import FieldCharsetFuzzingDet
 from .field_fuzzing.id_enumeration_detector import IDEnumerationDetector
 from .idor_chain_detector import IDORChainDetector as IDORChainDetector
 from .uaf_chain_detector import UAFChainDetector as UAFChainDetector
+from .authorization_differential_detector import AuthorizationDifferentialDetector as AuthorizationDifferentialDetector
 
 from .introspection.introspection_detector import IntrospectionDetector
 from .field_suggestion.field_suggestion_detector import FieldSuggestionsDetector
@@ -24,7 +25,7 @@ injection_detectors = [
     SQLInjectionDetector,
     NoSQLInjectionDetector,
     TimeSQLInjectionDetector,
-    PathInjectionDetector
+    PathInjectionDetector,
 ]
 
 misc_detectors = [
@@ -39,7 +40,4 @@ enumeration_detectors = [
     IDEnumerationDetector,
 ]
 
-api_detectors = [
-    IntrospectionDetector,
-    FieldSuggestionsDetector
-]
+api_detectors = [IntrospectionDetector, FieldSuggestionsDetector]

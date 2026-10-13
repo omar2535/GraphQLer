@@ -47,12 +47,13 @@ class Detector(ABC):
         """Materializer class to be used for payload generation"""
         pass
 
-    def __init__(self, api: API, node: Node, objects_bucket: ObjectsBucket, graphql_type: str):
+    def __init__(self, api: API, node: Node, objects_bucket: ObjectsBucket, graphql_type: str, stats: Stats | None = None):
         self.api = api
         self.node = node
         self.name = node.name
         self.objects_bucket = objects_bucket
         self.graphql_type = graphql_type
+        self.stats = stats or Stats()
         self.detector_logger = Logger().get_detector_logger()
         self.fuzzer_logger = Logger().get_fuzzer_logger()
         self.payload = ""
@@ -76,17 +77,17 @@ class Detector(ABC):
             payload=self.payload,
             status_code=request_response.status_code,
             graphql_response=graphql_response,
-            raw_response_text=request_response.text
+            raw_response_text=request_response.text,
         )
-        Stats().add_http_status_code(self.name, request_response.status_code)
-        Stats().update_stats_from_result(self.node, result)
+        self.stats.add_http_status_code(self.name, request_response.status_code)
+        self.stats.update_stats_from_result(self.node, result)
 
         self.detector_logger.info(f"[{request_response.status_code}]Response: {request_response.text}")
         self.fuzzer_logger.info(f"[{request_response.status_code}]Response: {graphql_response}")
 
         self._parse_response(graphql_response, request_response)
         evidence = self._get_evidence(graphql_response, request_response)
-        Stats().add_vulnerability(
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,
@@ -108,11 +109,7 @@ class Detector(ABC):
 
     def get_payload(self) -> str:
         """Gets the materialized payload to be sent to the API"""
-        materializer_instance = self.materializer(
-            api=self.api,
-            fail_on_hard_dependency_not_met=False,
-            max_depth=3
-        )
+        materializer_instance = self.materializer(api=self.api, fail_on_hard_dependency_not_met=False, max_depth=3)
         payload, used_objects = materializer_instance.get_payload(self.name, self.objects_bucket, self.graphql_type)
         assert isinstance(payload, str)
         return payload

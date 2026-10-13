@@ -76,7 +76,7 @@ flowchart TD
         GRAPH_PNG["dependency_graph.png"]
         INTROSPECTION_JSON["introspection_result.json"]
         STATS_FILES["stats.txt · stats.json\nlogs/fuzzer.log"]
-        OBJECTS_PKL["objects_bucket.pkl"]
+        OBJECTS_PKL["serialized state\nstats.json · objects_bucket.json\nmanifest.json"]
         DETECTIONS_DIR["detections/\n  VULN_NAME/NODE/\n    raw_log.txt\n    summary.txt"]
     end
 
@@ -84,10 +84,10 @@ flowchart TD
         FUZZER_MAIN["Fuzzer\nsave_path · url\nprofiles{primary,secondary}"]
         API_OBJ["API\nqueries · mutations · objects\nenums · unions · interfaces"]
         GRAPH_LOAD["GraphGenerator\nloads DiGraph from compiled YAML"]
-        OBJECTS_BUCKET["ObjectsBucket\nobject store keyed by type\npickle-persisted"]
+        OBJECTS_BUCKET["ObjectsBucket\nrun-scoped object store keyed by type\nversioned JSON state"]
 
         subgraph FENGINE["FEngine — fuzzer/engine/fengine.py"]
-            FENGINE_MAIN["FEngine ★ singleton\napi · logger"]
+            FENGINE_MAIN["FEngine\napi · stats · logger"]
             subgraph MATERIALIZERS["Materializers — engine/materializers/"]
                 MAT_BASE["Materializer (base)\nget_payload()"]
                 REG_MAT["RegularPayloadMaterializer"]
@@ -130,13 +130,14 @@ flowchart TD
     end
 
     subgraph UTILS["Shared Utils — utils/"]
-        STATS["Stats ★ singleton\nhttp_status_codes · vulnerabilities\nresults · timings · counts"]
+        STATS["Stats\nrun-scoped counters · findings\nresults · timings · checkpoints"]
+        RUN_CONTEXT["RunContext\nsettings · stats · objects_bucket"]
         PLUGINS_HDR["plugins_handler\nget_request_utils()"]
         REQUEST_UTILS["RequestUtils\nsend_graphql_request()\nimplements RequestUtilsProtocol"]
         REQ_PROTO["RequestUtilsProtocol\n(interface — swappable)"]
         DET_WRITER["detection_writer\nwrite_from_detector()\nwrite_from_chain()"]
         LOGGER["Logger\ncompiler · fuzzer · detector"]
-        CONFIG["config.py ⚠ global module\nAUTHORIZATION · IDOR_SECONDARY_AUTH\nMAX_TIME · detection flags\n50+ settings"]
+        CONFIG["config.py context-local proxy\nRunSettings snapshots\nCLI defaults · detection flags"]
     end
 
     %% ── CLI wiring ──────────────────────────────────────────────
@@ -201,7 +202,7 @@ flowchart TD
     REQUEST_UTILS -.->|implements| REQ_PROTO
     COMPILER_MAIN & FENGINE_MAIN & DETECTORS --> PLUGINS_HDR
 
-    %% ── Global config (tight coupling — dashed) ──────────────────
+    %% ── Context-local config proxy (dashed implicit dependencies) ────────────
     CONFIG -.->|imported directly| COMPILER_MAIN
     CONFIG -.->|imported directly| FUZZER_MAIN
     CONFIG -.->|imported directly| FENGINE_MAIN
@@ -212,14 +213,14 @@ flowchart TD
     CONFIG -.->|imported directly| CHAIN_GEN
 
     %% ── Styles ───────────────────────────────────────────────────
-    classDef singleton fill:#f4a261,stroke:#e76f51,color:#000
-    classDef tight_coupling fill:#e63946,stroke:#c1121f,color:#fff
+    classDef context fill:#f4a261,stroke:#e76f51,color:#000
+    classDef implicit_dependency fill:#e63946,stroke:#c1121f,color:#fff
     classDef interface fill:#2a9d8f,stroke:#21867a,color:#fff
     classDef disk fill:#457b9d,stroke:#1d3557,color:#fff
     classDef detector fill:#6a4c93,stroke:#4a3770,color:#fff
 
-    class STATS,FENGINE_MAIN singleton
-    class CONFIG tight_coupling
+    class RUN_CONTEXT context
+    class CONFIG implicit_dependency
     class REQ_PROTO interface
     class YAML_RAW,YAML_COMPILED,CHAINS_YAML,INTROSPECTION_JSON,STATS_FILES,OBJECTS_PKL,DETECTIONS_DIR,GRAPH_PNG disk
     class SQL_DET,NOSQL_DET,TSQL_DET,SSRF_DET,OS_DET,XSS_DET,PATH_DET,QDB_DET,FCF_DET,IDE_DET,INTRO_DET,FS_DET,IDOR_CHAIN_DET detector
@@ -246,11 +247,10 @@ flowchart TD
 
 | Coupling | Location | Impact |
 |---|---|---|
-| **`config.py` global module** | Imported directly by 50+ files | Any test that needs different config values must monkeypatch module-level variables. Impossible to run two configurations in the same process. |
-| **`Stats` singleton** | Accessed via `Stats()` from detectors, fengine, fuzzer | Detectors cannot be unit-tested in isolation without the singleton accumulating state across tests. Stats can only be reset by calling `__init__` directly or reimporting the module. |
-| **`plugins_handler.get_request_utils()`** | Called as a module-level function from compiler, fengine, detectors | The HTTP layer is a global service rather than an injected dependency. Mocking requires patching the module, not passing a mock. |
-| **`API` reads disk at `__init__`** | `Fuzzer → API(url, save_path)` reads YAML immediately in constructor | Fuzzer construction fails if compiled files don't exist yet. No lazy loading. |
-| **`ObjectsBucket` path from `config`** | Save/load path is always `config.OUTPUT_DIRECTORY / ...` | Cannot have two buckets for different outputs in the same process. |
+| **Context-local config proxy** | Engine and detector modules still import `config` directly | Runs are isolated through `RunSettings` + `config.activate()`, but dependencies remain implicit and require an active context. |
+| **`plugins_handler.get_request_utils()`** | Called as a module-level function from compiler, fengine, detectors | The HTTP implementation remains process-global. Dynamic plugin selection and logger capture keep MCP tool execution serialized. |
+| **`API` artifact loading** | `Fuzzer → API(url, save_path)` reads compiled YAML during construction | `manifest.json` now validates completeness, phase, version, endpoint, and hashes first; loading remains eager by design. |
+| **File-backed reports/state** | `Stats` and `ObjectsBucket` own paths below one run directory | Each run has isolated paths and atomic JSON checkpoints, but storage is intentionally local-filesystem-only. |
 
 ---
 
@@ -289,7 +289,7 @@ Target GraphQL API
        └── Stats.save() + ObjectsBucket.save() + detection_writer → files
               │
               ▼
-       stats.txt · stats.json · logs/ · detections/ · objects_bucket.pkl
+       stats.txt · stats.json · serialized/*.json · manifest.json · logs/ · detections/
 ```
 
 ---
@@ -302,15 +302,14 @@ Target GraphQL API
 | **Template Method** | `Detector` abstract base | Subclasses implement `_is_vulnerable()` / `_is_potentially_vulnerable()`; base handles the rest |
 | **Plugin / Protocol** | `plugins_handler` + `RequestUtilsProtocol` | Entire HTTP layer swappable at runtime |
 | **Factory** | `DEngine` instantiates detector lists | Adding a detector is one line in `detectors/__init__.py` |
-| **Singleton** | `Stats`, `FEngine`, `ObjectsBucket` | ⚠️ Makes parallelism and isolated testing difficult |
+| **Context Object** | `RunContext` + immutable `RunSettings` | One run owns its settings, stats, bucket, and output paths |
 | **Facade** | `core.py` | Clean programmatic API hiding the full compiler+fuzzer pipeline |
 
 ---
 
 ## Recommendations
 
-1. **Inject config** — pass a `Config` dataclass rather than importing the global module. Enables multiple concurrent configurations and eliminates monkeypatching in tests.
-2. **Break the `Stats` singleton** — pass `Stats` as a constructor argument to `FEngine`, `DEngine`, and detectors. State would no longer leak between runs in the same process.
-3. **Break the `FEngine` singleton** — `Fuzzer` already owns `FEngine`; the singleton decorator adds no value and prevents isolated unit tests.
-4. **Lazy-load `API`** — reading all YAML in the constructor means `Fuzzer(path, url)` fails if compilation hasn't run yet. Lazy loading would give a clearer error message.
-5. **Abstract storage** — introduce a `StorageBackend` interface so file paths aren't hard-coded via `config` throughout every component.
+1. **Inject the request client** — replace the process-global `plugins_handler` lookup with a `RequestUtilsProtocol` instance on `RunContext`. This would remove the remaining reason MCP execution is serialized.
+2. **Make settings dependencies explicit** — continue moving engine and detector constructors from context-proxy reads to typed `RunSettings` fields where it improves testability.
+3. **Version artifact migrations** — keep strict manifest rejection as the default, and add explicit migrations only when a future schema version has a safe, tested conversion.
+4. **Keep storage concrete until needed** — local atomic JSON is sufficient today. Introduce a storage interface only alongside a real remote, database, or in-memory backend.

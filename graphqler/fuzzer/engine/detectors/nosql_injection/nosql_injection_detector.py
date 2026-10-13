@@ -4,7 +4,6 @@ import requests
 
 from graphqler import config
 from graphqler.utils import plugins_handler
-from graphqler.utils.stats import Stats
 from graphqler.fuzzer.engine.types import ResultEnum, Result
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
 
@@ -22,7 +21,7 @@ NOSQL_INJECTION_STRINGS = [
     '"{$exists: true}"',
     '"{$nin: []}"',
     "\"' || '1'=='1\"",
-    "\"; sleep(5000); var dummy=\"",
+    '"; sleep(5000); var dummy="',
 ]
 
 # Error messages commonly emitted by NoSQL databases (MongoDB, etc.)
@@ -32,7 +31,7 @@ NOSQL_ERROR_PATTERNS = [
     "mongo",
     "bson",
     "objectid",
-    "e11000",                      # MongoDB duplicate key error
+    "e11000",  # MongoDB duplicate key error
     "bad query",
     "not valid json",
     "$where",
@@ -79,9 +78,7 @@ class NoSQLInjectionDetector(Detector):
         try:
             benign_mat = RegularPayloadMaterializer(self.api, fail_on_hard_dependency_not_met=False)
             benign_payload, _ = benign_mat.get_payload(self.name, self.objects_bucket, self.graphql_type)
-            baseline_gql, _ = plugins_handler.get_request_utils().send_graphql_request(
-                self.api.url, benign_payload
-            )
+            baseline_gql, _ = plugins_handler.get_request_utils().send_graphql_request(self.api.url, benign_payload)
             if baseline_gql and isinstance(baseline_gql.get("data"), dict):
                 self.baseline_has_data = any(v is not None for v in baseline_gql["data"].values())
             else:
@@ -91,9 +88,7 @@ class NoSQLInjectionDetector(Detector):
 
         # ── Step 2: injection payload (standard flow) ─────────────────────────
         self.payload = self.get_payload()
-        graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(
-            self.api.url, self.payload
-        )
+        graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, self.payload)
 
         result = Result(
             result_enum=ResultEnum.GENERAL_SUCCESS,
@@ -102,12 +97,12 @@ class NoSQLInjectionDetector(Detector):
             graphql_response=graphql_response,
             raw_response_text=request_response.text,
         )
-        Stats().add_http_status_code(self.name, request_response.status_code)
-        Stats().update_stats_from_result(self.node, result)
+        self.stats.add_http_status_code(self.name, request_response.status_code)
+        self.stats.update_stats_from_result(self.node, result)
 
         self._parse_response(graphql_response, request_response)
         evidence = self._get_evidence(graphql_response, request_response)
-        Stats().add_vulnerability(
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,
@@ -128,9 +123,7 @@ class NoSQLInjectionDetector(Detector):
             return False
         if not any(kw in self.payload for kw in NOSQL_INJECTION_STRINGS):
             return False
-        injection_has_data = isinstance(graphql_response.get("data"), dict) and any(
-            v is not None for v in graphql_response["data"].values()
-        )
+        injection_has_data = isinstance(graphql_response.get("data"), dict) and any(v is not None for v in graphql_response["data"].values())
         # Only flag when the operator payload produces data that the benign
         # baseline did NOT — a strong signal that the operator bypassed a filter.
         return injection_has_data and not self.baseline_has_data
@@ -141,10 +134,7 @@ class NoSQLInjectionDetector(Detector):
             if pattern in response_text_lower:
                 return f"matched NoSQL error pattern: '{pattern}'"
         if self._is_potentially_vulnerable(graphql_response, request_response):
-            evidence = (
-                "NoSQL operator payload returned data when benign baseline returned none "
-                "(potential filter/auth bypass)"
-            )
+            evidence = "NoSQL operator payload returned data when benign baseline returned none (potential filter/auth bypass)"
             if config.NOSQLI_BLIND_EXTRACTION:
                 extracted = BlindNoSQLExtractor(self.api.url, self.payload).extract()
                 if extracted:

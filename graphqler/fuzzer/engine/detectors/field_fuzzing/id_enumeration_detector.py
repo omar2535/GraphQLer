@@ -33,7 +33,6 @@ from graphqler import config
 from graphqler.utils import plugins_handler
 from graphqler.utils.api import API
 from graphqler.utils.objects_bucket import ObjectsBucket
-from graphqler.utils.stats import Stats
 from graphqler.utils.response_utils import is_non_empty_result
 from graphqler.fuzzer.engine.materializers.getter import Getter
 from graphqler.fuzzer.engine.materializers.regular_payload_materializer import RegularPayloadMaterializer
@@ -43,6 +42,7 @@ from graphqler.fuzzer.engine.detectors.field_fuzzing.scalar_utils import _resolv
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def collect_id_inputs(inputs: dict) -> list[str]:
     """Return field names whose resolved scalar type is Int or ID."""
@@ -55,6 +55,7 @@ def collect_id_inputs(inputs: dict) -> list[str]:
 
 
 # ── Custom getter / materializer ─────────────────────────────────────────────
+
 
 class _FixedIntGetter(Getter):
     """Returns a fixed integer value for a specific field; falls back to default for all others."""
@@ -85,6 +86,7 @@ class _FixedIntMaterializer(RegularPayloadMaterializer):
 
 
 # ── Detector ──────────────────────────────────────────────────────────────────
+
 
 class IDEnumerationDetector(Detector):
     """Detect IDOR / ID enumeration by probing sequential integer IDs.
@@ -124,9 +126,7 @@ class IDEnumerationDetector(Detector):
         # Scope guard: skip catalogue / public endpoints to avoid false positives.
         if config.ID_ENUMERATION_SCOPE_HEURISTIC:
             return_type_name, return_type_fields = self._get_return_type_info()
-            scope = EndpointPrivacyClassifier().classify(
-                self.name, return_type_name, return_type_fields
-            )
+            scope = EndpointPrivacyClassifier().classify(self.name, return_type_name, return_type_fields)
             if scope != "private":
                 return (False, False)
 
@@ -138,13 +138,12 @@ class IDEnumerationDetector(Detector):
         self.potentially_vulnerable = success_count >= config.ID_ENUMERATION_SUCCESS_THRESHOLD
 
         evidence = (
-            f"{success_count}/{config.ID_ENUMERATION_COUNT} IDs (1..{config.ID_ENUMERATION_COUNT}) "
-            f"returned non-null data for field '{target_field}' — possible IDOR"
+            f"{success_count}/{config.ID_ENUMERATION_COUNT} IDs (1..{config.ID_ENUMERATION_COUNT}) returned non-null data for field '{target_field}' — possible IDOR"
             if self.potentially_vulnerable
             else ""
         )
         last_payload = payloads_used[-1] if payloads_used else ""
-        Stats().add_vulnerability(
+        self.stats.add_vulnerability(
             self.DETECTION_NAME,
             self.name,
             self.confirmed_vulnerable,
@@ -210,19 +209,13 @@ class IDEnumerationDetector(Detector):
 
             payloads_used.append(payload)
             try:
-                graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(
-                    self.api.url, payload
-                )
-                Stats().add_http_status_code(self.name, request_response.status_code)
+                graphql_response, request_response = plugins_handler.get_request_utils().send_graphql_request(self.api.url, payload)
+                self.stats.add_http_status_code(self.name, request_response.status_code)
                 if request_response.status_code == 200 and isinstance(graphql_response.get("data"), dict):
                     data = graphql_response["data"]
                     field_result = data.get(self.name)
 
-                    is_hit = (
-                        is_non_empty_result(field_result)
-                        if self.name in data
-                        else any(is_non_empty_result(v) for v in data.values())
-                    )
+                    is_hit = is_non_empty_result(field_result) if self.name in data else any(is_non_empty_result(v) for v in data.values())
                     if is_hit:
                         success_count += 1
             except Exception as e:
